@@ -1,0 +1,112 @@
+-- Crear base de datos
+CREATE DATABASE IF NOT EXISTS  app_ manager_tickets;
+USE gestor_tickets;
+
+-- Tabla de empresas
+CREATE TABLE empresas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    ruc VARCHAR(20),
+    direccion TEXT
+);
+
+-- Tabla de sucursales
+CREATE TABLE sucursales (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    direccion TEXT,
+    id_empresa INT,
+    FOREIGN KEY (id_empresa) REFERENCES empresas(id) ON DELETE CASCADE
+);
+
+-- Tabla de departamentos
+CREATE TABLE departamentos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    id_sucursal INT,
+    FOREIGN KEY (id_sucursal) REFERENCES sucursales(id) ON DELETE CASCADE
+);
+
+-- Tabla de usuarios
+CREATE TABLE usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    correo VARCHAR(100) UNIQUE NOT NULL,
+    contraseña VARCHAR(255) NOT NULL,
+    rol ENUM('cliente', 'tecnico', 'administrador') NOT NULL,
+    id_departamento INT,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_departamento) REFERENCES departamentos(id)
+);
+
+-- Tabla de categorías
+CREATE TABLE categorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL
+);
+
+-- Tabla de tickets
+CREATE TABLE tickets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(200) NOT NULL,
+    descripcion TEXT NOT NULL,
+    estado ENUM('abierto', 'en proceso', 'cerrado') DEFAULT 'abierto',
+    prioridad ENUM('baja', 'media', 'alta') DEFAULT 'media',
+    id_usuario INT,
+    id_categoria INT,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_cierre TIMESTAMP NULL,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE SET NULL,
+    FOREIGN KEY (id_categoria) REFERENCES categorias(id)
+);
+
+-- Tabla de imágenes asociadas al ticket
+CREATE TABLE imagenes_ticket (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_ticket INT,
+    ruta_imagen TEXT NOT NULL,
+    fecha_subida TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_ticket) REFERENCES tickets(id) ON DELETE CASCADE
+);
+
+-- Tabla de asignaciones de técnicos
+CREATE TABLE asignaciones (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_ticket INT,
+    id_tecnico INT,
+    fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_ticket) REFERENCES tickets(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_tecnico) REFERENCES usuarios(id)
+);
+
+-- Tabla de comentarios
+CREATE TABLE comentarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_ticket INT,
+    id_usuario INT,
+    mensaje TEXT NOT NULL,
+    fecha_comentario TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_ticket) REFERENCES tickets(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id)
+);
+
+-- Tabla de imágenes en comentarios
+CREATE TABLE imagenes_comentario (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_comentario INT,
+    ruta_imagen TEXT NOT NULL,
+    fecha_subida TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_comentario) REFERENCES comentarios(id) ON DELETE CASCADE
+);
+
+-- Tabla de evaluaciones de técnicos
+CREATE TABLE evaluaciones_tecnicos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_ticket INT UNIQUE,
+    id_tecnico INT,
+    calificacion INT CHECK (calificacion BETWEEN 1 AND 5),
+    comentario TEXT,
+    fecha_evaluacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_ticket) REFERENCES tickets(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_tecnico) REFERENCES usuarios(id)
+);
