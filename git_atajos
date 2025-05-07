@@ -1,0 +1,82 @@
+COMANDOS PARA INICIALIZAR REPOSITORIO
+git init ->INICIALIZAR REPOSITORIO
+
+git config --global user.name ->"Example:nombre" ->cambiar tu nombre en el git
+git config --global user.email -> "Exameple:Coreo" -> Cambiar tu correo en el git
+git config --global core.editor "Example:Editor" -> Cambia tu editor predeterminado
+
+
+git config user.name ->Información de name
+git config user.email -> Información de correo
+git config core.editor -> Información del editor
+
+git status -> Información estado del proyecto
+git add  "nombre_archivo" -> para hacer seguimientos a los archivos
+git add . ->agrega todo lo que esta en tu carpeta donde estas ubicado par haceer el seguimiento
+git add -A ->agrega todo los archivoa la area de seguimientos no importas donde estas ubicado
+git commit -m "mnesaje_commit" -> para guardar nuevo archivo
+
+COMANDOS PARA VER EL HISTORIAL DE LOS COMMIT
+git log -> historial de los commit 
+git log --oneline -> nOS AYUDA EN UNA SOLA LINEA TODO LOS COMMIT QUE SE A HEHCO
+git log --oneline "nombre_archivo" -> NOS DA LA INFORAMCION DE TODO LOS COMMIT DEL ARCHIVO EN UNA SOLA LINEA
+git log  --oneline --author="Exameple:nombre" ->Nos da la informacion de todo los commit que a hecho esa persona en  lineas
+git log  --author= "Exameple_nombre" "nombre_archivo" ->nos da la informacion de los commit que a hecho esa persona en el archivo
+git log --oneline --grep="palabra_buscar" ->nos da la informacion del commit de esa palabra
+git log --oneline --graph -> me muestra los commit que tiene cada rama
+
+COMANDO PARA VIAJAR EN EL TIEMPO
+git checkout 5abcbcb40 -> CON ESTE COMANDO PUEDO REGRESAR AL COMMIT QUE LE PONGO EN EL ID 
+git  checkout master -> CON ESTE COMANDO REGRESO AL COMMIT QUE ESTABA ACTUAL
+
+comandos para sacar al area de preparacion
+git restore --staged  "nombre_archivo"-> Saca al are de prepacion y el archivo ahora se encuentra en el seguimiento del archivo
+
+
+COMANOD PARA RESETEAR archivos
+git checkout "nombre_archivo_o_carpeta" ->comando para resetear  el archivo pero archivos no confirmados al commit
+
+
+COMANDO PARA  VER CAMBIOS
+git show  "14b85321b4"  -> con estos comando puedes ver los cambios que se hizo en ese id
+
+RAMAS GIT 
+git branch -> mostrar toda las ramas creadas
+git checkout -b nombre_rama_quiero_crear ->  comando para crear ramas
+git branch -d nombre_rama_quiero_eliminar -> comando para eliminar ramas(pero debes estar en una rama que no quieras eliminar)
+
+//metodo recomendable 
+git switch -c  nombre_rama_quiero_crear ->comando para crear ramas este comando es recomendable 
+git switch master -> con este comando regreso a la rama principal  y tambien puedo moverme de ramas solo con el nombre de la rama
+git diff nombre_rama_quiero_diferencia   -> con estsa rama muestra las diferencia que tiene la rama que estas con la que pones ahi 
+git merge nombre_rama_quier_mezclas -> con este comando puedo mezclar la rama que estoy actul con la nueva rama
+git switch -c test -> buena practica para mostrar al jefe
+git switch  -c dev -> 
+
+no menclature par crear ramas 
+git switch -c feacture/nombre_descriptivo ejemplo (contact-page) -> se pone feacture para agregar cambios 
+git switch -c fix/title-color ->se pone fix cuando doy una solucion y crea una rama para dar la solucion
+
+
+//coamndos para subir a la nube
+git remote -v  ->para ver si el proyecto esta en alguna parte de la nube
+git remote add origin ruta_del_git -> creando el primer remoto es un estandar poner orgin
+git push origin  nombre_de rama -> para subir tu rama al repositorio en la nube
+git fetch ->trae los cambios que tiene en la nube no actuliza la inforamcion
+git pull origin nombre_rama_quiero_traer_los_cambios_dela_nube ->trae los cambios que tiene en la nube y actuliza la informacion
+//PARA JALAR CAMBIOS DE MI RAMA ORIGIN DEV  O CUALQUIER OTRA RAMA QUE SE ENCUENTRA EN LA NUBE DEBO DE HACER UN PULL 
+
+
+//comandos para clonar repositorio 
+git clone link_del_repositorio -> clono el repositorio que esta en el link del git-hub
+git ls-remote  -> listado que tiene en la nube en el repositorio que clonastes
+git fetch --all -> Trae informacion de toda las ramas que tenga 
+git branch -a  -> me lista las ramas que estan en el remoto
+
+
+//CONSEJOS FINALIZACION DE CURSOS
+git tag v1.0 --> creo una etiqueta para dar la version de mi codigo, SE CREA REMOTO Y DEPSUES TOCA SUBIR AL REMOTO
+poner . en git de la web y me abre el repositorio que estoy  un vistual studio
+
+
+como resolver conflictos en git 
