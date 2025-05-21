@@ -1,0 +1,27 @@
+-crear entorno
+conda create --name mientorno312 python=3.12
+
+-Activar entorno
+conda activate mientorno312
+
+-Desactivar 
+conda deactivate
+
+-ver paquetes
+conda list 
+
+-instalar paquete
+conda install django
+conda install nombre-paquete
+
+pip install nombre-paquete
+
+-Crear proydcto nuevo en django
+django-admin startproject nombre-proyecto
+
+-crear aplicacion
+python manage.py startapp nombre-app
+
+-correr app
+python manage.py runserver
+
