@@ -1,8 +1,8 @@
 -crear entorno
-conda create --name mientorno312 python=3.12
+conda create --name mientorno310 python=3.10
 
 -Activar entorno
-conda activate mientorno312
+conda activate mientorno310
 
 -Desactivar 
 conda deactivate
@@ -25,3 +25,20 @@ python manage.py startapp nombre-app
 -correr app
 python manage.py runserver
 
+
+-Paso2
+agregar la app en setings
+crear la primera versión del modelo
+
+
+-Paso 3
+crear modelo en models.py
+	-Crear migraciones
+	python manage.py makemigrations
+	python manage.py migrate
+
+-Paso 4
+#importar del modelo
+from .models import nombre-clase
+	-crear superusuario
+	python manage.py createsuperuser
