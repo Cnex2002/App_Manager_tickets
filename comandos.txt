@@ -1,8 +1,8 @@
 -crear entorno
-conda create --name mientorno310 python=3.10
+conda create --name mientorno312 python=3.12
 
 -Activar entorno
-conda activate mientorno310
+conda activate mientorno312
 
 -Desactivar 
 conda deactivate

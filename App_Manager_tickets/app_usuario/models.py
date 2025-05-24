@@ -10,7 +10,7 @@ class Rol(models.Model):
 class Usuario(models.Model):
     nombre = models.CharField(max_length=100)
     correo = models.EmailField(unique=True)
-    contraseña = models.CharField(max_length=255)
+   
     rol = models.ForeignKey(Rol, on_delete=models.SET_NULL, null=True)
     departamento = models.ForeignKey('app_empresa.Departamento', on_delete=models.SET_NULL, null=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
