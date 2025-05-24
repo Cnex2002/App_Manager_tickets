@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html> 
+<head> 
+    <title>detalle de {{persona}}</title>
+</head>
+
+<body>
+
+<h1>Nueva empresa</h1>
+<div class="card">
+    <div class="card-body">
+       <form method="POST" class="post-form">
+        {% csrf_token %}
+        {{ formulario.as_p }}
+        <button type="submit" class="save btn btn-default">Guardar</button>
+        </form>
+
+    </div>
+</div>
+
+
+</body>
+
+</html>
