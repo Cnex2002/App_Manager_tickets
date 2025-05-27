@@ -29,6 +29,7 @@ urlpatterns = [
     path('departamento/nuevo/', views.departamento_nuevo, name='departamento_nuevo'),
     path('ticket/nuevo/', views.ticket_nuevo, name='ticket_nuevo'),
     path('rol/nuevo/', views.rol_nuevo, name='rol_nuevo'), 
+    path('evaluacion/nuevo/', views.evaluacion_nueva, name='evaluacion_nueva'),  
     #lista
     path('empresa/', views.lista_empresas, name='lista_empresas'),
     path('categoria/', views.lista_categorias, name='lista_categorias'),
@@ -37,6 +38,7 @@ urlpatterns = [
     path('departamento/', views.lista_departamentos, name='lista_departamentos'),
     path('ticket/', views.lista_tickets, name='lista_tickets'),
     path('rol/', views.lista_roles, name='lista_roles'),
+    path('evaluacion/', views.lista_evaluaciones, name='lista_evaluaciones'),
     #editar
     path('empresa/editar/<int:id>/', views.empresa_editar, name='empresa_editar'),
     path('sucursal/editar/<int:id>/', views.sucursal_editar, name='sucursal_editar'),
@@ -45,5 +47,6 @@ urlpatterns = [
     path('cliente/editar/<int:id>/', views.cliente_editar, name='cliente_editar'),
     path('ticket/editar/<int:id>/', views.ticket_editar, name='ticket_editar'),
     path('rol/editar/<int:id>/', views.rol_editar, name='rol_editar'),
+    path('evaluacion/editar/<int:id>/', views.evaluacion_editar, name='evaluacion_editar'),
 
 ]

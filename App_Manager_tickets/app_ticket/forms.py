@@ -93,3 +93,14 @@ class RolForm(forms.ModelForm):
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+class EvaluacionTecnicoForm(forms.ModelForm):
+    class Meta:
+        model = EvaluacionTecnico
+        fields = ['ticket', 'calificacion', 'comentario','fecha_evaluacion']
+        widgets = {
+            'ticket': forms.Select(attrs={'class': 'form-control'}),
+            'calificacion': forms.Select(attrs={'class': 'form-control'}),
+            'comentario': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'fecha_evaluacion': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+        }

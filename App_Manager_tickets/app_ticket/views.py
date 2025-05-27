@@ -33,8 +33,8 @@ def cliente_nueva(request):
         formulario = clienteForm()
 
     contexto = {
-        'formulario': formulario,
-        'titulo': 'Nuevo Cliente',
+        'formulario': formulario
+       
     }
     return render(request, 'ticket_nuevo.html', contexto)
 
@@ -50,8 +50,8 @@ def categoria_nueva(request):
         formulario = CategoriaForm()
 
     contexto = {
-        'formulario': formulario,
-        'titulo': 'Nueva Categoría',
+        'formulario': formulario
+       
     }
     return render(request, 'ticket_nuevo.html', contexto)
 
@@ -67,8 +67,8 @@ def sucursal_nuevo(request):
         formulario = SucursalForm()
 
     contexto = {
-        'formulario': formulario,
-        'titulo': 'Nueva Sucursal',
+        'formulario': formulario
+        
     }
     return render(request, 'ticket_nuevo.html', contexto)
 
@@ -84,8 +84,8 @@ def departamento_nuevo(request):
         formulario = DepartamentoForm()
 
     contexto = {
-        'formulario': formulario,
-        'titulo': 'Nuevo Departamento',
+        'formulario': formulario
+        
     }
     return render(request, 'ticket_nuevo.html', contexto)
 
@@ -101,8 +101,22 @@ def ticket_nuevo(request):
         formulario = TicketForm()
 
     contexto = {
-        'formulario': formulario,
-        'titulo': 'Nuevo Ticket',
+        'formulario': formulario
+        
+    }
+    return render(request, 'ticket_nuevo.html', contexto)
+
+def evaluacion_nueva(request):
+    if request.method == 'POST':
+        formulario = EvaluacionTecnicoForm(request.POST)
+        if formulario.is_valid():
+            formulario.save()
+            return redirect('lista_evaluaciones')  
+    else:
+        formulario = EvaluacionTecnicoForm()
+    contexto = {
+        'formulario': formulario
+        
     }
     return render(request, 'ticket_nuevo.html', contexto)
 
@@ -148,10 +162,18 @@ def lista_tickets(request):
 def lista_roles(request):
     roles = Rol.objects.all()  
     contexto = {
-        'roles': roles,
-        'titulo': 'Lista de Roles',  
+        'roles': roles
+         
     }
     return render(request, 'rol_lista.html', contexto) 
+
+def lista_evaluaciones(request):
+    evaluaciones = EvaluacionTecnico.objects.all()  # Obtiene todas las evaluaciones
+    contexto = {
+        'evaluaciones': evaluaciones
+       
+    }
+    return render(request, 'evaluacion_tecnico_lista.html', contexto)
 
 def empresa_editar(request, id):
     empresa = get_object_or_404(Empresa, id=id)  
@@ -163,8 +185,8 @@ def empresa_editar(request, id):
     else:
         formulario = EmpresaForm(instance=empresa) 
     contexto = {
-        'formulario': formulario,
-        'titulo': 'Editar Empresa', 
+        'formulario': formulario
+        
     }
     return render(request, 'ticket_nuevo.html', contexto) 
 
@@ -178,8 +200,8 @@ def sucursal_editar(request, id):
     else:
         formulario = SucursalForm(instance=sucursal)
     contexto = {
-        'formulario': formulario,
-        'titulo': 'Editar Sucursal',
+        'formulario': formulario
+        
     }
     return render(request, 'ticket_nuevo.html', contexto)  
 
@@ -193,8 +215,8 @@ def departamento_editar(request, id):
     else:
         formulario = DepartamentoForm(instance=departamento)
     contexto = {
-        'formulario': formulario,
-        'titulo': 'Editar Departamento',
+        'formulario': formulario
+    
     }
     return render(request, 'ticket_nuevo.html', contexto) 
 
@@ -209,7 +231,7 @@ def categoria_editar(request, id):
         formulario = CategoriaForm(instance=categoria)
     contexto = {
         'formulario': formulario,
-        'titulo': 'Editar Categoría',
+        
     }
     return render(request, 'ticket_nuevo.html', contexto) 
 
@@ -223,8 +245,8 @@ def cliente_editar(request, id):
     else:
         formulario = clienteForm(instance=cliente)
     contexto = {
-        'formulario': formulario,
-        'titulo': 'Editar Cliente',
+        'formulario': formulario
+       
     }
     return render(request, 'ticket_nuevo.html', contexto)
 
@@ -241,8 +263,8 @@ def ticket_editar(request, id):
         formulario = TicketForm(instance=ticket)
 
     contexto = {
-        'formulario': formulario,
-        'titulo': 'Editar Ticket',
+        'formulario': formulario
+       
     }
     return render(request, 'ticket_nuevo.html', contexto)
 
@@ -255,8 +277,8 @@ def rol_nuevo(request):
     else:
         formulario = RolForm()
     contexto = {
-        'formulario': formulario,
-        'titulo': 'Nuevo Rol',
+        'formulario': formulario
+        
     }
     return render(request, 'ticket_nuevo.html', contexto)
 
@@ -270,7 +292,22 @@ def rol_editar(request, id):
     else:
         formulario = RolForm(instance=rol)
     contexto = {
+        'formulario': formulario
+        
+    }
+    return render(request, 'ticket_nuevo.html', contexto)
+
+def evaluacion_editar(request, id):
+    evaluacion = get_object_or_404(EvaluacionTecnico, id=id) 
+    if request.method == 'POST':
+        formulario = EvaluacionTecnicoForm(request.POST, instance=evaluacion)
+        if formulario.is_valid():
+            formulario.save()
+            return redirect('lista_evaluaciones')  #
+    else:
+        formulario = EvaluacionTecnicoForm(instance=evaluacion) 
+    contexto = {
         'formulario': formulario,
-        'titulo': 'Editar Rol',
+        'titulo': 'Editar Evaluación de Técnico',
     }
     return render(request, 'ticket_nuevo.html', contexto)
