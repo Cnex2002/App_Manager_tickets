@@ -21,6 +21,7 @@ def empresa_nueva(request):
     return render(request, 'ticket_nuevo.html', contexto)
 
 
+
 def cliente_nueva(request):
     if request.method == 'POST':
         formulario = clienteForm(request.POST)
@@ -105,7 +106,7 @@ def ticket_nuevo(request):
     }
     return render(request, 'ticket_nuevo.html', contexto)
 
-#lista de empresas
+#lista 
 def lista_empresas(request):
    
     contexto = {
@@ -143,6 +144,14 @@ def lista_tickets(request):
         'tickets': Ticket.objects.all(),
     }
     return render(request, 'ticket_lista.html', contexto)
+
+def lista_roles(request):
+    roles = Rol.objects.all()  
+    contexto = {
+        'roles': roles,
+        'titulo': 'Lista de Roles',  
+    }
+    return render(request, 'rol_lista.html', contexto) 
 
 def empresa_editar(request, id):
     empresa = get_object_or_404(Empresa, id=id)  
@@ -234,5 +243,34 @@ def ticket_editar(request, id):
     contexto = {
         'formulario': formulario,
         'titulo': 'Editar Ticket',
+    }
+    return render(request, 'ticket_nuevo.html', contexto)
+
+def rol_nuevo(request):
+    if request.method == 'POST':
+        formulario = RolForm(request.POST)
+        if formulario.is_valid():
+            formulario.save()
+            return redirect('lista_roles')  # Redirige a la lista de roles después de crear el nuevo rol
+    else:
+        formulario = RolForm()
+    contexto = {
+        'formulario': formulario,
+        'titulo': 'Nuevo Rol',
+    }
+    return render(request, 'ticket_nuevo.html', contexto)
+
+def rol_editar(request, id):
+    rol = get_object_or_404(Rol, id=id)
+    if request.method == 'POST':
+        formulario = RolForm(request.POST, instance=rol)
+        if formulario.is_valid():
+            formulario.save()
+            return redirect('lista_roles')
+    else:
+        formulario = RolForm(instance=rol)
+    contexto = {
+        'formulario': formulario,
+        'titulo': 'Editar Rol',
     }
     return render(request, 'ticket_nuevo.html', contexto)

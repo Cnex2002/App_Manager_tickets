@@ -85,3 +85,11 @@ class TicketForm(forms.ModelForm):
                 'type': 'datetime-local'
             }),
         }
+
+class RolForm(forms.ModelForm):
+    class Meta:
+        model = Rol
+        fields = ['nombre']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+        }

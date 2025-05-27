@@ -28,13 +28,15 @@ urlpatterns = [
     path('sucursal/nuevo/', views.sucursal_nuevo, name='sucursal_nuevo'),
     path('departamento/nuevo/', views.departamento_nuevo, name='departamento_nuevo'),
     path('ticket/nuevo/', views.ticket_nuevo, name='ticket_nuevo'),
+    path('rol/nuevo/', views.rol_nuevo, name='rol_nuevo'), 
     #lista
-    path('lista_empresas/', views.lista_empresas, name='lista_empresas'),
-    path('lista_categorias/', views.lista_categorias, name='lista_categorias'),
-    path('lista_clientes/', views.lista_clientes, name='lista_clientes'),
-    path('lista_sucursales/', views.lista_sucursales, name='lista_sucursales'),
-    path('lista_departamentos/', views.lista_departamentos, name='lista_departamentos'),
-    path('lista_tickets/', views.lista_tickets, name='lista_tickets'),
+    path('empresa/', views.lista_empresas, name='lista_empresas'),
+    path('categoria/', views.lista_categorias, name='lista_categorias'),
+    path('cliente/', views.lista_clientes, name='lista_clientes'),
+    path('sucursal/', views.lista_sucursales, name='lista_sucursales'),
+    path('departamento/', views.lista_departamentos, name='lista_departamentos'),
+    path('ticket/', views.lista_tickets, name='lista_tickets'),
+    path('rol/', views.lista_roles, name='lista_roles'),
     #editar
     path('empresa/editar/<int:id>/', views.empresa_editar, name='empresa_editar'),
     path('sucursal/editar/<int:id>/', views.sucursal_editar, name='sucursal_editar'),
@@ -42,5 +44,6 @@ urlpatterns = [
     path('categoria/editar/<int:id>/', views.categoria_editar, name='categoria_editar'),
     path('cliente/editar/<int:id>/', views.cliente_editar, name='cliente_editar'),
     path('ticket/editar/<int:id>/', views.ticket_editar, name='ticket_editar'),
+    path('rol/editar/<int:id>/', views.rol_editar, name='rol_editar'),
 
 ]
