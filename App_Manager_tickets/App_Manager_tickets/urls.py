@@ -21,7 +21,16 @@ from app_ticket import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('empresa/nuevo/',views.empresa_nueva, name='empresa_nueva'),
-     path('categoria/nuevo/',views.categoria_nueva, name='empresa_nueva'),
-     path('cliente/nuevo/',views.cliente_nueva, name='empresa_nueva'),
+    path('empresa/nuevo/',views.empresa_nueva, name='empresa_nuevo'),
+    path('categoria/nuevo/',views.categoria_nueva, name='categoria_nuevo'),
+    path('cliente/nuevo/',views.cliente_nueva, name='cliente_nuevo'),
+    path('sucursal/nuevo/', views.sucursal_nuevo, name='sucursal_nuevo'),
+    path('departamento/nuevo/', views.departamento_nuevo, name='departamento_nuevo'),
+    path('ticket/nuevo/', views.ticket_nuevo, name='ticket_nuevo'),
+    path('lista_empresas/', views.lista_empresas, name='lista_empresas'),
+    path('lista_categorias/', views.lista_categorias, name='lista_categorias'),
+    path('lista_clientes/', views.lista_clientes, name='lista_clientes'),
+    path('lista_sucursales/', views.lista_sucursales, name='lista_sucursales'),
+    path('lista_departamentos/', views.lista_departamentos, name='lista_departamentos'),
+    path('lista_tickets/', views.lista_tickets, name='lista_tickets'),
 ]

@@ -29,4 +29,60 @@ class clienteForm(forms.ModelForm):
             'telefono': forms.TextInput(attrs={'class': 'form-control'}),
             'direccion': forms.TextInput(attrs={'class': 'form-control'}),
             'correo': forms.TextInput(attrs={'class': 'form-control'}),
-        }   
+        }
+        
+
+class SucursalForm(forms.ModelForm):
+    class Meta:
+        model = Sucursal
+        fields = ['nombre', 'direccion', 'empresa','estado']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'direccion': forms.TextInput(attrs={'class': 'form-control'}),
+            'empresa': forms.Select(attrs={'class': 'form-control'}),
+            'estado': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+#DepartamentoForm 
+class DepartamentoForm(forms.ModelForm):
+    class Meta:
+        model = Departamento
+        fields = ['nombre', 'sucursal','observaciones','estado']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'sucursal': forms.Select(attrs={'class': 'form-control'}),
+            'observaciones': forms.Textarea(attrs={'class': 'form-control'}),
+            'estado': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+
+        }
+
+
+
+
+class TicketForm(forms.ModelForm):
+    class Meta:
+        model = Ticket
+        fields = [
+            'titulo',
+            'descripcion',
+            'estado',
+            'prioridad',
+            'categoria',
+            'cliente',
+            'tecnico',
+            'fecha_cierre',
+        ]
+        widgets = {
+            'titulo': forms.TextInput(attrs={'class': 'form-control'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control'}),
+            'estado': forms.Select(attrs={'class': 'form-control'}),
+            'prioridad': forms.Select(attrs={'class': 'form-control'}),
+            'categoria': forms.Select(attrs={'class': 'form-control'}),
+            'cliente': forms.Select(attrs={'class': 'form-control'}),
+            'tecnico': forms.Select(attrs={'class': 'form-control'}),
+            'fecha_cierre': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local'
+            }),
+        }
+
