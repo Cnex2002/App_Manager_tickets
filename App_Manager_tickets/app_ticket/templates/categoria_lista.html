@@ -20,7 +20,7 @@
         <tr>
             <td>{{ cat.nombre }}</td>
             <td>
-                <button href="#">Ver Detalles</button>
+                <a href="{% url 'categoria_editar' cat.id %}" class="btn btn-primary">Editar</a>
             </td>
         </tr>
         {% endfor %}

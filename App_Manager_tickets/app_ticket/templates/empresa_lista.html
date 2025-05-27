@@ -30,9 +30,9 @@
                     <td>{{ e.direccion }}</td>
                     <td>{{ e.estado }}</td>
                     
-                    </td>
+                    
                     <td>
-                        <button href="#">Ver Detalles</button>
+                        <a href="{% url 'empresa_editar' e.id %}" class="btn btn-primary">Editar</a>
                     </td>
                 </tr>
             {% endfor %}

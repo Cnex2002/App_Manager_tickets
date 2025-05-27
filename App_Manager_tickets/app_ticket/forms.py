@@ -85,4 +85,3 @@ class TicketForm(forms.ModelForm):
                 'type': 'datetime-local'
             }),
         }
-

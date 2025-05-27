@@ -31,7 +31,7 @@
             <td>{{ t.tecnico.nombre }}</td>
             <td>{{ t.fecha_creacion }}</td>
             <td>
-                <button href="#">Ver Detalles</button>
+                <a href="{% url 'ticket_editar' t.id %}" class="btn btn-primary">Editar</a>
             </td>
         </tr>
         {% endfor %}
