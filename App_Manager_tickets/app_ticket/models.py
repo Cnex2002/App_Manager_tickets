@@ -112,4 +112,4 @@ class EvaluacionTecnico(models.Model):
     fecha_evaluacion = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"Evaluación del Ticket #{self.ticket.id} - {self.get_calificacion_display() if self.calificacion else 'Sin calificación'}"
+        return f"Evaluación del Ticket #{self.ticket.id} - {self.get_calificacion_display(),}"

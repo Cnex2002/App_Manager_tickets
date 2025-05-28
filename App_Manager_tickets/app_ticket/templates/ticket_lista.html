@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lista de Tickets</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<h1 class="mt-4">Lista de Tickets</h1>
+<a href="{% url 'ticket_nuevo' %}" class="btn btn-success">Nuevo Ticket</a>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Título</th>
+            <th>Estado</th>
+            <th>Prioridad</th>
+            <th>Categoría</th>
+            <th>Cliente</th>
+            <th>Técnico</th>
+            <th>Fecha Creación</th>
+            <th>Accion</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for t in tickets %}
+        <tr>
+            <td>{{ t.titulo }}</td>
+            <td>{{ t.estado }}</td>
+            <td>{{ t.prioridad }}</td>
+            <td>{{ t.categoria.nombre }}</td>
+            <td>{{ t.cliente.nombres }}</td>
+            <td>{{ t.tecnico.nombre }}</td>
+            <td>{{ t.fecha_creacion }}</td>
+            <td>
+                <a href="{% url 'ticket_editar' t.id %}" class="btn btn-primary">Editar</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</body>
+</html>
