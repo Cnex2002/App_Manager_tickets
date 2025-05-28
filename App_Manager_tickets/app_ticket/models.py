@@ -90,12 +90,15 @@ class Ticket(models.Model):
 
 class SolucionTicket(models.Model):
     ticket = models.ForeignKey('Ticket', on_delete=models.CASCADE, related_name='imagenes')
-    ruta_imagen = models.TextField()
+    ruta_imagen=models.ImageField(upload_to='solucion_tickets', blank=True, null=True)
     comentario = models.TextField(null=True, blank=True)
     fecha_subida = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Solucion ID {self.ticket.id}"
+    
+    
+    
     
 CALIFICACION_CHOICES = [
     (1, '1 - Muy Malo'),

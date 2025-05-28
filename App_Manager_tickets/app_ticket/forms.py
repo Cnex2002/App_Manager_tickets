@@ -104,3 +104,14 @@ class EvaluacionTecnicoForm(forms.ModelForm):
             'comentario': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'fecha_evaluacion': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
         }
+        
+class SolucionTicketForm(forms.ModelForm):
+    class Meta:
+        model = SolucionTicket
+        fields = ['ticket', 'ruta_imagen', 'comentario','fecha_subida']
+        widgets = {
+            'ticket': forms.Select(attrs={'class': 'form-control'}),
+            'ruta_imagen': forms.Select(attrs={'class': 'form-control'}),
+            'comentario': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'fecha_subida': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+        }

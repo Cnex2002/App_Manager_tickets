@@ -120,6 +120,11 @@ def evaluacion_nueva(request):
     }
     return render(request, 'ticket_nuevo.html', contexto)
 
+
+
+
+
+
 #lista 
 def lista_empresas(request):
    
@@ -311,3 +316,29 @@ def evaluacion_editar(request, id):
         'titulo': 'Editar Evaluación de Técnico',
     }
     return render(request, 'ticket_nuevo.html', contexto)
+
+
+
+
+def lista_solucionticket(request):
+   
+    contexto = {
+        'solucionticket': SolucionTicket.objects.all(),
+    }
+    return render(request, 'solucionticket_lista.html', contexto)
+
+
+def solucionticket_nueva(request):
+    if request.method == 'POST':
+        formulario = SolucionTicketForm(request.POST)
+        if formulario.is_valid():
+            formulario.save()
+            return redirect('lista_solucionticket')  
+    else:
+        formulario = SolucionTicketForm()
+    contexto = {
+        'formulario': formulario
+        
+    }
+    return render(request, 'solucionticket_nuevo.html', contexto)
+
