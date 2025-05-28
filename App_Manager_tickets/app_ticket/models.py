@@ -1,6 +1,5 @@
 from django.db import models
 
-#Empresa
 
 class Empresa(models.Model):
     nombre = models.CharField(max_length=100, blank=False, null=False)
@@ -45,7 +44,7 @@ class Usuario(models.Model):
     def __str__(self):
         return self.nombre
     
-#ticket
+
 class Categoria(models.Model):
     nombre = models.CharField(max_length=100, blank=False, null=False)
 
@@ -89,13 +88,14 @@ class Ticket(models.Model):
     
 
 
-class ImagenTicket(models.Model):
+class SolucionTicket(models.Model):
     ticket = models.ForeignKey('Ticket', on_delete=models.CASCADE, related_name='imagenes')
     ruta_imagen = models.TextField()
+    comentario = models.TextField(null=True, blank=True)
     fecha_subida = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Imagen de Ticket ID {self.ticket.id} - {self.fecha_subida.strftime('%Y-%m-%d %H:%M:%S')}"
+        return f"Solucion ID {self.ticket.id}"
     
 CALIFICACION_CHOICES = [
     (1, '1 - Muy Malo'),
