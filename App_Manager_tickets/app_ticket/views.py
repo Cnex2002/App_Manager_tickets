@@ -2,8 +2,12 @@ from django.utils import timezone
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
+from django.urls import reverse
 from .models import *
 from .forms import *
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+
 
 def empresa_nueva(request):
     if request.method == 'POST':
@@ -127,6 +131,7 @@ def evaluacion_nueva(request):
 
 
 #lista 
+@login_required
 def lista_empresas(request):
    
     contexto = {
@@ -318,18 +323,110 @@ def evaluacion_editar(request, id):
     }
     return render(request, 'ticket_nuevo.html', contexto)
 
+#eliminar 
+def empresa_eliminar(request, id):
+    empresa = get_object_or_404(Empresa, id=id)
 
+    if request.method == 'POST':
+        empresa.delete()
+        return redirect('lista_empresas')  # Redirige a la lista
 
-
-def lista_solucionticket(request):
-   
     contexto = {
-        'solucionticket': SolucionTicket.objects.all(),
+        'objeto': empresa,
+        'url_cancelar': reverse('lista_empresas'),  # Usamos reverse() para obtener la URL
     }
-    return render(request, 'solucionticket_lista.html', contexto)
+    return render(request, 'ticket_eliminar.html', contexto)
 
+#eliminar
+def sucursal_eliminar(request, id):
+    sucursal = get_object_or_404(Sucursal, id=id)
 
-from django.utils import timezone
+    if request.method == 'POST':
+        sucursal.delete()
+        return redirect('lista_sucursales')  # Redirige a la lista
+
+    contexto = {
+        'objeto': sucursal,
+        'url_cancelar': reverse('lista_sucursales'),  # Usamos reverse() para obtener la URL
+    }
+    return render(request, 'ticket_eliminar.html', contexto)
+def departamento_eliminar(request, id):
+    departamento = get_object_or_404(Departamento, id=id)
+
+    if request.method == 'POST':
+        departamento.delete()
+        return redirect('lista_departamentos')  # Redirige a la lista
+
+    contexto = {
+        'objeto': departamento,
+        'url_cancelar': reverse('lista_departamentos'),  # Usamos reverse() para obtener la URL
+    }
+    return render(request, 'ticket_eliminar.html', contexto)
+def categoria_eliminar(request, id):
+    categoria = get_object_or_404(Categoria, id=id)
+
+    if request.method == 'POST':
+        categoria.delete()
+        return redirect('lista_categorias')  # Redirige a la lista
+
+    contexto = {
+        'objeto': categoria,
+        'url_cancelar': reverse('lista_categorias'),  # Usamos reverse() para obtener la URL
+    }
+    return render(request, 'ticket_eliminar.html', contexto)
+def cliente_eliminar(request, id):
+    cliente = get_object_or_404(Cliente, id=id)
+
+    if request.method == 'POST':
+        cliente.delete()
+        return redirect('lista_clientes')  # Redirige a la lista
+
+    contexto = {
+        'objeto': cliente,
+        'url_cancelar': reverse('lista_clientes'),  # Usamos reverse() para obtener la URL
+    }
+    return render(request, 'ticket_eliminar.html', contexto)
+def ticket_eliminar(request, id):
+    ticket = get_object_or_404(Ticket, id=id)
+
+    if request.method == 'POST':
+        ticket.delete()
+        return redirect('lista_tickets')  # Redirige a la lista
+
+    contexto = {
+        'objeto': ticket,
+        'url_cancelar': reverse('lista_tickets'),  # Usamos reverse() para obtener la URL
+    }
+    return render(request, 'ticket_eliminar.html', contexto)
+def rol_eliminar(request, id):
+    rol = get_object_or_404(Rol, id=id)
+
+    if request.method == 'POST':
+        rol.delete()
+        return redirect('lista_roles')  # Redirige a la lista
+
+    contexto = {
+        'objeto': rol,
+        'url_cancelar': reverse('lista_roles'),  # Usamos reverse() para obtener la URL
+    }
+    return render(request, 'ticket_eliminar.html', contexto)
+def evaluacion_eliminar(request, id):
+    evaluacion = get_object_or_404(EvaluacionTecnico, id=id)
+
+    if request.method == 'POST':
+        evaluacion.delete()
+        return redirect('lista_evaluaciones')  # Redirige a la lista
+
+    contexto = {
+        'objeto': evaluacion,
+        'url_cancelar': reverse('lista_evaluaciones'),  # Usamos reverse() para obtener la URL
+    }
+    return render(request, 'ticket_eliminar.html', contexto)
+
+#ver tickets del tenico
+def ver_tickets_tecnico(request, ):
+  
+    return render(request, 'tecnico_ticket.html')
 
 def solucionticket_nueva(request, id):  
     ticket = get_object_or_404(Ticket, id=id)
@@ -356,4 +453,3 @@ def solucionticket_nueva(request, id):
         'ticket': ticket
     }
     return render(request, 'solucionticket_nuevo.html', contexto)
-

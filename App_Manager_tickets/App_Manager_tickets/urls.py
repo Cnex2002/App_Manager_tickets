@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path,  include
 from app_ticket import views
 
 
@@ -50,5 +50,21 @@ urlpatterns = [
     path('ticket/editar/<int:id>/', views.ticket_editar, name='ticket_editar'),
     path('rol/editar/<int:id>/', views.rol_editar, name='rol_editar'),
     path('evaluacion/editar/<int:id>/', views.evaluacion_editar, name='evaluacion_editar'),
-    
+    #eliminar
+    path('empresa/eliminar/<int:id>/', views.empresa_eliminar, name='empresa_eliminar'),
+    path('sucursal/eliminar/<int:id>/', views.sucursal_eliminar, name='sucursal_eliminar'),
+    path('departamento/eliminar/<int:id>/', views.departamento_eliminar, name='departamento_eliminar'),
+    path('categoria/eliminar/<int:id>/', views.categoria_eliminar, name='categoria_eliminar'),
+    path('cliente/eliminar/<int:id>/', views.cliente_eliminar, name='cliente_eliminar'),
+    path('ticket/eliminar/<int:id>/', views.ticket_eliminar, name='ticket_eliminar'),
+    path('rol/eliminar/<int:id>/', views.rol_eliminar, name='rol_eliminar'),
+    path('evaluacion/eliminar/<int:id>/', views.evaluacion_eliminar, name='evaluacion_eliminar'),
+    #ver
+    path('ver_tickets_tecnico/', views.ver_tickets_tecnico, name='ver_tickets_tecnico'),
+    path('soluciontickets/nuevo/<int:id>/', views.solucionticket_nueva, name='solucionticket_nueva'),
+
+
+
+    path('accounts/', include('allauth.urls')),
+
 ]

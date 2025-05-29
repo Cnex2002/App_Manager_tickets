@@ -1,44 +1,87 @@
-<!DOCTYPE html>
-<html> 
-<head> 
-    <title>Lista de empresas</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-</head>
+{% extends "base.html" %}
+{% block title %}Empresa{% endblock title %}
+   {% block content %}
 
-<body>
+   <div class="container mt-4"><h2 class="mb-3">Información Esencial del Usuario</h2><ul class="list-group"><li class="list-group-item"><strong>Autenticado:</strong>
+    {% if user.is_authenticated %}
+        Sí <span class="badge bg-success ms-1">✔</span>
+    {% else %}
+        No <span class="badge bg-secondary ms-1">✘</span>
+    {% endif %}
+</li>
 
+{% if user.is_authenticated %}
+<li class="list-group-item"><strong>Usuario:</strong>
+        {{ user.username }}
+</li><li class="list-group-item"><strong>Nombre:</strong>
+        {% if user.get_full_name and user.get_full_name != user.username %}
+            {{ user.get_full_name }}
+        {% elif user.first_name or user.last_name %}
+            {{ user.first_name }} {{ user.last_name }}
+        {% else %}
+<span class="text-muted">(No especificado)</span>
+        {% endif %}
+</li><li class="list-group-item"><strong>Email:</strong>
+        {% if user.email %}
+            {{ user.email }}
+        {% else %}
+<span class="text-muted">(No especificado)</span>
+        {% endif %}
+</li><li class="list-group-item"><strong>Acceso Admin (Staff):</strong>
+        {% if user.is_staff %}
+            Sí <span class="badge bg-info text-dark ms-1">✔</span>
+        {% else %}
+            No
+        {% endif %}
+</li>
+<li class="list-group-item"><strong>Superuser:</strong>
+  {% if user.is_superuser %}
+      Sí <span class="badge bg-info text-dark ms-1">✔</span>
+  {% else %}
+      No
+  {% endif %}
+</li>
 
-<h1>Lista de empresas</h1>
-<a href="{% url 'empresa_nuevo' %}" class="btn btn-success">Nueva Empresa</a>
-    <table class="table">
-        <thead>
+{% else %}
+<li class="list-group-item">
+        El usuario actual es anónimo.
+</li>
+{% endif %}
+
+   <div class="d-flex">
+      <!-- Menú lateral -->
+    
+      <!-- Contenido principal -->
+      <div class="container-fluid" >
+        <h1>Lista de empresas</h1>
+        <a href="{% url 'empresa_nuevo' %}" class="btn btn-success">Nueva Empresa</a>
+        <table class="table mt-3">
+          <thead>
             <tr>
-                <th>Nombre </th>
-                <th>Ruc </th>
-                <th>Direccion </th>
-                <th>Estado</th>
-                <th>Accion</th>
+              <th>Nombre</th>
+              <th>Ruc</th>
+              <th>Direccion</th>
+              <th>Estado</th>
+              <th>Accion</th>
             </tr>
-            
-        </thead>
-        <tbody>
+          </thead>
+          <tbody>
             {% for e in empresas %}
-                <tr>
-                    <td>{{ e.nombre }}</td>
-                    <td>{{ e.ruc }}</td>
-                    <td>{{ e.direccion }}</td>
-                    <td>{{ e.estado }}</td>
-                    
-                    
-                    <td>
-                        <a href="{% url 'empresa_editar' e.id %}" class="btn btn-primary">Editar</a>
-                    </td>
-                </tr>
+            <tr>
+              <td>{{ e.nombre }}</td>
+              <td>{{ e.ruc }}</td>
+              <td>{{ e.direccion }}</td>
+              <td>{{ e.estado }}</td>
+              <td>
+                <a href="{% url 'empresa_editar' e.id %}" class="btn btn-primary">Editar</a>
+                <a href="{% url 'empresa_eliminar' e.id %}" class="btn btn-danger btn-sm">Eliminar</a>  </td>
+              </td>
+            </tr>
             {% endfor %}
-        </tbody>
-    </table> 
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endblock content %}
 
-</body>
-
-</html>

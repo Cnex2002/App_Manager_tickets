@@ -104,7 +104,7 @@ class EvaluacionTecnicoForm(forms.ModelForm):
             'comentario': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'fecha_evaluacion': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
         }
-        
+
 class SolucionTicketForm(forms.ModelForm):
     class Meta:
         model = SolucionTicket
