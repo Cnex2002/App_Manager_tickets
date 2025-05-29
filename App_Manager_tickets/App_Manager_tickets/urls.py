@@ -59,6 +59,7 @@ urlpatterns = [
     path('evaluacion/eliminar/<int:id>/', views.evaluacion_eliminar, name='evaluacion_eliminar'),
     #ver
     path('ver_tickets_tecnico/', views.ver_tickets_tecnico, name='ver_tickets_tecnico'),
+    path('soluciontickets/nuevo/<int:id>/', views.solucionticket_nueva, name='solucionticket_nueva'),
 
 
 

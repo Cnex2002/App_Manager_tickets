@@ -113,3 +113,12 @@ class EvaluacionTecnico(models.Model):
 
     def __str__(self):
         return f"Evaluación del Ticket #{self.ticket.id} - {self.get_calificacion_display(),}"
+    
+class SolucionTicket(models.Model):
+    ticket = models.ForeignKey('Ticket', on_delete=models.CASCADE, related_name='imagenes')
+    ruta_imagen=models.ImageField(upload_to='solucion_tickets', blank=True, null=True)
+    comentario = models.TextField(null=True, blank=True)
+    fecha_subida = models.DateTimeField(auto_now_add=True)
+
+    def _str_(self):
+        return f"Solucion ID {self.ticket.id}"

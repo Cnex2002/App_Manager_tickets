@@ -5,6 +5,8 @@ from django.urls import reverse
 from .models import *
 from .forms import *
 from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+
 
 def empresa_nueva(request):
     if request.method == 'POST':
@@ -419,3 +421,29 @@ def evaluacion_eliminar(request, id):
 def ver_tickets_tecnico(request, ):
   
     return render(request, 'tecnico_ticket.html')
+
+def solucionticket_nueva(request, id):  
+    ticket = get_object_or_404(Ticket, id=id)
+
+    if request.method == 'POST':
+        formulario = SolucionTicketForm(request.POST, request.FILES)
+        if formulario.is_valid():
+            solucion = formulario.save(commit=False)
+            solucion.ticket = ticket
+            solucion.fecha_subida = timezone.now()
+            solucion.save()
+
+            # ACTUALIZAR ESTADO Y FECHA DE CIERRE DEL TICKET
+            ticket.estado = 'cerrado'
+            ticket.fecha_cierre = timezone.now()
+            ticket.save()
+
+            return redirect('lista_tickets')
+    else:
+        formulario = SolucionTicketForm()
+
+    contexto = {
+        'formulario': formulario,
+        'ticket': ticket
+    }
+    return render(request, 'solucionticket_nuevo.html', contexto)
