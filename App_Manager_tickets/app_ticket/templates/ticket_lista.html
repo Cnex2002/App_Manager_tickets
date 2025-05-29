@@ -32,6 +32,8 @@
             <td>{{ t.fecha_creacion }}</td>
             <td>
                 <a href="{% url 'ticket_editar' t.id %}" class="btn btn-primary">Editar</a>
+                
+                <a href="{% url 'solucionticket_nueva' t.id %}" class="btn btn-primary">Cerrar Ticket</a>
             </td>
         </tr>
         {% endfor %}

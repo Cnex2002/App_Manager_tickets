@@ -30,6 +30,7 @@ urlpatterns = [
     path('ticket/nuevo/', views.ticket_nuevo, name='ticket_nuevo'),
     path('rol/nuevo/', views.rol_nuevo, name='rol_nuevo'), 
     path('evaluacion/nuevo/', views.evaluacion_nueva, name='evaluacion_nueva'),  
+    path('soluciontickets/nuevo/<int:id>/', views.solucionticket_nueva, name='solucionticket_nueva'),
     #lista
     path('empresa/', views.lista_empresas, name='lista_empresas'),
     path('categoria/', views.lista_categorias, name='lista_categorias'),
@@ -49,5 +50,5 @@ urlpatterns = [
     path('ticket/editar/<int:id>/', views.ticket_editar, name='ticket_editar'),
     path('rol/editar/<int:id>/', views.rol_editar, name='rol_editar'),
     path('evaluacion/editar/<int:id>/', views.evaluacion_editar, name='evaluacion_editar'),
-
+    
 ]

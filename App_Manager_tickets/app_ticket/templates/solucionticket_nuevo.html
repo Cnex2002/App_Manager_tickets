@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Agregar Solución</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container py-5">
+
+    <h2>Agregar solución para Ticket #{{ ticket.id }}</h2>
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            Información del Ticket
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">{{ ticket.titulo }}</h5>
+            <p class="card-text"><strong>Descripción:</strong> {{ ticket.descripcion }}</p>
+            <p class="card-text"><strong>Estado:</strong> {{ ticket.get_estado_display }}</p>
+            <p class="card-text"><strong>Prioridad:</strong> {{ ticket.get_prioridad_display }}</p>
+            <p class="card-text"><strong>Cliente:</strong> {{ ticket.cliente }}</p>
+            <p class="card-text"><strong>Técnico asignado:</strong> {{ ticket.tecnico }}</p>
+            <p class="card-text"><strong>Fecha de creación:</strong> {{ ticket.fecha_creacion }}</p>
+        </div>
+    </div>
+    <form method="POST" enctype="multipart/form-data" class="post-form">
+        {% csrf_token %}
+        <div class="mb-3">
+            {{ formulario.ruta_imagen.label_tag }}
+            {{ formulario.ruta_imagen }}
+        </div>
+        <div class="mb-3">
+            {{ formulario.comentario.label_tag }}
+            {{ formulario.comentario }}
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+
+</body>
+</html>

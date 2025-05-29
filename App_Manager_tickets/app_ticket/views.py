@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
@@ -328,17 +329,31 @@ def lista_solucionticket(request):
     return render(request, 'solucionticket_lista.html', contexto)
 
 
-def solucionticket_nueva(request):
+from django.utils import timezone
+
+def solucionticket_nueva(request, id):  
+    ticket = get_object_or_404(Ticket, id=id)
+
     if request.method == 'POST':
-        formulario = SolucionTicketForm(request.POST)
+        formulario = SolucionTicketForm(request.POST, request.FILES)
         if formulario.is_valid():
-            formulario.save()
-            return redirect('lista_solucionticket')  
+            solucion = formulario.save(commit=False)
+            solucion.ticket = ticket
+            solucion.fecha_subida = timezone.now()
+            solucion.save()
+
+            # ACTUALIZAR ESTADO Y FECHA DE CIERRE DEL TICKET
+            ticket.estado = 'cerrado'
+            ticket.fecha_cierre = timezone.now()
+            ticket.save()
+
+            return redirect('lista_tickets')
     else:
         formulario = SolucionTicketForm()
+
     contexto = {
-        'formulario': formulario
-        
+        'formulario': formulario,
+        'ticket': ticket
     }
     return render(request, 'solucionticket_nuevo.html', contexto)
 

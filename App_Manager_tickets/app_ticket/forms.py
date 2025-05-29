@@ -108,10 +108,8 @@ class EvaluacionTecnicoForm(forms.ModelForm):
 class SolucionTicketForm(forms.ModelForm):
     class Meta:
         model = SolucionTicket
-        fields = ['ticket', 'ruta_imagen', 'comentario','fecha_subida']
+        fields = ['ruta_imagen', 'comentario']  # quitamos 'ticket' y 'fecha_subida'
         widgets = {
-            'ticket': forms.Select(attrs={'class': 'form-control'}),
-            'ruta_imagen': forms.Select(attrs={'class': 'form-control'}),
+            'ruta_imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'comentario': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'fecha_subida': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
         }
