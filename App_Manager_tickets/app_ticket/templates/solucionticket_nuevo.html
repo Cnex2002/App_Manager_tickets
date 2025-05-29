@@ -25,12 +25,7 @@
     <form method="POST" enctype="multipart/form-data" class="post-form">
         {% csrf_token %}
         <div class="mb-3">
-            {{ formulario.ruta_imagen.label_tag }}
-            {{ formulario.ruta_imagen }}
-        </div>
-        <div class="mb-3">
-            {{ formulario.comentario.label_tag }}
-            {{ formulario.comentario }}
+             {{ formulario.as_p }}
         </div>
 
         <button type="submit" class="btn btn-primary">Guardar</button>

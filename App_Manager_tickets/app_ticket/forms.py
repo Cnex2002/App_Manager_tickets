@@ -108,7 +108,7 @@ class EvaluacionTecnicoForm(forms.ModelForm):
 class SolucionTicketForm(forms.ModelForm):
     class Meta:
         model = SolucionTicket
-        fields = ['ruta_imagen', 'comentario']  # quitamos 'ticket' y 'fecha_subida'
+        fields = ['ruta_imagen', 'comentario']  
         widgets = {
             'ruta_imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'comentario': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
