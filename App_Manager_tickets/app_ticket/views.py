@@ -170,13 +170,6 @@ def lista_tickets(request):
     }
     return render(request, 'ticket_lista.html', contexto)
 
-def lista_roles(request):
-    roles = Rol.objects.all()  
-    contexto = {
-        'roles': roles
-         
-    }
-    return render(request, 'rol_lista.html', contexto) 
 
 def lista_evaluaciones(request):
     evaluaciones = EvaluacionTecnico.objects.all()  # Obtiene todas las evaluaciones
@@ -279,34 +272,9 @@ def ticket_editar(request, id):
     }
     return render(request, 'ticket_nuevo.html', contexto)
 
-def rol_nuevo(request):
-    if request.method == 'POST':
-        formulario = RolForm(request.POST)
-        if formulario.is_valid():
-            formulario.save()
-            return redirect('lista_roles')  # Redirige a la lista de roles después de crear el nuevo rol
-    else:
-        formulario = RolForm()
-    contexto = {
-        'formulario': formulario
-        
-    }
-    return render(request, 'ticket_nuevo.html', contexto)
 
-def rol_editar(request, id):
-    rol = get_object_or_404(Rol, id=id)
-    if request.method == 'POST':
-        formulario = RolForm(request.POST, instance=rol)
-        if formulario.is_valid():
-            formulario.save()
-            return redirect('lista_roles')
-    else:
-        formulario = RolForm(instance=rol)
-    contexto = {
-        'formulario': formulario
-        
-    }
-    return render(request, 'ticket_nuevo.html', contexto)
+
+
 
 def evaluacion_editar(request, id):
     evaluacion = get_object_or_404(EvaluacionTecnico, id=id) 
@@ -398,18 +366,7 @@ def ticket_eliminar(request, id):
         'url_cancelar': reverse('lista_tickets'),  # Usamos reverse() para obtener la URL
     }
     return render(request, 'ticket_eliminar.html', contexto)
-def rol_eliminar(request, id):
-    rol = get_object_or_404(Rol, id=id)
 
-    if request.method == 'POST':
-        rol.delete()
-        return redirect('lista_roles')  # Redirige a la lista
-
-    contexto = {
-        'objeto': rol,
-        'url_cancelar': reverse('lista_roles'),  # Usamos reverse() para obtener la URL
-    }
-    return render(request, 'ticket_eliminar.html', contexto)
 def evaluacion_eliminar(request, id):
     evaluacion = get_object_or_404(EvaluacionTecnico, id=id)
 

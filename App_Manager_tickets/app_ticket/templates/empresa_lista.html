@@ -3,6 +3,9 @@
 {% block title %}Empresa{% endblock title %}
    {% block content %}
 
+    persona: {{user.usuario.rol}}
+
+
    <div class="container mt-4"><h2 class="mb-3">Información Esencial del Usuario</h2><ul class="list-group"><li class="list-group-item"><strong>Autenticado:</strong>
     {% if user.is_authenticated %}
         Sí <span class="badge bg-success ms-1">✔</span>
