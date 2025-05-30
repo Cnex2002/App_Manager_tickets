@@ -64,5 +64,10 @@ urlpatterns = [
 
 
     path('accounts/', include('allauth.urls')),
+    #perfil
+    path('accounts/profile/', views.perfil, name='perfil'),
+    path('perfil/', views.perfil, name='perfil'),
+    #completar registro
+    path('usuario/completar_registro/', views.completar_registro, name='completar_registro'),
 
 ]

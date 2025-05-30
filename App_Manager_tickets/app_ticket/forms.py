@@ -107,3 +107,17 @@ class SolucionTicketForm(forms.ModelForm):
             'ruta_imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'comentario': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+
+
+
+class UsuarioForm(forms.ModelForm):
+    class Meta:
+        model = Usuario
+        fields = ['nombre', 'rol', 'departamento']
+        widgets = {
+            #'usuarios': forms.Select(attrs={'class': 'form-control'}),
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'rol': forms.Select(attrs={'class': 'form-control'}),
+            'departamento': forms.Select(attrs={'class': 'form-control'}),
+        }
+   

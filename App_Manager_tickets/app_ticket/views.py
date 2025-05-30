@@ -7,6 +7,33 @@ from .forms import *
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 
+#profile
+@login_required
+def perfil(request):
+    if hasattr(request.user, 'usuario'):
+        contexto = {}
+        return render(request, 'perfil.html', contexto)
+    else:
+        return redirect('completar_registro')
+    
+@login_required
+def completar_registro(request):
+    if request.method == 'POST':
+        formulario = UsuarioForm(request.POST)
+        if formulario.is_valid():
+            usuario = formulario.save(commit=False)
+            usuario.usuarios = request.user
+            usuario.save()
+            
+            return redirect('lista_empresas')
+    else:
+        formulario = UsuarioForm()
+
+    contexto = {
+        'formulario': formulario
+
+    }
+    return render(request, 'ticket_nuevo.html', contexto)
 
 def empresa_nueva(request):
     if request.method == 'POST':
@@ -41,6 +68,12 @@ def cliente_nueva(request):
        
     }
     return render(request, 'ticket_nuevo.html', contexto)
+
+#nuevo usuario
+
+
+
+
 
 
 def categoria_nueva(request):
@@ -404,3 +437,5 @@ def solucionticket_nueva(request, id):
         'ticket': ticket
     }
     return render(request, 'solucionticket_nuevo.html', contexto)
+
+
