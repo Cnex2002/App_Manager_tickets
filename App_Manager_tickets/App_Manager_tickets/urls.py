@@ -21,6 +21,7 @@ from app_ticket import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
     #nuevo
     path('empresa/nuevo/',views.empresa_nueva, name='empresa_nuevo'),
     path('categoria/nuevo/',views.categoria_nueva, name='categoria_nuevo'),
@@ -69,5 +70,9 @@ urlpatterns = [
     path('perfil/', views.perfil, name='perfil'),
     #completar registro
     path('usuario/completar_registro/', views.completar_registro, name='completar_registro'),
+    path('dashboard/', views.ticket_editar, name='dashboard'),
 
 ]
+
+
+    
