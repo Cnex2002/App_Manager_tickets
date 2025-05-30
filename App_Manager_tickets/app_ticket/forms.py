@@ -86,13 +86,7 @@ class TicketForm(forms.ModelForm):
             }),
         }
 
-class RolForm(forms.ModelForm):
-    class Meta:
-        model = Rol
-        fields = ['nombre']
-        widgets = {
-            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
-        }
+
 
 class EvaluacionTecnicoForm(forms.ModelForm):
     class Meta:

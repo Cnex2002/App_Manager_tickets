@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User, Group
 
 
 class Empresa(models.Model):
@@ -28,16 +29,18 @@ class Departamento(models.Model):
     def __str__(self):
         return f"{self.nombre} - {self.sucursal.nombre}"
     
-class Rol(models.Model):
-    nombre = models.CharField(max_length=50, unique=True)
 
-    def __str__(self):
-        return self.nombre
-    
 class Usuario(models.Model):
+    ROL= [
+        ('admin', 'Administrador'),
+        ('tecnico', 'Técnico'),
+        ('supervisor', 'Supervisor'),
+    ]
+
+    usuarios= models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True)
     nombre = models.CharField(max_length=100)
-    correo = models.EmailField(unique=True)
-    rol = models.ForeignKey(Rol, on_delete=models.SET_NULL, null=True)
+    
+    rol = models.CharField(max_length=20, choices=ROL, default='tecnico')
     departamento = models.ForeignKey('Departamento', on_delete=models.SET_NULL, null=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
@@ -88,15 +91,7 @@ class Ticket(models.Model):
     
 
 
-class SolucionTicket(models.Model):
-    ticket = models.ForeignKey('Ticket', on_delete=models.CASCADE, related_name='imagenes')
-    ruta_imagen = models.TextField()
-    comentario = models.TextField(null=True, blank=True)
-    fecha_subida = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return f"Solucion ID {self.ticket.id}"
-    
 CALIFICACION_CHOICES = [
     (1, '1 - Muy Malo'),
     (2, '2 - Malo'),

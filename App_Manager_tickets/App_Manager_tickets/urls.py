@@ -28,7 +28,7 @@ urlpatterns = [
     path('sucursal/nuevo/', views.sucursal_nuevo, name='sucursal_nuevo'),
     path('departamento/nuevo/', views.departamento_nuevo, name='departamento_nuevo'),
     path('ticket/nuevo/', views.ticket_nuevo, name='ticket_nuevo'),
-    path('rol/nuevo/', views.rol_nuevo, name='rol_nuevo'), 
+   
     path('evaluacion/nuevo/', views.evaluacion_nueva, name='evaluacion_nueva'),  
     #lista
     path('empresa/', views.lista_empresas, name='lista_empresas'),
@@ -37,7 +37,7 @@ urlpatterns = [
     path('sucursal/', views.lista_sucursales, name='lista_sucursales'),
     path('departamento/', views.lista_departamentos, name='lista_departamentos'),
     path('ticket/', views.lista_tickets, name='lista_tickets'),
-    path('rol/', views.lista_roles, name='lista_roles'),
+
     path('evaluacion/', views.lista_evaluaciones, name='lista_evaluaciones'),
     #editar
     path('empresa/editar/<int:id>/', views.empresa_editar, name='empresa_editar'),
@@ -46,7 +46,7 @@ urlpatterns = [
     path('categoria/editar/<int:id>/', views.categoria_editar, name='categoria_editar'),
     path('cliente/editar/<int:id>/', views.cliente_editar, name='cliente_editar'),
     path('ticket/editar/<int:id>/', views.ticket_editar, name='ticket_editar'),
-    path('rol/editar/<int:id>/', views.rol_editar, name='rol_editar'),
+ 
     path('evaluacion/editar/<int:id>/', views.evaluacion_editar, name='evaluacion_editar'),
     #eliminar
     path('empresa/eliminar/<int:id>/', views.empresa_eliminar, name='empresa_eliminar'),
@@ -55,7 +55,7 @@ urlpatterns = [
     path('categoria/eliminar/<int:id>/', views.categoria_eliminar, name='categoria_eliminar'),
     path('cliente/eliminar/<int:id>/', views.cliente_eliminar, name='cliente_eliminar'),
     path('ticket/eliminar/<int:id>/', views.ticket_eliminar, name='ticket_eliminar'),
-    path('rol/eliminar/<int:id>/', views.rol_eliminar, name='rol_eliminar'),
+  
     path('evaluacion/eliminar/<int:id>/', views.evaluacion_eliminar, name='evaluacion_eliminar'),
     #ver
     path('ver_tickets_tecnico/', views.ver_tickets_tecnico, name='ver_tickets_tecnico'),
