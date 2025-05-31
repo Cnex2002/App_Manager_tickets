@@ -1,13 +1,7 @@
-
 {% extends "base.html" %}
-{% block title %}Empresa{% endblock title %}
-   {% block content %}
+{% block content %}
 
-    persona: {{user.usuario.rol}}
-
-
-   <div class="container mt-4">
-    <h2 class="mb-3">Información Esencial del Usuario</h2><ul class="list-group"><li class="list-group-item"><strong>Autenticado:</strong>
+<h2 class="mb-3">Información Esencial del Usuario</h2><ul class="list-group"><li class="list-group-item"><strong>Autenticado:</strong>
     {% if user.is_authenticated %}
         Sí <span class="badge bg-success ms-1">✔</span>
     {% else %}
@@ -53,39 +47,4 @@
 </li>
 {% endif %}
 
-   <div class="d-flex">
-      <!-- Menú lateral -->
-    
-      <!-- Contenido principal -->
-      <div class="container-fluid" >
-        <h1>Lista de empresas</h1>
-        <a href="{% url 'empresa_nuevo' %}" class="btn btn-success">Nueva Empresa</a>
-        <table class="table mt-3">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Ruc</th>
-              <th>Direccion</th>
-              <th>Estado</th>
-              <th>Accion</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for e in empresas %}
-            <tr>
-              <td>{{ e.nombre }}</td>
-              <td>{{ e.ruc }}</td>
-              <td>{{ e.direccion }}</td>
-              <td>{{ e.estado }}</td>
-              <td>
-                <a href="{% url 'empresa_editar' e.id %}" class="btn btn-primary">Editar</a>
-                <a href="{% url 'empresa_eliminar' e.id %}" class="btn btn-danger btn-sm">Eliminar</a>  </td>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    {% endblock content %}
-
+{% endblock content %}
