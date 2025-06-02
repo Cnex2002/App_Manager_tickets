@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path,  include
 from app_ticket import views
+from unittest.mock import patch
 
 
 urlpatterns = [
@@ -72,7 +73,7 @@ urlpatterns = [
     #completar registro
     path('usuario/completar_registro/', views.completar_registro, name='completar_registro'),
     path('dashboard/', views.ticket_editar, name='dashboard'),
-
+    
 ]
 
 

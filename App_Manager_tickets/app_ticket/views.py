@@ -381,7 +381,7 @@ def cliente_eliminar(request, id):
     if request.method == 'POST':
         cliente.delete()
         return redirect('lista_clientes')  # Redirige a la lista
-
+    
     contexto = {
         'objeto': cliente,
         'url_cancelar': reverse('lista_clientes'),  # Usamos reverse() para obtener la URL
