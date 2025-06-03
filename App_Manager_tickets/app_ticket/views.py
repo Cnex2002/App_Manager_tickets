@@ -131,10 +131,9 @@ def ticket_nuevo(request):
     if request.method == 'POST':
         formulario = TicketForm(request.POST)
         if formulario.is_valid():
-            objeto = formulario.save()  # Guardamos el objeto
-            if objeto.fecha_cierre is None:
-                objeto.fecha_cierre = timezone.datetime.strptime('0000-00-00 00:00:00', '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.get_current_timezone())
-                objeto.save()  # Guardamos de nuevo con la fecha modificada
+            objeto = formulario.save(commit=False)
+            objeto.save()
+
             return redirect('lista_tickets')
     else:
         formulario = TicketForm()
