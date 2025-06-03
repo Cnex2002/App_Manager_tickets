@@ -35,7 +35,7 @@ def completar_registro(request):
 
     }
     return render(request, 'ticket_nuevo.html', contexto)
-
+@login_required
 def empresa_nueva(request):
     if request.method == 'POST':
         formulario = EmpresaForm(request.POST)
@@ -132,15 +132,16 @@ def ticket_nuevo(request):
     if request.method == 'POST':
         formulario = TicketForm(request.POST)
         if formulario.is_valid():
-            objeto = formulario.save(commit=False)
-            objeto.save()
+            objeto = formulario.save()  # Guardamos el objeto
+            if objeto.fecha_cierre is None:
+                objeto.fecha_cierre = timezone.datetime.strptime('0000-00-00 00:00:00', '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.get_current_timezone())
+                objeto.save()  # Guardamos de nuevo con la fecha modificada
             return redirect('lista_tickets')
     else:
         formulario = TicketForm()
 
     contexto = {
         'formulario': formulario
-        
     }
     return render(request, 'ticket_nuevo.html', contexto)
 
@@ -159,10 +160,6 @@ def evaluacion_nueva(request):
     return render(request, 'ticket_nuevo.html', contexto)
 
 
-
-
-
-
 #lista 
 @login_required
 def lista_empresas(request):
@@ -178,6 +175,8 @@ def lista_clientes(request):
         'clientes': Cliente.objects.all(),
     }
     return render(request, 'cliente_lista.html', contexto)
+
+
 def lista_categorias(request):
 
     contexto = {

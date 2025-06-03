@@ -34,6 +34,7 @@ class Usuario(models.Model):
     ROL= [
         ('admin', 'Administrador'),
         ('tecnico', 'Técnico'),
+        ('atencion', 'Atencion'),
         ('supervisor', 'Supervisor'),
     ]
 
@@ -82,7 +83,7 @@ class Ticket(models.Model):
     prioridad = models.CharField(max_length=10, choices=PRIORIDAD_CHOICES, default='media')
     categoria = models.ForeignKey('Categoria', on_delete=models.SET_NULL, null=True, related_name='tickets')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
-    fecha_cierre = models.DateTimeField(null=True, blank=True)
+    fecha_cierre = models.DateTimeField(null=True, blank=True, default=None)
     cliente = models.ForeignKey('Cliente', on_delete=models.SET_NULL, null=True, related_name='tickets')
     tecnico = models.ForeignKey('Usuario', on_delete=models.SET_NULL, null=True, related_name='tickets_asignados')
 
