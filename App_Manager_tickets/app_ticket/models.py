@@ -55,11 +55,15 @@ class Categoria(models.Model):
     def __str__(self):
         return self.nombre
 
+# SE AGREGA RUC, EMPRESA Y ANYDESK
 class Cliente(models.Model):
+    ruc = models.CharField(max_length=100, blank=True, null=True, unique=True)
     nombres = models.CharField(max_length=100)
     telefono = models.CharField(max_length=20, blank=True, null=True)
     direccion = models.TextField(blank=True, null=True)
     correo = models.EmailField(max_length=100, unique=True, blank=True, null=True)
+    anydesk_empresa = models.CharField(max_length=100, blank=True, null=True)
+    empresa = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return self.nombres

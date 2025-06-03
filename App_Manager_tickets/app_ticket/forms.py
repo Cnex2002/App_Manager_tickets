@@ -23,12 +23,15 @@ class CategoriaForm(forms.ModelForm):
 class clienteForm(forms.ModelForm):
     class Meta:
         model = Cliente
-        fields = ['nombres', 'telefono', 'direccion', 'correo']
+        fields = ['ruc', 'nombres', 'telefono', 'direccion', 'correo', 'anydesk_empresa', 'empresa']
         widgets = {
+            'ruc': forms.TextInput(attrs={'class': 'form-control'}),
             'nombres': forms.TextInput(attrs={'class': 'form-control'}),
             'telefono': forms.TextInput(attrs={'class': 'form-control'}),
             'direccion': forms.TextInput(attrs={'class': 'form-control'}),
             'correo': forms.TextInput(attrs={'class': 'form-control'}),
+            'anydesk_empresa': forms.TextInput(attrs={'class': 'form-control'}),
+            'empresa': forms.TextInput(attrs={'class': 'form-control'}),
         }
         
 
