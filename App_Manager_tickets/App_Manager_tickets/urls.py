@@ -71,6 +71,8 @@ urlpatterns = [
     #completar registro
     path('usuario/completar_registro/', views.completar_registro, name='completar_registro'),
     path('dashboard/', views.ticket_editar, name='dashboard'),
+    #si la url esta vacia que me lleve al login 
+    path('', views.perfil, name='perfil'),
 
 ]
 
