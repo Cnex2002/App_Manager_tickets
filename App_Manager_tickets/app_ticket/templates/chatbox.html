@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Chatbox Tickets</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        #chat { border: 1px solid #ccc; padding: 10px; max-width: 600px; height: 400px; overflow-y: auto; }
+        .user-msg { color: blue; margin: 10px 0; }
+        .bot-msg { color: green; margin: 10px 0; }
+        input[type=text] { width: 80%; padding: 10px; }
+        button { padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Chatbox de Tickets</h1>
+    <div id="chat"></div>
+    <input type="text" id="pregunta" placeholder="Describe tu problema..." />
+    <button id="enviar">Enviar</button>
+
+    <script>
+        $('#enviar').click(function() {
+            var pregunta = $('#pregunta').val().trim();
+            if(!pregunta) return alert('Escribe una pregunta');
+
+            $('#chat').append('<div class="user-msg"><b>Tú:</b> ' + pregunta + '</div>');
+            $('#pregunta').val('');
+            
+            $.post("{% url 'chatbox_query' %}", { pregunta: pregunta, csrfmiddlewaretoken: '{{ csrf_token }}' }, function(data) {
+                if(data.respuestas){
+                    data.respuestas.forEach(function(respuesta){
+                        $('#chat').append('<div class="bot-msg"><b>Respuesta:</b> ' + respuesta.texto + ' <small>(Similitud: ' + respuesta.distancia.toFixed(3) + ')</small></div>');
+                    });
+                } else if(data.error){
+                    $('#chat').append('<div class="bot-msg error">' + data.error + '</div>');
+                }
+                $('#chat').scrollTop($('#chat')[0].scrollHeight);
+            });
+        });
+
+        // Opcional: enviar con Enter
+        $('#pregunta').keypress(function(e){
+            if(e.which == 13){
+                $('#enviar').click();
+                return false;
+            }
+        });
+    </script>
+</body>
+</html>

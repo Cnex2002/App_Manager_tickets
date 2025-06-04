@@ -8,6 +8,11 @@ from .forms import *
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 
+from django.shortcuts import render
+from django.http import JsonResponse
+from .embeddings import TicketSolutionSearch
+searcher = TicketSolutionSearch()
+
 #profile
 @login_required
 def perfil(request):
@@ -442,4 +447,32 @@ def solucionticket_nueva(request, id):
     }
     return render(request, 'solucionticket_nuevo.html', contexto)
 
+
+
+
+# Instancia única para no cargar modelo en cada consulta
+
+
+def chatbox_view(request):
+    return render(request, 'chatbox.html')
+
+def chatbox_query(request):
+    if request.method == 'POST':
+        pregunta = request.POST.get('pregunta', '')
+        if pregunta.strip() == '':
+            return JsonResponse({'error': 'No se recibió ninguna pregunta'})
+
+        resultados = searcher.query(pregunta, top_k=3)
+        # Formatea resultados para enviar al frontend
+        respuestas = []
+        for r in resultados:
+            respuestas.append({
+                'ticket_id': r['ticket_id'],
+                'texto': r['texto'],
+                'distancia': round(float(r['distancia']), 3)
+            })
+
+        return JsonResponse({'respuestas': respuestas})
+
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
 

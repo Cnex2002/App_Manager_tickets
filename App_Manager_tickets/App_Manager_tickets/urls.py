@@ -22,7 +22,8 @@ from unittest.mock import patch
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    
+    path('app_ticket/', include('app_ticket.urls')),
+
     #nuevo
     path('empresa/nuevo/',views.empresa_nueva, name='empresa_nuevo'),
     path('categoria/nuevo/',views.categoria_nueva, name='categoria_nuevo'),
@@ -76,6 +77,7 @@ urlpatterns = [
     #si la url esta vacia que me lleve al login 
     path('', views.perfil, name='perfil'),
 
+    
 ]
 
 

@@ -121,5 +121,5 @@ class SolucionTicket(models.Model):
     comentario = models.TextField(null=True, blank=True)
     fecha_subida = models.DateTimeField(auto_now_add=True)
 
-    def str(self):
+    def __str__(self):
         return f"Solucion ID {self.ticket.id}"
