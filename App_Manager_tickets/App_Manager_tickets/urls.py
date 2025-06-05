@@ -74,6 +74,10 @@ urlpatterns = [
     #si la url esta vacia que me lleve al login 
     path('', views.perfil, name='perfil'),
     path('reportes/', views.reportes_view, name='reportes'),
+   path('generar_reporte_excel/', views.generar_reporte_excel, name='generar_reporte_excel'),
+   
+    
+    
    
 
 ]

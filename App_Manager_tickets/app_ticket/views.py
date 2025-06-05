@@ -14,6 +14,13 @@ from datetime import datetime, timedelta
 import pytz
 from django.utils import timezone
 
+import openpyxl
+from django.http import HttpResponse
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+from django.conf import settings
+
+
+
 
 #profile
 @login_required
@@ -562,3 +569,202 @@ def reportes_view(request):
     }
 
     return render(request, 'reportes.html', context)
+
+
+@login_required
+def generar_reporte_excel(request):
+    reporte_tipo = request.GET.get('reporte_tipo')
+
+    if reporte_tipo == 'tickets_estado_prioridad':
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="reporte_tickets_estado_prioridad.xlsx"'
+
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        sheet.title = "Tickets por Estado y Prioridad"
+
+        # Estilos
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid") # Azul oscuro
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        thin_border = Border(left=Side(style='thin'), 
+                             right=Side(style='thin'), 
+                             top=Side(style='thin'), 
+                             bottom=Side(style='thin'))
+
+        # Encabezados
+        # Quitamos 'Sucursal' y 'Departamento' porque ya no existen en Cliente
+        headers = [
+            "Título", "Descripción", "Estado", "Prioridad", 
+            "Categoría", "Cliente", "Técnico Asignado", "Fecha Creación", "Fecha Cierre"
+        ]
+        sheet.append(headers)
+
+        # Aplicar estilos a los encabezados
+        for col_num, cell in enumerate(sheet[1], 1):
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = thin_border
+            sheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 20 # Ancho por defecto
+
+        # Datos
+        # select_related sigue siendo 'cliente', 'tecnico', 'categoria'
+        tickets = Ticket.objects.all().select_related(
+            'cliente', 'tecnico', 'categoria'
+        ).order_by('fecha_creacion')
+
+        for ticket in tickets:
+            cliente_nombre = ticket.cliente.nombres if ticket.cliente else 'N/A'
+            
+            # Acceso a empresa: Ahora es un CharField directo
+            empresa_nombre = 'N/A'
+            if ticket.cliente and ticket.cliente.empresa:
+                empresa_nombre = ticket.cliente.empresa # Acceso directo, no .nombre
+
+            # Los campos 'sucursal_nombre' y 'departamento_nombre' ya no se pueden obtener de Cliente
+            # si deseas incluirlos en el reporte, necesitarás redefinir tus modelos.
+            # Por ahora, los hemos eliminado.
+
+            categoria_nombre = ticket.categoria.nombre if ticket.categoria else 'N/A'
+            
+            cliente_info = ''
+            if cliente_nombre != 'N/A' and empresa_nombre != 'N/A':
+                cliente_info = f"{cliente_nombre} ({empresa_nombre})"
+            elif cliente_nombre != 'N/A':
+                cliente_info = cliente_nombre
+            elif empresa_nombre != 'N/A':
+                cliente_info = f"({empresa_nombre})"
+
+
+            tecnico_asignado = 'No Asignado'
+            if ticket.tecnico and ticket.tecnico.usuarios:
+                tecnico_asignado = ticket.tecnico.usuarios.username
+            elif ticket.tecnico: # Si tiene objeto Tecnico pero no usuario asignado (quizás caso borde)
+                tecnico_asignado = f"Técnico sin usuario ({ticket.tecnico.pk})"
+
+
+            fecha_creacion_str = ''
+            if ticket.fecha_creacion:
+                fecha_creacion_str = ticket.fecha_creacion.astimezone(pytz.timezone(settings.TIME_ZONE)).strftime('%Y-%m-%d %H:%M:%S')
+
+            fecha_cierre_str = 'N/A'
+            if ticket.fecha_cierre:
+                fecha_cierre_str = ticket.fecha_cierre.astimezone(pytz.timezone(settings.TIME_ZONE)).strftime('%Y-%m-%d %H:%M:%S')
+
+
+            sheet.append([
+                ticket.titulo,
+                ticket.descripcion,
+                ticket.get_estado_display(), # Usa get_estado_display() para el valor legible
+                ticket.get_prioridad_display(), # Usa get_prioridad_display() para el valor legible
+                categoria_nombre,
+                cliente_info,
+                tecnico_asignado,
+                fecha_creacion_str,
+                fecha_cierre_str,
+            ])
+        
+        # Ajustar ancho de columnas automáticamente
+        for col in sheet.columns:
+            max_length = 0
+            column = col[0].column_letter # Get the column name
+            for cell in col:
+                try: # Necessary to avoid error on empty cells
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            sheet.column_dimensions[column].width = adjusted_width
+
+        workbook.save(response)
+        return response
+    
+    elif reporte_tipo == 'rendimiento_tickets_categoria':
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="reporte_rendimiento_tickets_categoria.xlsx"'
+
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        sheet.title = "Rendimiento por Categoría"
+
+        # Estilos
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid") # Azul oscuro
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        thin_border = Border(left=Side(style='thin'), 
+                             right=Side(style='thin'), 
+                             top=Side(style='thin'), 
+                             bottom=Side(style='thin'))
+
+        # Encabezados
+        headers = [
+            "Categoría", "Número Total de Tickets", "Tickets Abiertos", 
+            "Tickets En Proceso", "Tickets Cerrados", "Tiempo Promedio de Cierre (Horas)"
+        ]
+        sheet.append(headers)
+
+        # Aplicar estilos a los encabezados
+        for col_num, cell in enumerate(sheet[1], 1):
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = thin_border
+            sheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 25 # Ancho por defecto
+
+        # Datos para el reporte de rendimiento por categoría
+        categorias = Categoria.objects.all()
+
+        for categoria in categorias:
+            total_tickets = Ticket.objects.filter(categoria=categoria).count()
+            # CORRECCIÓN: Usar los valores de estado en minúsculas del modelo Ticket
+            tickets_abiertos = Ticket.objects.filter(categoria=categoria, estado='abierto').count()
+            tickets_en_proceso = Ticket.objects.filter(categoria=categoria, estado='en proceso').count()
+            tickets_cerrados = Ticket.objects.filter(categoria=categoria, estado='cerrado').count()
+
+            # Calcular tiempo promedio de cierre
+            # Se calcula la diferencia solo si el ticket está cerrado
+            tiempo_cierre_tickets = Ticket.objects.filter(
+                categoria=categoria, 
+                estado='cerrado', # CORRECCIÓN: Usar 'cerrado'
+                fecha_cierre__isnull=False
+            ).annotate(
+                tiempo_diff=ExpressionWrapper(
+                    F('fecha_cierre') - F('fecha_creacion'),
+                    output_field=DurationField()
+                )
+            ).aggregate(avg_tiempo_cierre=Avg('tiempo_diff'))
+
+            tiempo_promedio_cierre_horas = 'N/A'
+            if tiempo_cierre_tickets['avg_tiempo_cierre']:
+                # Convertir timedelta a horas
+                total_seconds = tiempo_cierre_tickets['avg_tiempo_cierre'].total_seconds()
+                tiempo_promedio_cierre_horas = round(total_seconds / 3600, 2) # Convertir a horas y redondear
+
+            sheet.append([
+                categoria.nombre,
+                total_tickets,
+                tickets_abiertos,
+                tickets_en_proceso,
+                tickets_cerrados,
+                tiempo_promedio_cierre_horas,
+            ])
+        
+        # Ajustar ancho de columnas automáticamente
+        for col in sheet.columns:
+            max_length = 0
+            column = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            sheet.column_dimensions[column].width = adjusted_width
+
+        workbook.save(response)
+        return response
+
+    return HttpResponse("Tipo de reporte no válido", status=400)
