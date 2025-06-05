@@ -5,7 +5,15 @@ from django.urls import reverse
 from .models import *
 from .forms import *
 from django.contrib.auth.decorators import login_required
+
+
+
+from django.db.models import Count, Avg, F, ExpressionWrapper, DurationField
+from django.db.models.functions import TruncMonth
+from datetime import datetime, timedelta
+import pytz
 from django.utils import timezone
+
 
 #profile
 @login_required
@@ -442,3 +450,115 @@ def solucionticket_nueva(request, id):
     return render(request, 'solucionticket_nuevo.html', contexto)
 
 
+def reportes_view(request):
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    fecha_fin_str = request.GET.get('fecha_fin')
+
+    tickets_filtrados = Ticket.objects.all()
+
+    if fecha_inicio_str:
+        # Usa pytz.utc aquí
+        fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').replace(tzinfo=pytz.utc)
+        tickets_filtrados = tickets_filtrados.filter(fecha_creacion__gte=fecha_inicio)
+    
+    if fecha_fin_str:
+        # Usa pytz.utc aquí
+        fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59, tzinfo=pytz.utc)
+        tickets_filtrados = tickets_filtrados.filter(fecha_creacion__lte=fecha_fin)
+
+
+    # KPI: Total Tickets Activos
+    total_tickets_activos = tickets_filtrados.exclude(estado='cerrado').count()
+
+    # KPI: Tiempo Promedio Resolución
+    tickets_resueltos = tickets_filtrados.filter(estado='cerrado', fecha_cierre__isnull=False)
+    tiempo_promedio_resolucion_horas = 0.0
+    if tickets_resueltos.exists():
+        total_duracion_segundos = 0
+        for ticket in tickets_resueltos:
+            if ticket.fecha_cierre and ticket.fecha_creacion:
+                duracion = ticket.fecha_cierre - ticket.fecha_creacion
+                total_duracion_segundos += duracion.total_seconds()
+        
+        if tickets_resueltos.count() > 0:
+            tiempo_promedio_resolucion_horas = (total_duracion_segundos / tickets_resueltos.count()) / 3600 # Convertir a horas
+    
+    # KPI: Calificación Promedio
+    calificacion_promedio = 0.0
+    evaluaciones = EvaluacionTecnico.objects.filter(ticket__in=tickets_filtrados, calificacion__isnull=False)
+    if evaluaciones.exists():
+        calificacion_promedio = evaluaciones.aggregate(avg_cal=Avg('calificacion'))['avg_cal']
+
+    # Tickets por Estado
+    tickets_por_estado = tickets_filtrados.values('estado').annotate(count=Count('estado'))
+
+    # Preparar datos para el gráfico de dona
+    labels_estados = []
+    data_estados = []
+    for item in tickets_por_estado:
+        labels_estados.append(item['estado'])
+        data_estados.append(item['count'])
+
+    # Tickets por Prioridad
+    tickets_por_prioridad = tickets_filtrados.values('prioridad').annotate(count=Count('prioridad')).order_by('-count')
+
+    # Preparar datos para el gráfico de barras por prioridad
+    labels_prioridad = []
+    data_prioridad = []
+    for item in tickets_por_prioridad:
+        labels_prioridad.append(item['prioridad'].capitalize()) # Capitalizar para una mejor presentación
+        data_prioridad.append(item['count'])
+
+    # Nuevo: Tickets por Categoría (Problemas más frecuentes)
+    tickets_por_categoria = tickets_filtrados.values('categoria__nombre').annotate(count=Count('categoria__nombre')).order_by('-count')
+
+    # Preparar datos para el gráfico de barras por categoría
+    labels_categoria = []
+    data_categoria = []
+    for item in tickets_por_categoria:
+        labels_categoria.append(item['categoria__nombre'])
+        data_categoria.append(item['count'])
+
+    # Nuevo: Tickets cerrados por Técnico (Técnicos más productivos)
+    tickets_cerrados_por_tecnico = tickets_filtrados.filter(estado='cerrado').values('tecnico__nombre').annotate(count=Count('tecnico__nombre')).order_by('-count')
+
+    # Preparar datos para el gráfico de barras por técnico
+    labels_tecnicos = []
+    data_tecnicos = []
+    for item in tickets_cerrados_por_tecnico:
+        labels_tecnicos.append(item['tecnico__nombre'])
+        data_tecnicos.append(item['count'])
+
+    # Nuevo: Departamentos con Más Incidencias
+    # CORRECCIÓN AQUÍ: Accedemos al departamento a través del técnico
+    tickets_por_departamento = tickets_filtrados.values('tecnico__departamento__nombre').annotate(count=Count('tecnico__departamento__nombre')).order_by('-count')
+
+    # Preparar datos para el gráfico de barras por departamento
+    labels_departamento = []
+    data_departamento = []
+    for item in tickets_por_departamento:
+        # Asegurarse de que el nombre del departamento no sea None si algún técnico no tiene departamento asignado
+        if item['tecnico__departamento__nombre']:
+            labels_departamento.append(item['tecnico__departamento__nombre'])
+            data_departamento.append(item['count'])
+
+
+    context = {
+        'total_tickets_activos': total_tickets_activos,
+        'tiempo_promedio_resolucion': round(tiempo_promedio_resolucion_horas, 2),
+        'calificacion_promedio': round(calificacion_promedio, 1) if calificacion_promedio else 0.0,
+        'fecha_inicio_str': fecha_inicio_str,
+        'fecha_fin_str': fecha_fin_str,
+        'labels_estados': labels_estados,
+        'data_estados': data_estados,
+        'labels_prioridad': labels_prioridad,
+        'data_prioridad': data_prioridad,
+        'labels_categoria': labels_categoria,
+        'data_categoria': data_categoria,
+        'labels_tecnicos': labels_tecnicos,
+        'data_tecnicos': data_tecnicos,
+        'labels_departamento': labels_departamento, 
+        'data_departamento': data_departamento,     
+    }
+
+    return render(request, 'reportes.html', context)

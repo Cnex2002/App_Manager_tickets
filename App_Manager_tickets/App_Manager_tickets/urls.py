@@ -73,6 +73,8 @@ urlpatterns = [
     path('dashboard/', views.ticket_editar, name='dashboard'),
     #si la url esta vacia que me lleve al login 
     path('', views.perfil, name='perfil'),
+    path('reportes/', views.reportes_view, name='reportes'),
+   
 
 ]
 
