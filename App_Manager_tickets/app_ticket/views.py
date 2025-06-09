@@ -18,7 +18,7 @@ import openpyxl
 from django.http import HttpResponse
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from django.conf import settings
-
+from django.contrib import messages
 
 
 
@@ -574,6 +574,28 @@ def reportes_view(request):
 @login_required
 def generar_reporte_excel(request):
     reporte_tipo = request.GET.get('reporte_tipo')
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    fecha_fin_str = request.GET.get('fecha_fin')
+
+    # Verificar si las fechas están presentes
+    if not fecha_inicio_str or not fecha_fin_str:
+        messages.error(request, "Por favor, seleccione una fecha de inicio y una fecha de fin para generar el reporte.")
+        return redirect('reportes') # Redirige de vuelta a la página de reportes
+
+    tickets_base_query = Ticket.objects.all()
+
+    try:
+        fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').replace(tzinfo=pytz.utc)
+        fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59, tzinfo=pytz.utc)
+    except ValueError:
+        messages.error(request, "Por favor, seleccione un rango de fechas válido." , extra_tags='danger')
+        return redirect('reportes')
+
+    # Aplicar filtros de fecha a la consulta base
+    tickets_base_query = tickets_base_query.filter(
+        fecha_creacion__gte=fecha_inicio,
+        fecha_creacion__lte=fecha_fin
+    )
 
     if reporte_tipo == 'tickets_estado_prioridad':
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -610,7 +632,8 @@ def generar_reporte_excel(request):
 
         # Datos
         # select_related sigue siendo 'cliente', 'tecnico', 'categoria'
-        tickets = Ticket.objects.all().select_related(
+        # La consulta base `tickets_base_query` ya tiene los filtros de fecha aplicados
+        tickets = tickets_base_query.select_related(
             'cliente', 'tecnico', 'categoria'
         ).order_by('fecha_creacion')
 
@@ -621,10 +644,6 @@ def generar_reporte_excel(request):
             empresa_nombre = 'N/A'
             if ticket.cliente and ticket.cliente.empresa:
                 empresa_nombre = ticket.cliente.empresa # Acceso directo, no .nombre
-
-            # Los campos 'sucursal_nombre' y 'departamento_nombre' ya no se pueden obtener de Cliente
-            # si deseas incluirlos en el reporte, necesitarás redefinir tus modelos.
-            # Por ahora, los hemos eliminado.
 
             categoria_nombre = ticket.categoria.nombre if ticket.categoria else 'N/A'
             
@@ -717,17 +736,17 @@ def generar_reporte_excel(request):
         categorias = Categoria.objects.all()
 
         for categoria in categorias:
-            total_tickets = Ticket.objects.filter(categoria=categoria).count()
-            # CORRECCIÓN: Usar los valores de estado en minúsculas del modelo Ticket
-            tickets_abiertos = Ticket.objects.filter(categoria=categoria, estado='abierto').count()
-            tickets_en_proceso = Ticket.objects.filter(categoria=categoria, estado='en proceso').count()
-            tickets_cerrados = Ticket.objects.filter(categoria=categoria, estado='cerrado').count()
+            # Aplicar el filtro de fecha a las consultas de tickets por categoría
+            # La consulta base `tickets_base_query` ya tiene los filtros de fecha aplicados
+            total_tickets = tickets_base_query.filter(categoria=categoria).count()
+            tickets_abiertos = tickets_base_query.filter(categoria=categoria, estado='abierto').count()
+            tickets_en_proceso = tickets_base_query.filter(categoria=categoria, estado='en proceso').count()
+            tickets_cerrados = tickets_base_query.filter(categoria=categoria, estado='cerrado').count()
 
             # Calcular tiempo promedio de cierre
-            # Se calcula la diferencia solo si el ticket está cerrado
-            tiempo_cierre_tickets = Ticket.objects.filter(
+            tiempo_cierre_tickets = tickets_base_query.filter(
                 categoria=categoria, 
-                estado='cerrado', # CORRECCIÓN: Usar 'cerrado'
+                estado='cerrado', 
                 fecha_cierre__isnull=False
             ).annotate(
                 tiempo_diff=ExpressionWrapper(
@@ -738,9 +757,8 @@ def generar_reporte_excel(request):
 
             tiempo_promedio_cierre_horas = 'N/A'
             if tiempo_cierre_tickets['avg_tiempo_cierre']:
-                # Convertir timedelta a horas
                 total_seconds = tiempo_cierre_tickets['avg_tiempo_cierre'].total_seconds()
-                tiempo_promedio_cierre_horas = round(total_seconds / 3600, 2) # Convertir a horas y redondear
+                tiempo_promedio_cierre_horas = round(total_seconds / 3600, 2)
 
             sheet.append([
                 categoria.nombre,

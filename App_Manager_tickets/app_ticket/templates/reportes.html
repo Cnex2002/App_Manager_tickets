@@ -28,27 +28,20 @@
     <a href="{% url 'lista_empresas' %}" class="btn btn-secondary mb-4">Volver a Lista de Empresas</a>
     <h2 class="mb-4 text-center">Reportes de Tickets</h2>
 
-    {# Sección para la selección de reportes en Excel #}
-    <div class="card mb-4">
-        <div class="card-header">
-            <h4>Generar Reportes en Excel</h4>
-        </div>
-        <div class="card-body">
-            <form action="{% url 'generar_reporte_excel' %}" method="get">
-                <div class="mb-3">
-                    <label for="reporte_tipo" class="form-label">Seleccionar Tipo de Reporte:</label>
-                    <select class="form-select" id="reporte_tipo" name="reporte_tipo" required>
-                        <option value="">-- Seleccione un reporte --</option>
-                        <option value="tickets_estado_prioridad">Tickets por Estado y Prioridad</option>
-                        <option value="rendimiento_tickets_categoria">Rendimiento de Tickets por Categoría</option>
-                    </select>
+    {# Mensajes de Django #}
+    {% if messages %}
+        <div class="messages mt-3">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
-                <button type="submit" class="btn btn-primary">Descargar Reporte</button>
-            </form>
+            {% endfor %}
         </div>
-    </div>
+    {% endif %}
 
-    {# Filtros de fecha (mantén esta sección) #}
+    
+{# Filtros de fecha (mantén esta sección) #}
     <div class="card mb-4">
         <div class="card-header">
             <h4>Filtros de Fecha</h4>
@@ -71,6 +64,31 @@
             </form>
         </div>
     </div>
+
+    {# Sección para la selección de reportes en Excel #}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Generar Reportes en Excel</h4>
+        </div>
+        <div class="card-body">
+            <form action="{% url 'generar_reporte_excel' %}" method="get">
+                <div class="mb-3">
+                    <label for="reporte_tipo" class="form-label">Seleccionar Tipo de Reporte:</label>
+                    <select class="form-select" id="reporte_tipo" name="reporte_tipo" required>
+                        <option value="">-- Seleccione un reporte --</option>
+                        <option value="tickets_estado_prioridad">Tickets por Estado y Prioridad</option>
+                        <option value="rendimiento_tickets_categoria">Rendimiento de Tickets por Categoría</option>
+                    </select>
+                </div>
+                {# Campos ocultos para pasar las fechas de filtro al generar el reporte Excel #}
+                <input type="hidden" name="fecha_inicio" id="excel_fecha_inicio" value="{{ fecha_inicio_str }}">
+                <input type="hidden" name="fecha_fin" id="excel_fecha_fin" value="{{ fecha_fin_str }}">
+                <button type="submit" class="btn btn-primary">Descargar Reporte</button>
+            </form>
+        </div>
+    </div>
+
+
 
 
     {# Indicadores clave (mantén esta sección) #}
@@ -158,6 +176,7 @@
 
 
 </div>
+
 
 <script>
     const labelsEstados = {{ labels_estados|safe }};
