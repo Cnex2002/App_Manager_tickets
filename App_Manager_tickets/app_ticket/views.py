@@ -570,7 +570,6 @@ def reportes_view(request):
 
     return render(request, 'reportes.html', context)
 
-
 @login_required
 def generar_reporte_excel(request):
     reporte_tipo = request.GET.get('reporte_tipo')
@@ -598,6 +597,7 @@ def generar_reporte_excel(request):
     )
 
     if reporte_tipo == 'tickets_estado_prioridad':
+        # ... (código existente para reporte_tipo 'tickets_estado_prioridad') ...
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = 'attachment; filename="reporte_tickets_estado_prioridad.xlsx"'
 
@@ -701,6 +701,7 @@ def generar_reporte_excel(request):
         return response
     
     elif reporte_tipo == 'rendimiento_tickets_categoria':
+        # ... (código existente para reporte_tipo 'rendimiento_tickets_categoria') ...
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = 'attachment; filename="reporte_rendimiento_tickets_categoria.xlsx"'
 
@@ -785,4 +786,186 @@ def generar_reporte_excel(request):
         workbook.save(response)
         return response
 
-    return HttpResponse("Tipo de reporte no válido", status=400)
+    elif reporte_tipo == 'rendimiento_tecnicos_individuales':
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="reporte_rendimiento_tecnicos.xlsx"'
+
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        sheet.title = "Rendimiento de Técnicos"
+
+        # Estilos (reutilizar los ya definidos o definir nuevos si es necesario)
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid") # Azul oscuro
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        thin_border = Border(left=Side(style='thin'), 
+                             right=Side(style='thin'), 
+                             top=Side(style='thin'), 
+                             bottom=Side(style='thin'))
+
+        # Encabezados del reporte
+        headers = [
+            "Técnico",
+            "Número Total de Tickets Asignados",
+            "Tickets Cerrados",
+            "Tickets Abiertos/En Proceso",
+            "Tiempo Promedio de Resolución (Horas)",
+            "Calificación Promedio Recibida"
+        ]
+        sheet.append(headers)
+
+        # Aplicar estilos a los encabezados
+        for col_num, cell in enumerate(sheet[1], 1):
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = thin_border
+            sheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 30 # Ancho por defecto
+
+        # Datos para el reporte de rendimiento por técnico
+        # Obtenemos todos los técnicos que tienen tickets asignados en el rango de fechas
+        tecnicos = Usuario.objects.filter(tickets_asignados__in=tickets_base_query).distinct()
+
+        for tecnico in tecnicos:
+            tecnico_nombre = tecnico.nombre 
+            
+            # Filtramos los tickets para este técnico dentro del rango de fechas
+            tickets_tecnico = tickets_base_query.filter(tecnico=tecnico)
+
+            total_tickets_asignados = tickets_tecnico.count()
+            tickets_cerrados = tickets_tecnico.filter(estado='cerrado').count()
+            tickets_abiertos_en_proceso = tickets_tecnico.filter(estado__in=['abierto', 'en proceso']).count()
+
+            # Calcular tiempo promedio de resolución para este técnico
+            tickets_resueltos_tecnico = tickets_tecnico.filter(estado='cerrado', fecha_cierre__isnull=False)
+            tiempo_promedio_resolucion_horas = 'N/A'
+            if tickets_resueltos_tecnico.exists():
+                total_duracion_segundos = 0
+                for ticket in tickets_resueltos_tecnico:
+                    if ticket.fecha_cierre and ticket.fecha_creacion:
+                        duracion = ticket.fecha_cierre - ticket.fecha_creacion
+                        total_duracion_segundos += duracion.total_seconds()
+                
+                if tickets_resueltos_tecnico.count() > 0:
+                    tiempo_promedio_resolucion_horas = round((total_duracion_segundos / tickets_resueltos_tecnico.count()) / 3600, 2) # Convertir a horas
+            
+            # Calcular calificación promedio
+            calificaciones_tecnico = EvaluacionTecnico.objects.filter(ticket__in=tickets_resueltos_tecnico, calificacion__isnull=False)
+            calificacion_promedio = 'N/A'
+            if calificaciones_tecnico.exists():
+                calificacion_promedio = round(calificaciones_tecnico.aggregate(avg_cal=Avg('calificacion'))['avg_cal'], 1)
+
+            sheet.append([
+                tecnico_nombre,
+                total_tickets_asignados,
+                tickets_cerrados,
+                tickets_abiertos_en_proceso,
+                tiempo_promedio_resolucion_horas,
+                calificacion_promedio,
+            ])
+        
+        # Ajustar ancho de columnas automáticamente
+        for col in sheet.columns:
+            max_length = 0
+            column = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            sheet.column_dimensions[column].width = adjusted_width
+
+        workbook.save(response)
+        return response
+
+    elif reporte_tipo == 'evaluaciones_clientes':  # Nuevo tipo de reporte
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="reporte_evaluaciones_clientes.xlsx"'
+
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        sheet.title = "Evaluaciones de Clientes"
+
+        # Estilos (reutilizar los ya definidos)
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        thin_border = Border(left=Side(style='thin'), 
+                             right=Side(style='thin'), 
+                             top=Side(style='thin'), 
+                             bottom=Side(style='thin'))
+
+        # Encabezados del reporte
+        headers = [
+            "ID del Ticket", 
+            "Título del Ticket", 
+            "Calificación", 
+            "Comentario de Evaluación", 
+            "Fecha de Evaluación", 
+            "Cliente", 
+            "Técnico Asignado"
+        ]
+        sheet.append(headers)
+
+        # Aplicar estilos a los encabezados
+        for col_num, cell in enumerate(sheet[1], 1):
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = thin_border
+            sheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 25 # Ancho por defecto
+
+        # Obtener evaluaciones dentro del rango de fechas
+        # Filtramos las evaluaciones que están asociadas a tickets dentro del rango de fechas
+        evaluaciones = EvaluacionTecnico.objects.filter(
+            ticket__fecha_creacion__gte=fecha_inicio,
+            ticket__fecha_creacion__lte=fecha_fin
+        ).select_related('ticket', 'ticket__cliente', 'ticket__tecnico', 'ticket__tecnico__usuarios').order_by('fecha_evaluacion')
+
+        for eval_obj in evaluaciones:
+            ticket_id = eval_obj.ticket.id
+            ticket_titulo = eval_obj.ticket.titulo
+            calificacion = eval_obj.calificacion if eval_obj.calificacion is not None else 'N/A'
+            comentario = eval_obj.comentario if eval_obj.comentario else 'Sin comentario'
+            
+            fecha_evaluacion_str = ''
+            if eval_obj.fecha_evaluacion:
+                fecha_evaluacion_str = eval_obj.fecha_evaluacion.astimezone(pytz.timezone(settings.TIME_ZONE)).strftime('%Y-%m-%d %H:%M:%S')
+            
+            cliente_nombre = eval_obj.ticket.cliente.nombres if eval_obj.ticket.cliente else 'N/A'
+            
+            tecnico_asignado = 'No Asignado'
+            if eval_obj.ticket.tecnico and eval_obj.ticket.tecnico.usuarios:
+                tecnico_asignado = eval_obj.ticket.tecnico.usuarios.username
+            elif eval_obj.ticket.tecnico:
+                tecnico_asignado = f"Técnico sin usuario ({eval_obj.ticket.tecnico.pk})"
+
+            sheet.append([
+                ticket_id,
+                ticket_titulo,
+                calificacion,
+                comentario,
+                fecha_evaluacion_str,
+                cliente_nombre,
+                tecnico_asignado,
+            ])
+        
+        # Ajustar ancho de columnas automáticamente
+        for col in sheet.columns:
+            max_length = 0
+            column = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            sheet.column_dimensions[column].width = adjusted_width
+
+        workbook.save(response)
+        return response
+
+    return HttpResponse("Tipo de reporte no válido", status=40)
