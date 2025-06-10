@@ -19,6 +19,8 @@ from django.http import HttpResponse
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import update_session_auth_hash
 
 # Helper para verificar si el usuario es staff (tiene acceso al admin)
 def is_staff_check(user):
@@ -1195,3 +1197,19 @@ def perfil_editar(request):
         'titulo': 'Editar Mi Perfil'
     }
     return render(request, 'perfil_editar.html', contexto)
+
+
+@login_required
+def cambiar_contrasena(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  # Importante para mantener al usuario logueado
+            messages.success(request, 'Tu contraseña ha sido actualizada exitosamente!')
+            return redirect('perfil')  # Redirige de nuevo a la página de perfil
+        else:
+            messages.error(request, 'Por favor corrige los errores a continuación.')
+    else:
+        form = PasswordChangeForm(request.user)
+    return render(request, 'cambiar_contrasena.html', {'form': form})

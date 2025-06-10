@@ -82,6 +82,7 @@ urlpatterns = [
      path('usuario/nuevo/', views.usuario_nuevo, name='usuario_nuevo'),
    
     path('perfil/editar/', views.perfil_editar, name='perfil_editar'), # Nueva URL para editar el perfil
+     path('perfil/cambiar_contrasena/', views.cambiar_contrasena, name='cambiar_contrasena'),
     
    
 
