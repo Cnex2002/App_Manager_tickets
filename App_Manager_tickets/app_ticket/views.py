@@ -4,7 +4,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from .models import *
 from .forms import *
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 
 
 
@@ -20,7 +20,9 @@ from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from django.conf import settings
 from django.contrib import messages
 
-
+# Helper para verificar si el usuario es staff (tiene acceso al admin)
+def is_staff_check(user):
+    return user.is_staff
 
 #profile
 @login_required
@@ -1060,3 +1062,101 @@ def generar_reporte_excel(request):
         return response
 
     return HttpResponse("Tipo de reporte no válido", status=400)
+
+
+# Vistas para Usuarios
+@login_required
+@user_passes_test(is_staff_check)
+def usuario_lista(request):
+    usuarios_personalizados = Usuario.objects.all().select_related('usuarios', 'departamento')
+    contexto = {
+        'usuarios': usuarios_personalizados,
+    }
+    return render(request, 'usuario_lista.html', contexto)
+
+@login_required
+@user_passes_test(is_staff_check)
+def usuario_nuevo(request):
+    user_form = None # Inicializa para el caso GET
+
+    if request.method == 'POST':
+        user_form = UserEditForm(request.POST) # Usa UserEditForm para los campos de User
+        usuario_form = UsuarioForm(request.POST) # Usa UsuarioForm para los campos de Usuario
+
+        if user_form.is_valid() and usuario_form.is_valid():
+            # Crear el User de Django
+            new_user = User.objects.create_user(
+                username=user_form.cleaned_data['username'],
+                email=user_form.cleaned_data['email'],
+                first_name=user_form.cleaned_data['first_name'],
+                last_name=user_form.cleaned_data['last_name'],
+                is_active=user_form.cleaned_data['is_active'],
+                is_staff=user_form.cleaned_data['is_staff'],
+                is_superuser=user_form.cleaned_data['is_superuser']
+            )
+            # Allauth generalmente maneja la contraseña, pero si se crea directamente:
+            new_user.set_password(User.objects.make_random_password()) # Genera una contraseña aleatoria
+            new_user.save()
+
+            # Guardar el Usuario personalizado y vincularlo al User de Django
+            usuario = usuario_form.save(commit=False)
+            usuario.usuarios = new_user # Asegúrate de que este campo apunte al User de Django
+            usuario.save()
+
+            messages.success(request, 'Usuario creado exitosamente. Se ha generado una contraseña aleatoria.')
+            return redirect('usuario_lista')
+        else:
+            messages.error(request, 'Hubo un error al crear el usuario. Por favor, revisa los campos.')
+    else:
+        user_form = UserEditForm()
+        usuario_form = UsuarioForm()
+
+    contexto = {
+        'user_form': user_form,
+        'usuario_form': usuario_form,
+        'titulo': 'Crear Nuevo Usuario'
+    }
+    # No se usa ticket_nuevo.html directamente aquí porque esperamos dos formularios
+    return render(request, 'usuario_form.html', contexto)
+
+
+@login_required
+@user_passes_test(is_staff_check)
+def usuario_editar(request, id):
+    usuario_personalizado = get_object_or_404(Usuario, id=id)
+    user_django = usuario_personalizado.usuarios # Obtener el User de Django asociado
+
+    if request.method == 'POST':
+        user_form = UserEditForm(request.POST, instance=user_django)
+        usuario_form = UsuarioForm(request.POST, instance=usuario_personalizado)
+
+        if user_form.is_valid() and usuario_form.is_valid():
+            user_form.save() # Guarda los cambios en el User de Django
+            usuario_form.save() # Guarda los cambios en el Usuario personalizado
+            messages.success(request, 'Usuario actualizado correctamente.')
+            return redirect('usuario_lista')
+        else:
+            messages.error(request, 'Hubo un error al actualizar el usuario. Por favor, revisa los campos.')
+    else:
+        user_form = UserEditForm(instance=user_django)
+        usuario_form = UsuarioForm(instance=usuario_personalizado)
+
+    contexto = {
+        'user_form': user_form,
+        'usuario_form': usuario_form,
+        'titulo': f'Editar Usuario: {user_django.username}'
+    }
+    # Este template necesitará mostrar ambos formularios
+    return render(request, 'usuario_form.html', contexto)
+
+
+@login_required
+@user_passes_test(is_staff_check)
+def usuario_eliminar(request, id):
+    usuario_personalizado = get_object_or_404(Usuario, id=id)
+    # También eliminar el User de Django asociado para evitar orfandad
+    user_django = usuario_personalizado.usuarios
+    usuario_personalizado.delete()
+    user_django.delete()
+    messages.success(request, 'Usuario eliminado correctamente.')
+    return redirect('usuario_lista')

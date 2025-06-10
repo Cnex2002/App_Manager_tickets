@@ -1,6 +1,6 @@
 from django import forms
 from .models import *
-
+from django.contrib.auth.models import User
 
 class EmpresaForm(forms.ModelForm):
     class Meta:
@@ -113,6 +113,8 @@ class SolucionTicketForm(forms.ModelForm):
 
 
 
+
+
 class UsuarioForm(forms.ModelForm):
     class Meta:
         model = Usuario
@@ -123,4 +125,19 @@ class UsuarioForm(forms.ModelForm):
             'rol': forms.Select(attrs={'class': 'form-control'}),
             'departamento': forms.Select(attrs={'class': 'form-control'}),
         }
-   
+
+
+# Nuevo formulario para editar el User de Django
+class UserEditForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser']
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_staff': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_superuser': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
