@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock title %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ titulo }}</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <h3>Información de la Cuenta (Django User)</h3>
+        {% for field in user_form %}
+            <div class="mb-3">
+                {{ field.label_tag }}
+                {{ field }}
+                {% if field.help_text %}
+                    <div class="form-text">{{ field.help_text }}</div>
+                {% endif %}
+                {% for error in field.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+
+        <h3 class="mt-4">Información del Perfil (Usuario Personalizado)</h3>
+        {% for field in usuario_form %}
+            <div class="mb-3">
+                {{ field.label_tag }}
+                {{ field }}
+                {% if field.help_text %}
+                    <div class="form-text">{{ field.help_text }}</div>
+                {% endif %}
+                {% for error in field.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+        <a href="{% url 'perfil' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock content %}

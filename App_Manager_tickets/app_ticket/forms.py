@@ -141,3 +141,29 @@ class UserEditForm(forms.ModelForm):
             'is_staff': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_superuser': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+
+# ESTA ES LA ÚNICA DEFINICIÓN CORRECTA DE UserEditForm
+class PerfilUserEditForm(forms.ModelForm):
+    class Meta:
+        model = User
+        # Eliminé 'is_staff' y 'is_superuser' para que el usuario no los edite.
+        fields = ['username', 'email', 'first_name', 'last_name']
+        widgets = {
+            # Username de solo lectura.
+            'username': forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            
+        }
+
+# Nuevo formulario para editar el perfil del usuario (sin permitir cambiar el rol)
+class PerfilUsuarioEditForm(forms.ModelForm):
+    class Meta:
+        model = Usuario
+        fields = ['nombre', 'departamento'] # Excluye 'rol'
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'departamento': forms.Select(attrs={'class': 'form-control'}),
+        }

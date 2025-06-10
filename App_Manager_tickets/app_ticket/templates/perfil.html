@@ -1,50 +1,53 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2 class="mb-3">Información Esencial del Usuario</h2><ul class="list-group"><li class="list-group-item"><strong>Autenticado:</strong>
-    {% if user.is_authenticated %}
-        Sí <span class="badge bg-success ms-1">✔</span>
-    {% else %}
-        No <span class="badge bg-secondary ms-1">✘</span>
+<div class="container mt-4">
+    <h2 class="mb-3">Información de Perfil</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
     {% endif %}
-</li>
 
-{% if user.is_authenticated %}
-<li class="list-group-item"><strong>Usuario:</strong>
-        {{ user.username }}
-</li><li class="list-group-item"><strong>Nombre:</strong>
-        {% if user.get_full_name and user.get_full_name != user.username %}
-            {{ user.get_full_name }}
-        {% elif user.first_name or user.last_name %}
-            {{ user.first_name }} {{ user.last_name }}
-        {% else %}
-<span class="text-muted">(No especificado)</span>
-        {% endif %}
-</li><li class="list-group-item"><strong>Email:</strong>
-        {% if user.email %}
-            {{ user.email }}
-        {% else %}
-<span class="text-muted">(No especificado)</span>
-        {% endif %}
-</li><li class="list-group-item"><strong>Acceso Admin (Staff):</strong>
-        {% if user.is_staff %}
-            Sí <span class="badge bg-info text-dark ms-1">✔</span>
-        {% else %}
-            No
-        {% endif %}
-</li>
-<li class="list-group-item"><strong>Superuser:</strong>
-  {% if user.is_superuser %}
-      Sí <span class="badge bg-info text-dark ms-1">✔</span>
-  {% else %}
-      No
-  {% endif %}
-</li>
+    <div class="card">
+        <div class="card-header">
+            Datos de la Cuenta
+        </div>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item"><strong>Usuario:</strong> {{ user.username }}</li>
+            <li class="list-group-item"><strong>Nombre Completo:</strong> {% if user.get_full_name %}{{ user.get_full_name }}{% else %}<span class="text-muted">(No especificado)</span>{% endif %}</li>
+            <li class="list-group-item"><strong>Email:</strong> {% if user.email %}{{ user.email }}{% else %}<span class="text-muted">(No especificado)</span>{% endif %}</li>
+            <li class="list-group-item"><strong>Acceso Admin (Staff):</strong> {% if user.is_staff %}Sí <span class="badge bg-info text-dark ms-1">✔</span>{% else %}No{% endif %}</li>
+            <li class="list-group-item"><strong>Superuser:</strong> {% if user.is_superuser %}Sí <span class="badge bg-info text-dark ms-1">✔</span>{% else %}No{% endif %}</li>
+        </ul>
+    </div>
 
-{% else %}
-<li class="list-group-item">
-        El usuario actual es anónimo.
-</li>
-{% endif %}
+    {% if usuario_personalizado %}
+    <div class="card mt-4">
+        <div class="card-header">
+            Datos del Usuario Personalizado
+        </div>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item"><strong>Nombre (Usuario):</strong> {{ usuario_personalizado.nombre }}</li>
+            <li class="list-group-item"><strong>Rol:</strong> {{ usuario_personalizado.get_rol_display }}</li>
+            <li class="list-group-item"><strong>Departamento:</strong> {% if usuario_personalizado.departamento %}{{ usuario_personalizado.departamento.nombre }} - {{ usuario_personalizado.departamento.sucursal.nombre }}{% else %}<span class="text-muted">(No asignado)</span>{% endif %}</li>
+        </ul>
+    </div>
+    {% else %}
+    <div class="alert alert-warning mt-4" role="alert">
+        Aún no has completado tu perfil de usuario.
+        <a href="{% url 'completar_registro' %}" class="alert-link">Completar ahora</a>.
+    </div>
+    {% endif %}
+
+    <div class="mt-4">
+        <a href="{% url 'perfil_editar' %}" class="btn btn-primary me-2">Editar Perfil</a>
+        <a href="#" class="btn btn-secondary">Cambiar Contraseña (Funcionalidad pendiente)</a>
+    </div>
+</div>
 
 {% endblock content %}

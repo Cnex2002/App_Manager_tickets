@@ -25,13 +25,18 @@ def is_staff_check(user):
     return user.is_staff
 
 #profile
+#profile
 @login_required
 def perfil(request):
     if hasattr(request.user, 'usuario'):
-        contexto = {}
+        usuario_personalizado = request.user.usuario # <--- Añade esta línea
+        contexto = {
+            'usuario_personalizado': usuario_personalizado # <--- Pasa la variable al contexto
+        }
         return render(request, 'perfil.html', contexto)
     else:
         return redirect('completar_registro')
+    
     
 @login_required
 def completar_registro(request):
@@ -1160,3 +1165,33 @@ def usuario_eliminar(request, id):
     user_django.delete()
     messages.success(request, 'Usuario eliminado correctamente.')
     return redirect('usuario_lista')
+
+
+@login_required
+def perfil_editar(request):
+    usuario_django = request.user
+    usuario_personalizado = get_object_or_404(Usuario, usuarios=usuario_django)
+
+    if request.method == 'POST':
+        user_form = PerfilUserEditForm(request.POST, instance=usuario_django)
+        # *** CAMBIO AQUÍ: Usar PerfilUsuarioEditForm ***
+        usuario_form = PerfilUsuarioEditForm(request.POST, instance=usuario_personalizado)
+
+        if user_form.is_valid() and usuario_form.is_valid():
+            user_form.save()
+            usuario_form.save()
+            messages.success(request, 'Tu perfil ha sido actualizado correctamente.')
+            return redirect('perfil')
+        else:
+            messages.error(request, 'Hubo un error al actualizar tu perfil. Por favor, revisa los campos.')
+    else:
+        user_form = PerfilUserEditForm(instance=usuario_django)
+        # *** CAMBIO AQUÍ: Usar PerfilUsuarioEditForm ***
+        usuario_form = PerfilUsuarioEditForm(instance=usuario_personalizado)
+
+    contexto = {
+        'user_form': user_form,
+        'usuario_form': usuario_form,
+        'titulo': 'Editar Mi Perfil'
+    }
+    return render(request, 'perfil_editar.html', contexto)

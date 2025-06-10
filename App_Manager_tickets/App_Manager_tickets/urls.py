@@ -81,7 +81,7 @@ urlpatterns = [
     path('usuarios/eliminar/<int:id>/', views.usuario_eliminar, name='usuario_eliminar'),
      path('usuario/nuevo/', views.usuario_nuevo, name='usuario_nuevo'),
    
-    
+    path('perfil/editar/', views.perfil_editar, name='perfil_editar'), # Nueva URL para editar el perfil
     
    
 
