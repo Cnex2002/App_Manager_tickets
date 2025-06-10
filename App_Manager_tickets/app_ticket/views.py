@@ -968,4 +968,95 @@ def generar_reporte_excel(request):
         workbook.save(response)
         return response
 
-    return HttpResponse("Tipo de reporte no válido", status=40)
+    elif reporte_tipo == 'rendimiento_departamentos': # Nuevo reporte por departamento
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="reporte_rendimiento_departamentos.xlsx"'
+
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        sheet.title = "Rendimiento por Departamento"
+
+        # Estilos
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        thin_border = Border(left=Side(style='thin'), 
+                             right=Side(style='thin'), 
+                             top=Side(style='thin'), 
+                             bottom=Side(style='thin'))
+
+        # Encabezados
+        headers = [
+            "Departamento", 
+            "Categoría Más Usada", 
+            "Tickets Cerrados", 
+            "Tickets Abiertos", 
+            "Calificación Promedio"
+        ]
+        sheet.append(headers)
+
+        # Aplicar estilos a los encabezados
+        for col_num, cell in enumerate(sheet[1], 1):
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = thin_border
+            sheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 25
+
+        # Datos para el reporte de rendimiento por departamento
+        departamentos = Departamento.objects.all()
+
+        for departamento in departamentos:
+            departamento_nombre = departamento.nombre
+            
+            # Filtrar tickets asociados a este departamento (a través de los técnicos)
+            tickets_departamento = tickets_base_query.filter(tecnico__departamento=departamento)
+
+            # Categoría más usada
+            categoria_mas_usada = 'N/A'
+            top_categoria = tickets_departamento.values('categoria__nombre').annotate(
+                count=Count('categoria__nombre')
+            ).order_by('-count').first()
+            if top_categoria and top_categoria['categoria__nombre']:
+                categoria_mas_usada = top_categoria['categoria__nombre']
+
+            # Tickets cerrados y abiertos
+            tickets_cerrados = tickets_departamento.filter(estado='cerrado').count()
+            tickets_abiertos = tickets_departamento.filter(estado='abierto').count()
+
+            # Calificación promedio
+            calificacion_promedio_departamento = 'N/A'
+            evaluaciones_departamento = EvaluacionTecnico.objects.filter(
+                ticket__in=tickets_departamento, 
+                calificacion__isnull=False
+            )
+            if evaluaciones_departamento.exists():
+                calificacion_promedio_departamento = round(
+                    evaluaciones_departamento.aggregate(avg_cal=Avg('calificacion'))['avg_cal'], 1
+                )
+
+            sheet.append([
+                departamento_nombre,
+                categoria_mas_usada,
+                tickets_cerrados,
+                tickets_abiertos,
+                calificacion_promedio_departamento,
+            ])
+        
+        # Ajustar ancho de columnas automáticamente
+        for col in sheet.columns:
+            max_length = 0
+            column = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            sheet.column_dimensions[column].width = adjusted_width
+
+        workbook.save(response)
+        return response
+
+    return HttpResponse("Tipo de reporte no válido", status=400)
