@@ -463,13 +463,13 @@ def chatbox_query(request):
             return JsonResponse({'error': 'No se recibió ninguna pregunta'})
 
         resultados = searcher.query(pregunta, top_k=3)
-        # Formatea resultados para enviar al frontend
         respuestas = []
         for r in resultados:
             respuestas.append({
                 'ticket_id': r['ticket_id'],
-                'texto': r['texto'],
-                'distancia': round(float(r['distancia']), 3)
+                'problema': r['problema'],
+                'solucion': r['solucion'],
+                'similitud': r['similitud']
             })
 
         return JsonResponse({'respuestas': respuestas})

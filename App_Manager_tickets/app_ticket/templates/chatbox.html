@@ -30,7 +30,14 @@
             $.post("{% url 'chatbox_query' %}", { pregunta: pregunta, csrfmiddlewaretoken: '{{ csrf_token }}' }, function(data) {
                 if(data.respuestas){
                     data.respuestas.forEach(function(respuesta){
-                        $('#chat').append('<div class="bot-msg"><b>Respuesta:</b> ' + respuesta.texto + ' <small>(Similitud: ' + respuesta.distancia.toFixed(3) + ')</small></div>');
+                       $('#chat').append(`
+                    <div class="bot-msg">
+                        <b>Problema encontrado:</b> ${respuesta.problema}<br>
+                        <b>Solución:</b> ${respuesta.solucion}<br>
+                        <small>Similitud: ${respuesta.similitud.toFixed(3)}</small>
+                    </div>
+                `);
+
                     });
                 } else if(data.error){
                     $('#chat').append('<div class="bot-msg error">' + data.error + '</div>');
