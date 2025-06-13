@@ -12,7 +12,8 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from .embeddings import TicketSolutionSearch
 searcher = TicketSolutionSearch()
-
+from django.core.files.base import ContentFile
+import base64
 #profile
 @login_required
 def perfil(request):
@@ -432,7 +433,30 @@ def solucionticket_nueva(request, id):
             solucion.fecha_subida = timezone.now()
             solucion.save()
 
-            # ACTUALIZAR ESTADO Y FECHA DE CIERRE DEL TICKET
+            # Procesar imágenes subidas
+            if 'imagenes' in request.FILES:
+                for file in request.FILES.getlist('imagenes'):
+                    if file.content_type.startswith('image/'):
+                        ImagenSolucion.objects.create(
+                            solucion=solucion,
+                            imagen=file
+                        )
+
+            # Procesar imágenes pegadas (vendrán en request.POST como base64)
+            for i in range(1, 5):
+                image_data = request.POST.get(f'pasted_image_{i}', '')
+                if image_data and image_data.startswith('data:image'):
+                    format, imgstr = image_data.split(';base64,') 
+                    ext = format.split('/')[-1]
+                    file_name = f'pasted_{solucion.id}_{i}.{ext}'
+                    
+                    data = ContentFile(base64.b64decode(imgstr), name=file_name)
+                    ImagenSolucion.objects.create(
+                        solucion=solucion,
+                        imagen=data
+                    )
+
+            # Actualizar estado del ticket
             ticket.estado = 'cerrado'
             ticket.fecha_cierre = timezone.now()
             ticket.save()

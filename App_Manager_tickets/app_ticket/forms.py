@@ -102,13 +102,54 @@ class EvaluacionTecnicoForm(forms.ModelForm):
             'fecha_evaluacion': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
         }
 
+class MultipleFileInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+    def __init__(self, attrs=None):
+        attrs = attrs or {}
+        attrs['multiple'] = 'multiple'
+        super().__init__(attrs)
+
+    def value_from_datadict(self, data, files, name):
+        if hasattr(files, 'getlist'):
+            return files.getlist(name)
+        return files.get(name)
+
+class MultipleFileField(forms.FileField):
+    widget = MultipleFileInput
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", MultipleFileInput())
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        if isinstance(data, (list, tuple)):
+            result = []
+            for file in data:
+                result.append(super().clean(file, initial))
+            return result
+        return super().clean(data, initial)
+
 class SolucionTicketForm(forms.ModelForm):
+    imagenes = MultipleFileField(
+        required=False,
+        label='Subir imágenes',
+        widget=MultipleFileInput(attrs={
+            'class': 'form-control',
+            'accept': 'image/*',
+            'id': 'file-input'
+        })
+    )
+    
     class Meta:
         model = SolucionTicket
-        fields = ['ruta_imagen', 'comentario']  
+        fields = ['comentario']
         widgets = {
-            'ruta_imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),
-            'comentario': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'comentario': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 3,
+                'placeholder': 'Describe la solución...'
+            }),
         }
 
 

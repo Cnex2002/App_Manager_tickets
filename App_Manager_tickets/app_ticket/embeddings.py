@@ -33,7 +33,7 @@ class TicketSolutionSearch:
             self.embeddings = None
             self.neigh = None
 
-    def query(self, texto_usuario, top_k=3, umbral_similitud=0.25):
+    def query(self, texto_usuario, top_k=3, umbral_similitud=0.5):
         if not self.neigh:
             return []
 
@@ -43,11 +43,10 @@ class TicketSolutionSearch:
 
         results = []
         for dist, idx in zip(distances[0], indices[0]):
-            similitud = 1 - dist  # porque NearestNeighbors usa distancia
+            similitud = 1 - dist
             if similitud >= umbral_similitud:
                 ticket_id, texto = self.tickets_data[idx]
 
-                # Dividir texto en problema y solución
                 if "Solución:" in texto:
                     problema, solucion = texto.split("Solución:", 1)
                     problema = problema.replace("Problema:", "").strip()
@@ -62,5 +61,16 @@ class TicketSolutionSearch:
                     'solucion': solucion,
                     'similitud': round(similitud, 3)
                 })
+
+        # Si no hay resultados buenos, devuelves un mensaje estándar
+        if not results:
+            results.append({
+                'ticket_id': None,
+                'problema': texto_usuario,
+                'solucion': 'No se encontró una solución similar en los tickets previos.',
+                'similitud': 0.0
+            })
+
         return results
+
 

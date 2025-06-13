@@ -116,10 +116,18 @@ class EvaluacionTecnico(models.Model):
     
     
 class SolucionTicket(models.Model):
-    ticket = models.ForeignKey('Ticket', on_delete=models.CASCADE, related_name='imagenes')
-    ruta_imagen=models.ImageField(upload_to='solucion_tickets', blank=True, null=True)
-    comentario = models.TextField(null=True, blank=True)
+    ticket = models.ForeignKey('Ticket', on_delete=models.CASCADE, related_name='soluciones')
     fecha_subida = models.DateTimeField(auto_now_add=True)
+    comentario = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return f"Solucion ID {self.ticket.id}"
+        return f"Solución para Ticket #{self.ticket.id}"
+
+class ImagenSolucion(models.Model):
+    solucion = models.ForeignKey(SolucionTicket, on_delete=models.CASCADE, related_name='imagenes')
+    imagen = models.ImageField(upload_to='solucion_tickets')
+    orden = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['orden']
+      
