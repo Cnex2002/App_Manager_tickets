@@ -76,6 +76,18 @@ urlpatterns = [
     path('dashboard/', views.ticket_editar, name='dashboard'),
     #si la url esta vacia que me lleve al login 
     path('', views.perfil, name='perfil'),
+    path('reportes/', views.reportes_view, name='reportes'),
+    path('generar_reporte_excel/', views.generar_reporte_excel, name='generar_reporte_excel'),
+   # Rutas para la administración de usuarios
+    path('usuarios/lista/', views.usuario_lista, name='usuario_lista'),
+    path('usuarios/editar/<int:id>/', views.usuario_editar, name='usuario_editar'),
+    path('usuarios/eliminar/<int:id>/', views.usuario_eliminar, name='usuario_eliminar'),
+     path('usuario/nuevo/', views.usuario_nuevo, name='usuario_nuevo'),
+   
+    path('perfil/editar/', views.perfil_editar, name='perfil_editar'), # Nueva URL para editar el perfil
+     path('perfil/cambiar_contrasena/', views.cambiar_contrasena, name='cambiar_contrasena'),
+    
+   
 
     
 ]

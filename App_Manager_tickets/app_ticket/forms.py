@@ -1,6 +1,6 @@
 from django import forms
 from .models import *
-
+from django.contrib.auth.models import User
 
 class EmpresaForm(forms.ModelForm):
     class Meta:
@@ -94,12 +94,15 @@ class TicketForm(forms.ModelForm):
 class EvaluacionTecnicoForm(forms.ModelForm):
     class Meta:
         model = EvaluacionTecnico
-        fields = ['ticket', 'calificacion', 'comentario','fecha_evaluacion']
+        fields = ['ticket', 'calificacion', 'comentario', 'fecha_evaluacion']
         widgets = {
             'ticket': forms.Select(attrs={'class': 'form-control'}),
             'calificacion': forms.Select(attrs={'class': 'form-control'}),
             'comentario': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'fecha_evaluacion': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'fecha_evaluacion': forms.DateTimeInput(
+                attrs={'class': 'form-control', 'type': 'datetime-local'},
+                format='%Y-%m-%dT%H:%M'  # <-- Agrega esta línea
+            ),
         }
 
 class MultipleFileInput(forms.ClearableFileInput):
@@ -154,6 +157,8 @@ class SolucionTicketForm(forms.ModelForm):
 
 
 
+
+
 class UsuarioForm(forms.ModelForm):
     class Meta:
         model = Usuario
@@ -164,4 +169,45 @@ class UsuarioForm(forms.ModelForm):
             'rol': forms.Select(attrs={'class': 'form-control'}),
             'departamento': forms.Select(attrs={'class': 'form-control'}),
         }
-   
+
+
+# Nuevo formulario para editar el User de Django
+class UserEditForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser']
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_staff': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_superuser': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+# ESTA ES LA ÚNICA DEFINICIÓN CORRECTA DE UserEditForm
+class PerfilUserEditForm(forms.ModelForm):
+    class Meta:
+        model = User
+        # Eliminé 'is_staff' y 'is_superuser' para que el usuario no los edite.
+        fields = ['username', 'email', 'first_name', 'last_name']
+        widgets = {
+            # Username de solo lectura.
+            'username': forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            
+        }
+
+# Nuevo formulario para editar el perfil del usuario (sin permitir cambiar el rol)
+class PerfilUsuarioEditForm(forms.ModelForm):
+    class Meta:
+        model = Usuario
+        fields = ['nombre', 'departamento'] # Excluye 'rol'
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'departamento': forms.Select(attrs={'class': 'form-control'}),
+        }
