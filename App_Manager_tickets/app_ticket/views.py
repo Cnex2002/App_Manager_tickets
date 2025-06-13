@@ -21,6 +21,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
+from django.core.mail import send_mail
 
 # Helper para verificar si el usuario es staff (tiene acceso al admin)
 def is_staff_check(user):
@@ -151,21 +152,55 @@ def departamento_nuevo(request):
     return render(request, 'ticket_nuevo.html', contexto)
 
 
+
+@login_required
 def ticket_nuevo(request):
     if request.method == 'POST':
         formulario = TicketForm(request.POST)
         if formulario.is_valid():
-            objeto = formulario.save(commit=False)
-            objeto.save()
+            ticket = formulario.save(commit=False)
+            ticket.estado = 'Abierto'  # Asigna el estado inicial
+            ticket.save()
 
-            return redirect('lista_tickets')
+            # Enviar correo electrónico al cliente
+            asunto = f'Creación de Ticket #{ticket.id}'
+            mensaje = (
+                f'Estimado/a {ticket.cliente.nombres},\n\n'
+                f'Se ha creado un nuevo ticket con los siguientes detalles:\n\n'
+                f'Título: {ticket.titulo}\n'
+                f'Descripción: {ticket.descripcion}\n'
+                f'Estado: {ticket.estado}\n'
+                f'Prioridad: {ticket.prioridad}\n'
+                f'Categoría: {ticket.categoria.nombre}\n'
+                f'Fecha de Creación: {ticket.fecha_creacion.strftime("%Y-%m-%d %H:%M:%S")}\n\n'
+                f'Nos pondremos en contacto contigo a la brevedad posible.\n\n'
+                f'Saludos,\n'
+                f'Equipo de Soporte'
+            )
+            email_cliente = ticket.cliente.correo # Obtén el correo del cliente
+
+            try:
+                send_mail(
+                    asunto,
+                    mensaje,
+                    settings.DEFAULT_FROM_EMAIL,  # Desde el correo configurado en settings
+                    [email_cliente],  # Lista de destinatarios
+                    fail_silently=False,
+                )
+                messages.success(request, 'Ticket creado exitosamente y notificación por correo enviada al cliente.')
+            except Exception as e:
+                messages.error(request, f'Ticket creado pero no se pudo enviar el correo de notificación: {e}')
+
+            return redirect('lista_tickets')  # Redirige a la lista de tickets
     else:
         formulario = TicketForm()
+    return render(request, 'ticket_nuevo.html', {'formulario': formulario, 'titulo': 'Crear Nuevo Ticket'})
 
-    contexto = {
-        'formulario': formulario
-    }
-    return render(request, 'ticket_nuevo.html', contexto)
+
+
+
+
+
 
 def evaluacion_nueva(request):
     if request.method == 'POST':

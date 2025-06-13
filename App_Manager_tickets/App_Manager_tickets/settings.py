@@ -151,4 +151,12 @@ ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_UNIQUE_EMAIL = True
 #para no poder registrarse
 #ACCOUNT_ALLOW_REGISTRATION = False
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Configuraciones de Email
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'keevsanchez37@gmail.com'  # Tu dirección de Gmail
+EMAIL_HOST_PASSWORD = 'ejxt fqoe ndoo dunh'  # La contraseña de aplicación que generaste
+DEFAULT_FROM_EMAIL = 'keevsanchez37@gmail.com' # De donde se enviara
