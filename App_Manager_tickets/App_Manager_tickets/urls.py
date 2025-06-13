@@ -38,6 +38,7 @@ urlpatterns = [
     path('sucursal/', views.lista_sucursales, name='lista_sucursales'),
     path('departamento/', views.lista_departamentos, name='lista_departamentos'),
     path('ticket/', views.lista_tickets, name='lista_tickets'),
+    
 
     path('evaluacion/', views.lista_evaluaciones, name='lista_evaluaciones'),
     #editar
@@ -83,7 +84,7 @@ urlpatterns = [
    
     path('perfil/editar/', views.perfil_editar, name='perfil_editar'), # Nueva URL para editar el perfil
      path('perfil/cambiar_contrasena/', views.cambiar_contrasena, name='cambiar_contrasena'),
-    
+    path('ver_tickets_tecnico/', views.ver_tickets_tecnico, name='ver_tickets_tecnico'),
    
 
 ]
