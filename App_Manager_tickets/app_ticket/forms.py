@@ -65,16 +65,7 @@ class DepartamentoForm(forms.ModelForm):
 class TicketForm(forms.ModelForm):
     class Meta:
         model = Ticket
-        fields = [
-            'titulo',
-            'descripcion',
-            'estado',
-            'prioridad',
-            'categoria',
-            'cliente',
-            'tecnico',
-            'fecha_cierre',
-        ]
+        fields = ['titulo', 'descripcion', 'estado', 'prioridad', 'categoria', 'cliente', 'tecnico']
         widgets = {
             'titulo': forms.TextInput(attrs={'class': 'form-control'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control'}),
@@ -83,11 +74,43 @@ class TicketForm(forms.ModelForm):
             'categoria': forms.Select(attrs={'class': 'form-control'}),
             'cliente': forms.Select(attrs={'class': 'form-control'}),
             'tecnico': forms.Select(attrs={'class': 'form-control'}),
-            'fecha_cierre': forms.DateTimeInput(attrs={
-                'class': 'form-control',
-                'type': 'datetime-local'
-            }),
         }
+
+    def __init__(self, *args, **kwargs):
+        # Extraer 'request' de los kwargs antes de llamar al super().__init__
+        request = kwargs.pop('request', None) 
+        super().__init__(*args, **kwargs)
+
+        # Si hay un request y el usuario está autenticado
+        if request and request.user.is_authenticated:
+            try:
+                # Intentar obtener el objeto Usuario personalizado
+                usuario_personalizado = request.user.usuario
+                rol_usuario = usuario_personalizado.rol
+
+                # Aplicar lógica de filtrado si el rol es 'atencion' o 'supervisor'
+                if rol_usuario in ['atencion', 'supervisor']:
+                    departamento_usuario = usuario_personalizado.departamento
+                    if departamento_usuario:
+                        # Filtrar técnicos: rol 'tecnico' Y del mismo departamento
+                        self.fields['tecnico'].queryset = Usuario.objects.filter(
+                            rol='tecnico',
+                            departamento=departamento_usuario
+                        )
+                    else:
+                        # Si el usuario (atención/supervisor) no tiene departamento, no se muestran técnicos
+                        self.fields['tecnico'].queryset = Usuario.objects.none()
+                else:
+                    # Si el rol NO es 'atencion' o 'supervisor', mostrar todos los técnicos
+                    self.fields['tecnico'].queryset = Usuario.objects.filter(rol='tecnico')
+            except Usuario.DoesNotExist:
+                # Manejar el caso en que request.user.usuario no exista (aunque debería, si el sistema es consistente)
+                # Por seguridad o fallback, mostrar todos los técnicos con rol 'tecnico'
+                self.fields['tecnico'].queryset = Usuario.objects.filter(rol='tecnico')
+        else:
+            # Si no hay usuario autenticado (ej. formulario en una vista pública, lo cual no es el caso aquí
+            # porque la vista es @login_required, pero es buena práctica), mostrar todos los técnicos.
+            self.fields['tecnico'].queryset = Usuario.objects.filter(rol='tecnico')
 
 
 

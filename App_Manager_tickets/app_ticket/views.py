@@ -27,6 +27,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
+from django.core.mail import send_mail
 
 # Helper para verificar si el usuario es staff (tiene acceso al admin)
 def is_staff_check(user):
@@ -156,21 +157,59 @@ def departamento_nuevo(request):
     return render(request, 'ticket_nuevo.html', contexto)
 
 
+
+@login_required
 def ticket_nuevo(request):
     if request.method == 'POST':
-        formulario = TicketForm(request.POST)
+        # Pasar el request al formulario
+        formulario = TicketForm(request.POST, request=request) 
         if formulario.is_valid():
-            objeto = formulario.save(commit=False)
-            objeto.save()
+            ticket = formulario.save(commit=False)
+            ticket.estado = 'abierto'  # Asigna el estado inicial
+            ticket.save()
 
-            return redirect('lista_tickets')
+            # Enviar correo electrónico al cliente
+            asunto = f'Creación de Ticket #{ticket.id}'
+            mensaje = (
+                f'Estimado/a {ticket.cliente.nombres},\n\n'
+                f'Se ha creado un nuevo ticket con los siguientes detalles:\n\n'
+                f'Título: {ticket.titulo}\n'
+                f'Descripción: {ticket.descripcion}\n'
+                f'Estado: {ticket.estado}\n'
+                f'Prioridad: {ticket.prioridad}\n'
+                f'Categoría: {ticket.categoria.nombre}\n'
+                f'Fecha de Creación: {ticket.fecha_creacion.strftime("%Y-%m-%d %H:%M:%S")}\n\n'
+                f'Nos pondremos en contacto contigo a la brevedad posible.\n\n'
+                f'Saludos,\n'
+                f'Equipo de Soporte'
+            )
+            email_cliente = ticket.cliente.correo # Obtén el correo del cliente
+
+            try:
+                send_mail(
+                    asunto,
+                    mensaje,
+                    settings.DEFAULT_FROM_EMAIL,  # Desde el correo configurado en settings
+                    [email_cliente],  # Lista de destinatarios
+                    fail_silently=False,
+                )
+                messages.success(request, 'Ticket creado exitosamente y notificación por correo enviada al cliente.')
+            except Exception as e:
+                messages.error(request, f'Ticket creado pero no se pudo enviar el correo de notificación: {e}')
+
+            return redirect('lista_tickets')  # Redirige a la lista de tickets
     else:
-        formulario = TicketForm()
+        # Pasar el request al formulario
+        formulario = TicketForm(request=request)
+    return render(request, 'ticket_nuevo.html', {'formulario': formulario, 'titulo': 'Crear Nuevo Ticket'})
 
-    contexto = {
-        'formulario': formulario
-    }
-    return render(request, 'ticket_nuevo.html', contexto)
+
+
+
+
+
+
+
 
 def evaluacion_nueva(request):
     if request.method == 'POST':
@@ -222,12 +261,38 @@ def lista_departamentos(request):
         'departamentos': Departamento.objects.all(),
     }
     return render(request, 'departamento_lista.html', contexto)
+
+
+
 def lista_tickets(request):
 
     contexto = {
         'tickets': Ticket.objects.all(),
     }
     return render(request, 'ticket_lista.html', contexto)
+
+#ver tickets del tenico
+@login_required
+def ver_tickets_tecnico(request):
+    usuario_personalizado = request.user.usuario
+    rol_usuario = usuario_personalizado.rol
+    
+    if rol_usuario in ['atencion', 'supervisor']:
+        departamento_usuario = usuario_personalizado.departamento
+        if departamento_usuario:
+            # Filtra tickets donde el técnico asignado pertenezca al mismo departamento
+            tickets = Ticket.objects.filter(tecnico__departamento=departamento_usuario)
+        else:
+            tickets = Ticket.objects.none() # No hay departamento asignado, no se muestran tickets
+    else:
+        # Si el rol no es "atencion" ni "supervisor", muestra todos los tickets
+        tickets = Ticket.objects.all()
+        
+    contexto = {
+        'tickets': tickets
+    }
+    return render(request, 'ticket_lista.html', contexto)
+
 
 
 def lista_evaluaciones(request):
@@ -317,17 +382,18 @@ def cliente_editar(request, id):
 def ticket_editar(request, id):
     ticket = get_object_or_404(Ticket, id=id)
     if request.method == 'POST':
-        formulario = TicketForm(request.POST, instance=ticket)
+        # Pasar el request al formulario
+        formulario = TicketForm(request.POST, instance=ticket, request=request)
         if formulario.is_valid():
             objeto = formulario.save(commit=False)
             objeto.save()
-            return redirect('lista_tickets')  # Replace with your actual ticket list URL name
+            return redirect('lista_tickets')  
     else:
-        formulario = TicketForm(instance=ticket)
+        # Pasar el request al formulario
+        formulario = TicketForm(instance=ticket, request=request)
 
     contexto = {
         'formulario': formulario
-       
     }
     return render(request, 'ticket_nuevo.html', contexto)
 
@@ -440,9 +506,9 @@ def evaluacion_eliminar(request, id):
     return render(request, 'ticket_eliminar.html', contexto)
 
 #ver tickets del tenico
-def ver_tickets_tecnico(request, ):
+#def ver_tickets_tecnico(request, ):
   
-    return render(request, 'tecnico_ticket.html')
+   #return render(request, 'tecnico_ticket.html')
 
 def solucionticket_nueva(request, id):  
     ticket = get_object_or_404(Ticket, id=id)
