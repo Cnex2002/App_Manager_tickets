@@ -22,8 +22,7 @@ django-admin startproject nombre-proyecto
 -crear aplicacion
 python manage.py startapp nombre-app
 
--correr app
-python manage.py runserver
+
 
 
 -Paso2
@@ -42,3 +41,6 @@ crear modelo en models.py
 from .models import nombre-clase
 	-crear superusuario
 	python manage.py createsuperuser
+
+-correr app
+python manage.py runserver

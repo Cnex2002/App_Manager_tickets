@@ -60,7 +60,7 @@ urlpatterns = [
   
     path('evaluacion/eliminar/<int:id>/', views.evaluacion_eliminar, name='evaluacion_eliminar'),
     #ver
-    path('ver_tickets_tecnico/', views.ver_tickets_tecnico, name='ver_tickets_tecnico'),
+    
     path('soluciontickets/nuevo/<int:id>/', views.solucionticket_nueva, name='solucionticket_nueva'),
 
 
@@ -84,7 +84,11 @@ urlpatterns = [
    
     path('perfil/editar/', views.perfil_editar, name='perfil_editar'), # Nueva URL para editar el perfil
      path('perfil/cambiar_contrasena/', views.cambiar_contrasena, name='cambiar_contrasena'),
-    path('ver_tickets_tecnico/', views.ver_tickets_tecnico, name='ver_tickets_tecnico'),
+    path('tickets/departamento/', views.ver_tickets_departamento, name='ver_tickets_departamento'),
+    path('tecnico/tickets/', views.tecnico_tickets_asignados, name='tecnico_tickets_asignados'),
+
+
+    
    
 
 ]

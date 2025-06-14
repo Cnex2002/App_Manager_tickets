@@ -27,6 +27,12 @@ from django.core.mail import send_mail
 def is_staff_check(user):
     return user.is_staff
 
+def is_tecnico_check(user):
+    if hasattr(user, 'usuario'):
+        return user.usuario.rol == 'tecnico'
+    return False
+
+
 #profile
 #profile
 @login_required
@@ -266,9 +272,9 @@ def lista_tickets(request):
     }
     return render(request, 'ticket_lista.html', contexto)
 
-#ver tickets del tenico
+#ver tickets del departamento
 @login_required
-def ver_tickets_tecnico(request):
+def ver_tickets_departamento(request):
     usuario_personalizado = request.user.usuario
     rol_usuario = usuario_personalizado.rol
     
@@ -501,9 +507,9 @@ def evaluacion_eliminar(request, id):
     return render(request, 'ticket_eliminar.html', contexto)
 
 #ver tickets del tenico
-#def ver_tickets_tecnico(request, ):
+def tickets_tecnico(request, ):
   
-   #return render(request, 'tecnico_ticket.html')
+   return render(request, 'tecnico_ticket.html')
 
 def solucionticket_nueva(request, id):  
     ticket = get_object_or_404(Ticket, id=id)
@@ -1279,3 +1285,18 @@ def cambiar_contrasena(request):
     else:
         form = PasswordChangeForm(request.user)
     return render(request, 'cambiar_contrasena.html', {'form': form})
+
+@login_required
+@user_passes_test(is_tecnico_check, login_url='/accounts/login/') # Asegura que solo los técnicos accedan
+def tecnico_tickets_asignados(request):
+    # Obtener el objeto Usuario personalizado asociado al usuario de Django
+    usuario_tecnico = get_object_or_404(Usuario, usuarios=request.user) # Corrected field name here
+    
+    # Obtener todos los tickets asignados a este técnico
+    tickets = Ticket.objects.filter(tecnico=usuario_tecnico).order_by('-fecha_creacion')
+    
+    context = {
+        'tickets': tickets,
+        'titulo': 'Mis Tickets Asignados'
+    }
+    return render(request, 'tecnico_ticket.html', context)
