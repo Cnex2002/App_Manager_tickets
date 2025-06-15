@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Sucursal{% endblock title %}
+{% block content %}
+
+    <div class="container-fluid" >
+<h1 class="mt-4">Lista de Sucursales</h1>
+<a href="{% url 'sucursal_nuevo' %}" class="btn btn-success">Nueva Sucursal</a>
+<table class="table mt-3">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Dirección</th>
+            <th>Empresa</th>
+            <th>Estado</th>
+            <th>Accion</th>
+
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in sucursales %}
+        <tr>
+            <td>{{ s.nombre }}</td>
+            <td>{{ s.direccion }}</td>
+            <td>{{ s.empresa.nombre }}</td>
+            <td>{{ s.estado }}</td>
+            <td>
+                <a href="{% url 'sucursal_editar' s.id %}" class="btn btn-primary">Editar</a>
+                <a href="{% url 'sucursal_eliminar' s.id %}" class="btn btn-danger btn-sm">Eliminar</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+</div>
+{% endblock content %}

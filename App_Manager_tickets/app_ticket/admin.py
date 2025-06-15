@@ -5,11 +5,11 @@ admin.site.register(Usuario)
 admin.site.register(Empresa)
 admin.site.register(Sucursal)
 admin.site.register(Departamento)
-admin.site.register(Rol)
+
 admin.site.register(Categoria)
 admin.site.register(Cliente)
 admin.site.register(Ticket)
-admin.site.register(ImagenTicket)
+admin.site.register(SolucionTicket)
 admin.site.register(EvaluacionTecnico)
 
 

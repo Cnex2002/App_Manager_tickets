@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}<h1>{% endblock title %}
+   {% block content %}
+
+    <div class="container mt-4">
+      <h1>Confirmar Eliminación</h1>
+
+      <p>¿Estás seguro de que deseas eliminar el registro?</p>
+
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+        <a href="{{ url_cancelar }}" class="btn btn-secondary">No, cancelar</a>
+      </form>
+    </div>
+    {% endblock content %}
+

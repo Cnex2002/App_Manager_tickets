@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Rol{% endblock title %}
+{% block content %}
+
+<div class="d-flex">
+
+    <div class="container-fluid" >
+<h1 class="mt-4">Lista de Categorías</h1>
+<a href="{% url 'rol_nuevo' %}" class="btn btn-success">Nuevo Rol</a>  
+
+<table class="table mt-3">
+
+    <thead>
+        <tr>
+            <th>Nombre</th>
+           
+        </tr>
+    </thead>
+    <tbody>
+        {% for rol in roles %}
+        <tr>
+            <td>{{ rol.nombre }}</td>
+            <td>
+                <a href="{% url 'rol_editar' rol.id %}" class="btn btn-primary">Editar</a>
+                <a href="{% url 'rol_eliminar' rol.id %}" class="btn btn-danger btn-sm">Eliminar</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+</div>
+{% endblock content %}

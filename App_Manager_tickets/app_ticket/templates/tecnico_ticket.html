@@ -1,0 +1,71 @@
+{# app_ticket/templates/tecnico_ticket.html #}
+
+{% extends "base.html" %}
+{% block title %}Mis Tickets Asignados{% endblock title %} {# Cambié el título por algo más descriptivo #}
+{% block content %}
+
+
+    <div class="container mt-5">
+        <h1>Mis Tickets Asignados</h1><br>
+
+        {# Por ahora, los filtros y la funcionalidad de click no se implementan, como pediste #}
+        <div class="ticket-filters">
+            <div class="row">
+                <div class="col-md-4 filter-group">
+                    <label for="filter-estado" class="filter-label">Estado:</label>
+                    <select id="filter-estado" class="filter-select">
+                        <option value="">Todos</option>
+                        <option value="Abierto">Abierto</option>
+                        <option value="En_Progreso">En Progreso</option>
+                        <option value="Resuelto">Resuelto</option>
+                        <option value="Cerrado">Cerrado</option>
+                    </select>
+                </div>
+                <div class="col-md-4 filter-group">
+                    <label for="filter-prioridad" class="filter-label">Prioridad:</label>
+                    <select id="filter-prioridad" class="filter-select">
+                        <option value="">Todas</option>
+                        <option value="Alta">Alta</option>
+                        <option value="Media">Media</option>
+                        <option value="Baja">Baja</option>
+                    </select>
+                </div>
+                <div class="col-md-4 filter-group">
+                    <label for="filter-fecha" class="filter-label">Fecha de Creación:</label>
+                    <input type="date" id="filter-fecha" class="filter-input">
+                </div>
+            </div>
+        </div>
+
+        <table class="table table-hover mt-4">
+            <thead>
+                <tr>
+                    <th>Título</th>
+                    <th>Descripción</th>
+                    <th>Estado</th>
+                    <th>Prioridad</th>
+                    <th>Fecha Creación</th>
+                    <th>Fecha Cierre</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ticket in tickets %}
+                {# Por ahora, la funcionalidad de dar click a un ticket no se implementa #}
+                <tr class="ticket-row">
+                    <td>{{ ticket.titulo }}</td>
+                    <td>{{ ticket.descripcion }}</td>
+                    <td><span class="status-badge status-{{ ticket.estado|slugify }}">{{ ticket.get_estado_display }}</span></td>
+                    <td class="priority-{{ ticket.prioridad|slugify }}">{{ ticket.get_prioridad_display }}</td>
+                    <td>{{ ticket.fecha_creacion|date:"Y-m-d H:i" }}</td>
+                    <td>{% if ticket.fecha_cierre %}{{ ticket.fecha_cierre|date:"Y-m-d H:i" }}{% else %}N/A{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">No tienes tickets asignados en este momento.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+{% endblock content %}

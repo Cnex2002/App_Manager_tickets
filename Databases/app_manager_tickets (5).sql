@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 21-05-2025 a las 02:59:36
+-- Tiempo de generación: 28-05-2025 a las 01:50:17
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -28,8 +28,6 @@ USE `app_manager_tickets`;
 --
 -- Estructura de tabla para la tabla `categorias`
 --
--- Creación: 07-05-2025 a las 03:10:15
---
 
 DROP TABLE IF EXISTS `categorias`;
 CREATE TABLE `categorias` (
@@ -37,12 +35,14 @@ CREATE TABLE `categorias` (
   `nombre` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- RELACIONES PARA LA TABLA `categorias`:
+--
+
 -- --------------------------------------------------------
 
 --
 -- Estructura de tabla para la tabla `clientes`
---
--- Creación: 09-05-2025 a las 03:32:39
 --
 
 DROP TABLE IF EXISTS `clientes`;
@@ -54,29 +54,14 @@ CREATE TABLE `clientes` (
   `correo` varchar(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
-
 --
--- Estructura de tabla para la tabla `comentarios`
+-- RELACIONES PARA LA TABLA `clientes`:
 --
--- Creación: 21-05-2025 a las 00:57:05
---
-
-DROP TABLE IF EXISTS `comentarios`;
-CREATE TABLE `comentarios` (
-  `id` int(11) NOT NULL,
-  `mensaje` text NOT NULL,
-  `fecha_comentario` timestamp NOT NULL DEFAULT current_timestamp(),
-  `ruta_imagen` text DEFAULT NULL,
-  `id_ticket` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
 --
 -- Estructura de tabla para la tabla `departamentos`
---
--- Creación: 09-05-2025 a las 03:32:39
 --
 
 DROP TABLE IF EXISTS `departamentos`;
@@ -88,12 +73,16 @@ CREATE TABLE `departamentos` (
   `estado` tinyint(4) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- RELACIONES PARA LA TABLA `departamentos`:
+--   `id_sucursal`
+--       `sucursales` -> `id`
+--
+
 -- --------------------------------------------------------
 
 --
 -- Estructura de tabla para la tabla `empresas`
---
--- Creación: 09-05-2025 a las 03:32:39
 --
 
 DROP TABLE IF EXISTS `empresas`;
@@ -105,13 +94,14 @@ CREATE TABLE `empresas` (
   `estado` tinyint(4) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- RELACIONES PARA LA TABLA `empresas`:
+--
+
 -- --------------------------------------------------------
 
 --
 -- Estructura de tabla para la tabla `evaluaciones_tecnicos`
---
--- Creación: 21-05-2025 a las 00:59:23
--- Última actualización: 21-05-2025 a las 00:59:23
 --
 
 DROP TABLE IF EXISTS `evaluaciones_tecnicos`;
@@ -123,12 +113,16 @@ CREATE TABLE `evaluaciones_tecnicos` (
   `fecha_evaluacion` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- RELACIONES PARA LA TABLA `evaluaciones_tecnicos`:
+--   `id_ticket`
+--       `tickets` -> `id`
+--
+
 -- --------------------------------------------------------
 
 --
 -- Estructura de tabla para la tabla `imagenes_ticket`
---
--- Creación: 07-05-2025 a las 03:10:15
 --
 
 DROP TABLE IF EXISTS `imagenes_ticket`;
@@ -139,12 +133,32 @@ CREATE TABLE `imagenes_ticket` (
   `fecha_subida` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- RELACIONES PARA LA TABLA `imagenes_ticket`:
+--   `id_ticket`
+--       `tickets` -> `id`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `rol`
+--
+
+DROP TABLE IF EXISTS `rol`;
+CREATE TABLE `rol` (
+  `id` int(20) NOT NULL,
+  `nombre` varchar(50) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- RELACIONES PARA LA TABLA `rol`:
+--
+
 -- --------------------------------------------------------
 
 --
 -- Estructura de tabla para la tabla `sucursales`
---
--- Creación: 09-05-2025 a las 03:32:39
 --
 
 DROP TABLE IF EXISTS `sucursales`;
@@ -156,12 +170,16 @@ CREATE TABLE `sucursales` (
   `estado` tinyint(4) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- RELACIONES PARA LA TABLA `sucursales`:
+--   `id_empresa`
+--       `empresas` -> `id`
+--
+
 -- --------------------------------------------------------
 
 --
 -- Estructura de tabla para la tabla `tickets`
---
--- Creación: 21-05-2025 a las 00:57:05
 --
 
 DROP TABLE IF EXISTS `tickets`;
@@ -179,12 +197,20 @@ CREATE TABLE `tickets` (
   `id_tecnico` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- RELACIONES PARA LA TABLA `tickets`:
+--   `id_cliente`
+--       `clientes` -> `id`
+--   `id_tecnico`
+--       `usuarios` -> `id`
+--   `id_categoria`
+--       `categorias` -> `id`
+--
+
 -- --------------------------------------------------------
 
 --
 -- Estructura de tabla para la tabla `usuarios`
---
--- Creación: 07-05-2025 a las 03:10:15
 --
 
 DROP TABLE IF EXISTS `usuarios`;
@@ -195,8 +221,17 @@ CREATE TABLE `usuarios` (
   `contraseña` varchar(255) NOT NULL,
   `rol` enum('cliente','tecnico','administrador') NOT NULL,
   `id_departamento` int(11) DEFAULT NULL,
-  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp()
+  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
+  `rol_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- RELACIONES PARA LA TABLA `usuarios`:
+--   `rol_id`
+--       `rol` -> `id`
+--   `id_departamento`
+--       `departamentos` -> `id`
+--
 
 --
 -- Índices para tablas volcadas
@@ -214,13 +249,6 @@ ALTER TABLE `categorias`
 ALTER TABLE `clientes`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `correo` (`correo`);
-
---
--- Indices de la tabla `comentarios`
---
-ALTER TABLE `comentarios`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `fk_comentarios_ticket` (`id_ticket`);
 
 --
 -- Indices de la tabla `departamentos`
@@ -250,6 +278,13 @@ ALTER TABLE `imagenes_ticket`
   ADD KEY `id_ticket` (`id_ticket`);
 
 --
+-- Indices de la tabla `rol`
+--
+ALTER TABLE `rol`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `nombre` (`nombre`);
+
+--
 -- Indices de la tabla `sucursales`
 --
 ALTER TABLE `sucursales`
@@ -271,7 +306,8 @@ ALTER TABLE `tickets`
 ALTER TABLE `usuarios`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `correo` (`correo`),
-  ADD KEY `id_departamento` (`id_departamento`);
+  ADD KEY `id_departamento` (`id_departamento`),
+  ADD KEY `rol_id` (`rol_id`);
 
 --
 -- AUTO_INCREMENT de las tablas volcadas
@@ -287,12 +323,6 @@ ALTER TABLE `categorias`
 -- AUTO_INCREMENT de la tabla `clientes`
 --
 ALTER TABLE `clientes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT de la tabla `comentarios`
---
-ALTER TABLE `comentarios`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -320,6 +350,12 @@ ALTER TABLE `imagenes_ticket`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT de la tabla `rol`
+--
+ALTER TABLE `rol`
+  MODIFY `id` int(20) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT de la tabla `sucursales`
 --
 ALTER TABLE `sucursales`
@@ -340,12 +376,6 @@ ALTER TABLE `usuarios`
 --
 -- Restricciones para tablas volcadas
 --
-
---
--- Filtros para la tabla `comentarios`
---
-ALTER TABLE `comentarios`
-  ADD CONSTRAINT `fk_comentarios_ticket` FOREIGN KEY (`id_ticket`) REFERENCES `tickets` (`id`) ON DELETE CASCADE;
 
 --
 -- Filtros para la tabla `departamentos`
@@ -383,6 +413,7 @@ ALTER TABLE `tickets`
 -- Filtros para la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
+  ADD CONSTRAINT `fk_usuarios_rol` FOREIGN KEY (`rol_id`) REFERENCES `rol` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `usuarios_ibfk_1` FOREIGN KEY (`id_departamento`) REFERENCES `departamentos` (`id`);
 COMMIT;
 

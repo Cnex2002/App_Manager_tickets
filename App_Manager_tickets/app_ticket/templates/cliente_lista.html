@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Clientes{% endblock title %}
+{% block content %}
+
+<div class="d-flex"></div>
+
+<div class="container-fluid" >
+<h1 class="mt-4">Lista de Clientes</h1>
+<a href="{% url 'cliente_nuevo' %}" class="btn btn-success">Nuevo Cliente</a>
+<table class="table mt-3">
+    <thead>
+        <tr>
+            <th>Ruc</th>
+            <th>Nombre</th>
+            <th>Teléfono</th>
+            <th>Dirección</th>
+            <th>Correo</th>
+            <th>Anydesk</th>
+            <th>Empresa</th>
+            <th>Accion</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for c in clientes %}
+        <tr>
+            <td>{{ c.ruc }}</td>
+            <td>{{ c.nombres }}</td>
+            <td>{{ c.telefono }}</td>
+            <td>{{ c.direccion }}</td>
+            <td>{{ c.correo }}</td>
+            <td>{{ c.anydesk_empresa}}</td>
+            <td>{{ c.empresa }}</td>
+            <td>
+                <a href="{% url 'cliente_editar' c.id %}" class="btn btn-primary">Editar</a>
+                <a href="{% url 'cliente_eliminar' c.id %}" class="btn btn-danger btn-sm">Eliminar</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+</div>
+{% endblock content %}

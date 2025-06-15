@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Categoria{% endblock title %}
+{% block content %}
+
+<div class="d-flex">
+
+<div class="container-fluid" >
+<h1 class="mt-4">Lista de Categorías</h1>
+<a href="{% url 'categoria_nuevo' %}" class="btn btn-success">Nueva Categoría</a>
+<table class="table mt-3">
+
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Accion</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for cat in categorias %}
+        <tr>
+            <td>{{ cat.nombre }}</td>
+            <td>
+                <a href="{% url 'categoria_editar' cat.id %}" class="btn btn-primary">Editar</a>
+                <a href="{% url 'categoria_eliminar' cat.id %}" class="btn btn-danger btn-sm">Eliminar</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+</div>
+{% endblock content %}
+
+

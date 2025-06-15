@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo|default:"Gestión de Usuario" }}{% endblock title %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ titulo }}</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="POST" class="post-form">{% csrf_token %}
+        <h4 class="mt-4">Datos de la Cuenta de Django (User)</h4>
+        {{ user_form.as_p }}
+
+        <h4 class="mt-4">Datos del Perfil del Usuario (Personalizado)</h4>
+        {{ usuario_form.as_p }}
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a href="javascript:history.back()" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock content %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Departamentos{% endblock title %}
+{% block content %}
+
+<body>
+    <div class="d-flex"></div>
+
+<div class="container-fluid" >
+<h1 class="mt-4">Lista de Departamentos</h1>
+<a href="{% url 'departamento_nuevo' %}" class="btn btn-success">Nuevo Departamento</a>
+<table class="table mt-3">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Sucursal</th>
+            <th>Observaciones</th>
+            <th>Estado</th>
+            <th>Accion</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for d in departamentos %}
+        <tr>
+            <td>{{ d.nombre }}</td>
+            <td>{{ d.sucursal.nombre }}</td>
+            <td>{{ d.observaciones }}</td>
+            <td>{{ d.estado }}</td>
+            <td>
+                <a href="{% url 'departamento_editar' d.id %}" class="btn btn-primary">Editar</a>
+                <a href="{% url 'departamento_eliminar' d.id %}" class="btn btn-danger btn-sm">Eliminar</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+</div>
+{% endblock content %}

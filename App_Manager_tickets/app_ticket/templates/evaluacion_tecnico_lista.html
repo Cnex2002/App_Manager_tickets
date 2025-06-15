@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Evaluacion{% endblock title %}
+{% block content %}
+
+<div class="d-flex">
+
+    <div class="container-fluid" >
+<h1 class="mt-4">Lista de Evaluaciones</h1>
+<a href="{% url 'evaluacion_nueva' %}" class="btn btn-success">Nueva Evaluacion</a>
+<table class="table mt-3">
+
+    <thead>
+        <tr>
+            <th>Ticket</th>
+            <th>Calificación</th>
+            <th>Comentarios</th>
+            <th>Fecha de evaluacion</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for evaluacion in evaluaciones %}
+        <tr>
+            <td>{{ evaluacion.ticket }}</td>
+            <td>{{ evaluacion.calificacion }}</td>
+            <td>{{ evaluacion.comentario}}</td>
+            <td>{{ evaluacion.fecha_evaluacion}}</td>
+            <td>
+                <a href="{% url 'evaluacion_editar' evaluacion.id %}" class="btn btn-primary btn-sm">Editar</a>
+                <a href="{% url 'evaluacion_eliminar' evaluacion.id %}" class="btn btn-danger btn-sm">Eliminar</a>
+            </td>
+
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+</div>
+{% endblock content %}
