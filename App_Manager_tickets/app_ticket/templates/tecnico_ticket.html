@@ -58,6 +58,11 @@
                     <td class="priority-{{ ticket.prioridad|slugify }}">{{ ticket.get_prioridad_display }}</td>
                     <td>{{ ticket.fecha_creacion|date:"Y-m-d H:i" }}</td>
                     <td>{% if ticket.fecha_cierre %}{{ ticket.fecha_cierre|date:"Y-m-d H:i" }}{% else %}N/A{% endif %}</td>
+                    <td>
+                    {% if ticket.estado != 'cerrado' %}
+                    <a href="{% url 'solucionticket_nueva' ticket.id %}" class="btn btn-primary">Cerrar Ticket</a> 
+                    {% endif %}
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
