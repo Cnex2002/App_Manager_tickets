@@ -271,6 +271,14 @@ def lista_tickets(request):
     }
     return render(request, 'ticket_lista.html', contexto)
 
+
+def lista_soluciontickets(request):
+    soluciones = SolucionTicket.objects.all().select_related('ticket').prefetch_related('imagenes')
+    contexto = {
+        'soluciones': soluciones,
+    }
+    return render(request, 'solucionticket_lista.html', contexto)
+
 #ver tickets del tenico
 @login_required
 def ver_tickets_tecnico(request):
