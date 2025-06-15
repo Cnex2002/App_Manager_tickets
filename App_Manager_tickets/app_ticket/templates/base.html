@@ -35,69 +35,43 @@
             text-align: center;
 
         }
-        #chatbox-button {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background-color: #007bff;
-    color: white;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    font-size: 24px;
-    text-align: center;
-    line-height: 50px;
-    cursor: pointer;
-    z-index: 1000;
-}
+    <style>
+    #chat-box {
+        font-family: 'Segoe UI', sans-serif;
+        border-radius: 10px;
+        display: none;
+        flex-direction: column;
+        background-color: #f9f9f9;
+    }
 
-#chatbox-container {
-    display: none;
-    position: fixed;
-    bottom: 80px;
-    right: 20px;
-    width: 300px;
-    max-height: 400px;
-    border: 1px solid #ccc;
-    background-color: white;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    z-index: 1000;
-    flex-direction: column;
-}
+    .chat-msg {
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+    }
 
-#chatbox-header {
-    background-color: #007bff;
-    color: white;
-    padding: 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
+    .user-msg {
+        background-color: #e7f3ff;
+        color: #003366;
+        font-weight: bold;
+    }
 
-#chatbox-messages {
-    padding: 10px;
-    height: 250px;
-    overflow-y: auto;
-    font-size: 14px;
-}
+    .ai-msg {
+        background-color: #d4edda;
+        color: #155724;
+    }
 
-#chatbox-input {
-    display: flex;
-    padding: 10px;
-    border-top: 1px solid #ddd;
-}
+    .highlight {
+        background-color: #fff8dc !important;
+        border-left: 4px solid #ffc107;
+    }
 
-#chatbox-input input {
-    flex: 1;
-    padding: 5px;
-    font-size: 14px;
-}
+    .error-msg {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+</style>
 
-#chatbox-input button {
-    margin-left: 5px;
-}
 
 </style>
 </head>
@@ -211,7 +185,11 @@
         if (!pregunta) return;
 
         const chatContent = document.getElementById('chat-content');
-        chatContent.innerHTML += `<div style="color:blue; margin-bottom:8px;"><strong>Tú:</strong> ${pregunta}</div>`;
+        chatContent.innerHTML += `
+            <div class="chat-msg user-msg">
+                <strong>Tú:</strong> ${pregunta}
+            </div>
+        `;
         document.getElementById('chat-input').value = '';
 
         fetch("{% url 'chatbox_query' %}", {
@@ -224,10 +202,13 @@
         })
         .then(response => response.json())
         .then(data => {
-            if (data.respuestas) {
+            if (data.respuestas && data.respuestas.length > 0) {
+                let maxSimilitud = Math.max(...data.respuestas.map(r => r.similitud));
+
                 data.respuestas.forEach(r => {
+                    const isBest = r.similitud === maxSimilitud;
                     chatContent.innerHTML += `
-                        <div style="color:green; margin-bottom:10px;">
+                        <div class="chat-msg ai-msg ${isBest ? 'highlight' : ''}">
                             <strong>Problema:</strong> ${r.problema}<br>
                             <strong>Solución:</strong> ${r.solucion}<br>
                             <small>Similitud: ${r.similitud}</small>
@@ -235,26 +216,23 @@
                     `;
                 });
             } else if (data.error) {
-                chatContent.innerHTML += `<div style="color:red;">${data.error}</div>`;
+                chatContent.innerHTML += `<div class="chat-msg error-msg">${data.error}</div>`;
             }
 
             chatContent.scrollTop = chatContent.scrollHeight;
         })
         .catch(err => {
-            chatContent.innerHTML += `<div style="color:red;">Error al procesar la solicitud</div>`;
+            chatContent.innerHTML += `<div class="chat-msg error-msg">Error al procesar la solicitud</div>`;
         });
     }
 
-    // Enter para enviar
-    document.addEventListener('DOMContentLoaded', function() {
-        const input = document.getElementById('chat-input');
-        input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                enviarPregunta();
-            }
+    document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('chat-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') enviarPregunta();
         });
     });
 </script>
+
 
 </body>
 </html>

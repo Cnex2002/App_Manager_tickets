@@ -45,6 +45,7 @@
     </style>
 </head>
 <body class="container mt-4">
+    <a href="{% url 'lista_empresas' %}" class="btn btn-secondary mb-4">Volver a Lista de Empresas</a>
     <h1 class="mb-4">Lista de Soluciones de Tickets</h1>
     <table class="table table-bordered table-hover">
         <thead class="table-dark">
@@ -63,21 +64,7 @@
                 <td>{{ solucion.ticket.id }}</td>
                 <td>{{ solucion.ticket.titulo }}</td>
                 <td>
-                    {% with solucion.imagenes.all as imagenes %}
-                        {% if imagenes %}
-                            <div class="image-container">
-                                {% for imagen in imagenes|slice:":3" %}
-                                    <img src="{{ imagen.imagen.url }}" class="img-thumbnail" 
-                                         data-bs-toggle="modal" data-bs-target="#imageModal{{ imagen.id }}">
-                                {% endfor %}
-                                {% if imagenes|length > 3 %}
-                                    <span class="image-count-badge">+{{ imagenes|length|add:"-3" }}</span>
-                                {% endif %}
-                            </div>
-                        {% else %}
-                            <span class="text-muted">Sin imágenes</span>
-                        {% endif %}
-                    {% endwith %}
+                   {{solucion.ticket.descripcion}}
                 </td>
                 <td>{{ solucion.comentario|truncatechars:50|default:"Sin comentarios" }}</td>
                 <td>{{ solucion.fecha_subida|date:"d/m/Y H:i" }}</td>
