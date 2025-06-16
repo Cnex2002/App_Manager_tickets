@@ -33,10 +33,30 @@ from django.core.mail import send_mail
 def is_staff_check(user):
     return user.is_staff
 
+
+
+def is_admin_check(user):
+    if hasattr(user, 'usuario'):
+        return user.usuario.rol == 'admin'
+    return False
+
+def is_supervisor_check(user):
+    if hasattr(user, 'usuario'):
+        return user.usuario.rol == 'supervisor'
+    return False
+
+def is_atencion_check(user):
+    if hasattr(user, 'usuario'):
+        return user.usuario.rol == 'atencion'
+    return False
+
 def is_tecnico_check(user):
     if hasattr(user, 'usuario'):
         return user.usuario.rol == 'tecnico'
     return False
+
+
+
 
 
 #profile
@@ -55,21 +75,23 @@ def perfil(request):
 @login_required
 def completar_registro(request):
     if request.method == 'POST':
-        formulario = UsuarioForm(request.POST)
+        formulario = UsuarioForm2(request.POST)
         if formulario.is_valid():
             usuario = formulario.save(commit=False)
             usuario.usuarios = request.user
             usuario.save()
             
-            return redirect('lista_empresas')
+            return redirect('perfil')
     else:
-        formulario = UsuarioForm()
+        formulario = UsuarioForm2()
 
     contexto = {
         'formulario': formulario
 
     }
     return render(request, 'ticket_nuevo.html', contexto)
+
+
 @login_required
 def empresa_nueva(request):
     if request.method == 'POST':
@@ -1219,6 +1241,8 @@ def generar_reporte_excel(request):
 
 
 # Vistas para Usuarios
+
+
 @login_required
 @user_passes_test(is_staff_check)
 def usuario_lista(request):
@@ -1360,6 +1384,7 @@ def cambiar_contrasena(request):
     else:
         form = PasswordChangeForm(request.user)
     return render(request, 'cambiar_contrasena.html', {'form': form})
+
 
 
 @login_required

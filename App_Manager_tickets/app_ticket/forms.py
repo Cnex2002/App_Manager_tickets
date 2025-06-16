@@ -194,6 +194,27 @@ class UsuarioForm(forms.ModelForm):
         }
 
 
+class UsuarioForm2(forms.ModelForm):
+    rol = forms.ChoiceField(choices=[], widget=forms.Select(attrs={'class': 'form-control'}))
+
+    class Meta:
+        model = Usuario
+        fields = ['nombre', 'rol', 'departamento']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'departamento': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filtra las opciones de rol para excluir 'administrador'
+        ROLES_CHOICES_FILTRADOS = [
+            (value, label) for value, label in self.instance._meta.get_field('rol').choices
+            if value != 'admin'
+        ]
+        self.fields['rol'].choices = ROLES_CHOICES_FILTRADOS
+
+
 # Nuevo formulario para editar el User de Django
 class UserEditForm(forms.ModelForm):
     class Meta:
