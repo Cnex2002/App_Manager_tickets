@@ -185,6 +185,7 @@ def departamento_nuevo(request):
 
 @login_required
 def ticket_nuevo(request):
+    origen = request.GET.get('origen') or request.POST.get('origen')  # Captura de GET o POST
     if request.method == 'POST':
         # Pasar el request al formulario
         formulario = TicketForm(request.POST, request=request) 
@@ -219,10 +220,15 @@ def ticket_nuevo(request):
                     fail_silently=False,
                 )
                 messages.success(request, 'Ticket creado exitosamente y notificación por correo enviada al cliente.')
+                 # Redirigir según el origen
+                if origen == 'departamento':
+                    return redirect('ver_tickets_departamento')
+                else:
+                    return redirect('lista_tickets')
             except Exception as e:
                 messages.error(request, f'Ticket creado pero no se pudo enviar el correo de notificación: {e}')
 
-            return redirect('lista_tickets')  # Redirige a la lista de tickets
+            
     else:
         # Pasar el request al formulario
         formulario = TicketForm(request=request)
@@ -416,6 +422,7 @@ def cliente_editar(request, id):
 
 
 def ticket_editar(request, id):
+    origen = request.GET.get('origen') or request.POST.get('origen')
     ticket = get_object_or_404(Ticket, id=id)
     if request.method == 'POST':
         # Pasar el request al formulario
@@ -423,7 +430,11 @@ def ticket_editar(request, id):
         if formulario.is_valid():
             objeto = formulario.save(commit=False)
             objeto.save()
-            return redirect('lista_tickets')  
+             # Redirigir según el origen
+            if origen == 'departamento':
+                return redirect('ver_tickets_departamento')
+            else:
+                return redirect('lista_tickets') 
     else:
         # Pasar el request al formulario
         formulario = TicketForm(instance=ticket, request=request)
@@ -515,17 +526,24 @@ def cliente_eliminar(request, id):
         'url_cancelar': reverse('lista_clientes'),  # Usamos reverse() para obtener la URL
     }
     return render(request, 'ticket_eliminar.html', contexto)
+
 def ticket_eliminar(request, id):
+    origen = request.GET.get('origen') or request.POST.get('origen') 
     ticket = get_object_or_404(Ticket, id=id)
 
     if request.method == 'POST':
         ticket.delete()
-        return redirect('lista_tickets')  # Redirige a la lista
+         # Redirigir según el origen
+        if origen == 'departamento':
+                return redirect('ver_tickets_departamento')
+        else:
+                return redirect('lista_tickets')   
 
     contexto = {
-        'objeto': ticket,
-        'url_cancelar': reverse('lista_tickets'),  # Usamos reverse() para obtener la URL
-    }
+    'objeto': ticket,
+    'url_cancelar': reverse('ver_tickets_departamento') if origen == 'departamento' else reverse('lista_tickets'),
+    'origen': origen
+}
     return render(request, 'ticket_eliminar.html', contexto)
 
 def evaluacion_eliminar(request, id):
