@@ -210,7 +210,7 @@ class UsuarioForm2(forms.ModelForm):
         # Filtra las opciones de rol para excluir 'administrador'
         ROLES_CHOICES_FILTRADOS = [
             (value, label) for value, label in self.instance._meta.get_field('rol').choices
-            if value != 'admin'
+            if value != 'admin' and value != 'supervisor'
         ]
         self.fields['rol'].choices = ROLES_CHOICES_FILTRADOS
 

@@ -28,6 +28,7 @@ from django.contrib import messages
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django.core.mail import send_mail
+from django.db.models import Q 
 
 # Helper para verificar si el usuario es staff (tiene acceso al admin)
 def is_staff_check(user):
@@ -266,12 +267,23 @@ def lista_empresas(request):
     }
     return render(request, 'empresa_lista.html', contexto)
 
-def lista_clientes(request):
 
-    contexto = {
-        'clientes': Cliente.objects.all(),
-    }
-    return render(request, 'cliente_lista.html', contexto)
+
+@login_required
+
+def lista_clientes(request):
+    query = request.GET.get('q')
+    if query:
+        clientes = Cliente.objects.filter(
+            Q(nombres__icontains=query) |
+            Q(ruc__icontains=query) |
+            Q(empresa__icontains=query) # Busca por el nombre de la empresa
+        )
+    else:
+        clientes = Cliente.objects.all()
+    return render(request, 'cliente_lista.html', {'clientes': clientes})
+
+
 
 
 def lista_categorias(request):
@@ -304,13 +316,61 @@ def lista_tickets(request):
 
 
 
-def lista_soluciontickets(request):
-    soluciones = SolucionTicket.objects.all().select_related('ticket').prefetch_related('imagenes')
-    contexto = {
-        'soluciones': soluciones,
-    }
-    return render(request, 'solucionticket_lista.html', contexto)
 
+
+def lista_soluciontickets(request):
+    soluciones = SolucionTicket.objects.all().order_by('-fecha_subida')
+
+    query = request.GET.get('q')
+    fecha_desde = request.GET.get('fecha_desde')
+    fecha_hasta = request.GET.get('fecha_hasta')
+
+    if query:
+        soluciones = soluciones.filter(
+            Q(ticket__titulo__icontains=query) |
+            Q(comentario__icontains=query)
+        )
+
+    if fecha_desde:
+        try:
+            # Asegurarse de que la fecha sea interpretada correctamente
+            fecha_desde_dt = datetime.strptime(fecha_desde, '%Y-%m-%d').replace(tzinfo=pytz.timezone(settings.TIME_ZONE))
+            soluciones = soluciones.filter(fecha_subida__gte=fecha_desde_dt)
+        except ValueError:
+            messages.error(request, "Formato de fecha 'Desde' inválido. Use AAAA-MM-DD.")
+    
+    if fecha_hasta:
+        try:
+            # Sumar un día y restar un segundo para incluir todo el día de 'fecha_hasta'
+            fecha_hasta_dt = datetime.strptime(fecha_hasta, '%Y-%m-%d').replace(tzinfo=pytz.timezone(settings.TIME_ZONE)) + timedelta(days=1, microseconds=-1)
+            soluciones = soluciones.filter(fecha_subida__lte=fecha_hasta_dt)
+        except ValueError:
+            messages.error(request, "Formato de fecha 'Hasta' inválido. Use AAAA-MM-DD.")
+
+    context = {
+        'soluciones': soluciones,
+        'titulo': 'Lista de Soluciones de Tickets',
+        'query': query,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+    }
+    return render(request, 'solucionticket_lista.html', context)
+
+
+
+
+
+
+
+
+@login_required
+def solucionticket_detalle(request, pk):
+    solucion = get_object_or_404(SolucionTicket, pk=pk)
+    context = {
+        'solucion': solucion,
+        'titulo': f'Detalles de Solución para Ticket #{solucion.ticket.id}',
+    }
+    return render(request, 'solucionticket_detalle.html', context)
 
 #ver tickets del departamento
 
@@ -337,13 +397,32 @@ def ver_tickets_departamento(request):
 
 
 
+
+
+@login_required
 def lista_evaluaciones(request):
-    evaluaciones = EvaluacionTecnico.objects.all()  # Obtiene todas las evaluaciones
-    contexto = {
-        'evaluaciones': evaluaciones
-       
+    evaluaciones = EvaluacionTecnico.objects.all().order_by('-fecha_evaluacion')
+    
+    query = request.GET.get('q')
+    if query:
+        evaluaciones = evaluaciones.filter(
+            Q(ticket__titulo__icontains=query) | # Busca por el título del ticket
+            Q(comentario__icontains=query)      # Busca en el comentario de la evaluación
+        )
+    
+    context = {
+        'evaluaciones': evaluaciones,
+        'titulo': 'Lista de Evaluaciones',
     }
-    return render(request, 'evaluacion_tecnico_lista.html', contexto)
+    return render(request, 'evaluacion_tecnico_lista.html', context)
+
+
+
+
+
+
+
+
 
 def empresa_editar(request, id):
     empresa = get_object_or_404(Empresa, id=id)  

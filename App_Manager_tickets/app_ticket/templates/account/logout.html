@@ -7,8 +7,8 @@
                     <div class="card overflow-hidden">
                         <div class="bg-primary">
                             <div class="text-primary text-center p-4">
-                                <h5 class="text-white font-size-20">Log Out</h5>
-                                <p class="text-white-50">Registrate en nuestra plataforma.</p>
+                                <h5 class="text-white font-size-20">Cerrar sesion</h5>
+                                <p class="text-white-50"></p>
                                 <a href="{% url 'account_login' %}" class="logo logo-admin">
                                     <i class="fas fa-dog"></i>
                                 </a>
@@ -16,8 +16,8 @@
                         </div>
 
                         <div class="mt-4">
-                            <h5>{% trans "Sign Out" %}</h5>
-                            <p class="text-muted">{% trans 'Are you sure you want to sign out?' %}</p>
+                            
+                            <p class="text-muted">{% trans 'Está seguro que desea cerrar la sesion?' %}</p>
                             <form method="post" action="{% url 'account_logout' %}">
                                 {% csrf_token %}
                                 {% if redirect_field_value %}
@@ -27,7 +27,7 @@
                             </form>
                         </div>
                         <div class="mt-4 text-center">
-                            <p class="mb-0">Back to home ? <a href="{% url 'dashboard' %}" class="fw-semibold text-primary text-decoration-underline"> Dashboard </a> </p>
+                           
                         </div>
                     </div>
                                

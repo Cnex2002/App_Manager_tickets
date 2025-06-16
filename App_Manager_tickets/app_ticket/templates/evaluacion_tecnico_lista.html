@@ -5,34 +5,49 @@
 <div class="d-flex">
 
     <div class="container-fluid" >
-<h1 class="mt-4">Lista de Evaluaciones</h1>
-<a href="{% url 'evaluacion_nueva' %}" class="btn btn-success">Nueva Evaluacion</a>
-<table class="table mt-3">
+        <h1 class="mt-4">Lista de Evaluaciones</h1>
+        
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <a href="{% url 'evaluacion_nueva' %}" class="btn btn-success">Nueva Evaluacion</a>
+            <form class="d-flex" method="GET" action="{% url 'lista_evaluaciones' %}">
+                <input class="form-control me-2" type="search" placeholder="Buscar por Ticket o Comentario" aria-label="Search" name="q" value="{{ request.GET.q }}">
+                <button class="btn btn-outline-primary" type="submit">Buscar</button>
+                {% if request.GET.q %}
+                    <a href="{% url 'lista_evaluaciones' %}" class="btn btn-outline-secondary ms-2">Limpiar Filtros</a>
+                {% endif %}
+            </form>
+        </div>
 
-    <thead>
-        <tr>
-            <th>Ticket</th>
-            <th>Calificación</th>
-            <th>Comentarios</th>
-            <th>Fecha de evaluacion</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for evaluacion in evaluaciones %}
-        <tr>
-            <td>{{ evaluacion.ticket }}</td>
-            <td>{{ evaluacion.calificacion }}</td>
-            <td>{{ evaluacion.comentario}}</td>
-            <td>{{ evaluacion.fecha_evaluacion}}</td>
-            <td>
-                <a href="{% url 'evaluacion_editar' evaluacion.id %}" class="btn btn-primary btn-sm">Editar</a>
-                <a href="{% url 'evaluacion_eliminar' evaluacion.id %}" class="btn btn-danger btn-sm">Eliminar</a>
-            </td>
-
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-</div>
+        <table class="table mt-3">
+            <thead>
+                <tr>
+                    <th>Ticket</th>
+                    <th>Calificación</th>
+                    <th>Comentarios</th>
+                    <th>Fecha de evaluacion</th>
+                    <th>Acción</th> {# Agrega esta columna para las acciones #}
+                </tr>
+            </thead>
+            <tbody>
+                {% for evaluacion in evaluaciones %}\
+                <tr>
+                    <td>{{ evaluacion.ticket }}</td>
+                    <td>{{ evaluacion.calificacion }}</td>
+                    <td>{{ evaluacion.comentario}}</td>
+                    <td>{{ evaluacion.fecha_evaluacion}}</td>
+                    <td>
+                        <a href="{% url 'evaluacion_editar' evaluacion.id %}" class="btn btn-primary btn-sm">Editar</a>
+                        <a href="{% url 'evaluacion_eliminar' evaluacion.id %}" class="btn btn-danger btn-sm">Eliminar</a>
+                    </td>
+                </tr>
+                {% endfor %}\
+            </tbody>
+        </table>
+        {% if not evaluaciones %}
+            <div class="alert alert-info" role="alert">\
+                No se encontraron evaluaciones que coincidan con la búsqueda.\
+            </div>
+        {% endif %}
+    </div>
 </div>
 {% endblock content %}
