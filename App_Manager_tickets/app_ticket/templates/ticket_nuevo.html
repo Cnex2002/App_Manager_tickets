@@ -5,9 +5,12 @@
 
 
     <h2></h2>
-    <form method="POST" class="post-form">{% csrf_token %}
-        {{ formulario.as_p }}
-        <button type="submit" class="btn btn-primary">Guardar</button>
+    <form method="POST" class="post-form">
+    {% csrf_token %}
+    <input type="hidden" name="origen" value="{{ origen }}">
+    {{ formulario.as_p }}
+    <button type="submit" class="btn btn-primary">Guardar</button>
     </form>
+
     
     {% endblock content %}

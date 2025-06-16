@@ -186,6 +186,7 @@ def departamento_nuevo(request):
 
 @login_required
 def ticket_nuevo(request):
+    origen = request.GET.get('origen') or request.POST.get('origen')  # Captura de GET o POST
     if request.method == 'POST':
         # Pasar el request al formulario
         formulario = TicketForm(request.POST, request=request) 
@@ -220,10 +221,15 @@ def ticket_nuevo(request):
                     fail_silently=False,
                 )
                 messages.success(request, 'Ticket creado exitosamente y notificación por correo enviada al cliente.')
+                 # Redirigir según el origen
+                if origen == 'departamento':
+                    return redirect('ver_tickets_departamento')
+                else:
+                    return redirect('lista_tickets')
             except Exception as e:
                 messages.error(request, f'Ticket creado pero no se pudo enviar el correo de notificación: {e}')
 
-            return redirect('lista_tickets')  # Redirige a la lista de tickets
+            
     else:
         # Pasar el request al formulario
         formulario = TicketForm(request=request)
@@ -488,6 +494,7 @@ def cliente_editar(request, id):
 
 
 def ticket_editar(request, id):
+    origen = request.GET.get('origen') or request.POST.get('origen')
     ticket = get_object_or_404(Ticket, id=id)
     if request.method == 'POST':
         # Pasar el request al formulario
@@ -495,7 +502,11 @@ def ticket_editar(request, id):
         if formulario.is_valid():
             objeto = formulario.save(commit=False)
             objeto.save()
-            return redirect('lista_tickets')  
+             # Redirigir según el origen
+            if origen == 'departamento':
+                return redirect('ver_tickets_departamento')
+            else:
+                return redirect('lista_tickets') 
     else:
         # Pasar el request al formulario
         formulario = TicketForm(instance=ticket, request=request)
@@ -587,17 +598,24 @@ def cliente_eliminar(request, id):
         'url_cancelar': reverse('lista_clientes'),  # Usamos reverse() para obtener la URL
     }
     return render(request, 'ticket_eliminar.html', contexto)
+
 def ticket_eliminar(request, id):
+    origen = request.GET.get('origen') or request.POST.get('origen') 
     ticket = get_object_or_404(Ticket, id=id)
 
     if request.method == 'POST':
         ticket.delete()
-        return redirect('lista_tickets')  # Redirige a la lista
+         # Redirigir según el origen
+        if origen == 'departamento':
+                return redirect('ver_tickets_departamento')
+        else:
+                return redirect('lista_tickets')   
 
     contexto = {
-        'objeto': ticket,
-        'url_cancelar': reverse('lista_tickets'),  # Usamos reverse() para obtener la URL
-    }
+    'objeto': ticket,
+    'url_cancelar': reverse('ver_tickets_departamento') if origen == 'departamento' else reverse('lista_tickets'),
+    'origen': origen
+}
     return render(request, 'ticket_eliminar.html', contexto)
 
 def evaluacion_eliminar(request, id):
@@ -675,25 +693,36 @@ def solucionticket_nueva(request, id):
 def chatbox_view(request):
     return render(request, 'chatbox.html')
 
+# Vista que maneja las consultas enviadas desde el chatbox (POST)
 def chatbox_query(request):
+    # Verifica que la solicitud sea de tipo POST
     if request.method == 'POST':
+        # Obtiene la pregunta enviada desde el formulario o petición AJAX
         pregunta = request.POST.get('pregunta', '')
+
+        # Verifica que la pregunta no esté vacía
         if pregunta.strip() == '':
             return JsonResponse({'error': 'No se recibió ninguna pregunta'})
 
+        # Llama al sistema inteligente (motor de búsqueda semántica) para obtener respuestas similares
         resultados = searcher.query(pregunta, top_k=3)
+
+        # Construye la lista de respuestas que se enviará al frontend
         respuestas = []
         for r in resultados:
             respuestas.append({
-                'ticket_id': r['ticket_id'],
-                'problema': r['problema'],
-                'solucion': r['solucion'],
-                'similitud': r['similitud']
+                'ticket_id': r['ticket_id'],     # ID del ticket relacionado
+                'problema': r['problema'],       # Problema registrado en el sistema
+                'solucion': r['solucion'],       # Solución asociada al ticket
+                'similitud': r['similitud']      # Grado de similitud con la pregunta del usuario
             })
 
+        # Devuelve las respuestas como un JSON al cliente (chatbox)
         return JsonResponse({'respuestas': respuestas})
 
+    # Si no se utiliza el método POST, retorna error 405 (Método no permitido)
     return JsonResponse({'error': 'Método no permitido'}, status=405)
+
 
 
 def reportes_view(request):
