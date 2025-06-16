@@ -397,17 +397,24 @@ def ver_tickets_departamento(request):
 
 
 
+
+
+@login_required
 def lista_evaluaciones(request):
-    evaluaciones = EvaluacionTecnico.objects.all()  # Obtiene todas las evaluaciones
-    contexto = {
-        'evaluaciones': evaluaciones
-       
+    evaluaciones = EvaluacionTecnico.objects.all().order_by('-fecha_evaluacion')
+    
+    query = request.GET.get('q')
+    if query:
+        evaluaciones = evaluaciones.filter(
+            Q(ticket__titulo__icontains=query) | # Busca por el título del ticket
+            Q(comentario__icontains=query)      # Busca en el comentario de la evaluación
+        )
+    
+    context = {
+        'evaluaciones': evaluaciones,
+        'titulo': 'Lista de Evaluaciones',
     }
-    return render(request, 'evaluacion_tecnico_lista.html', contexto)
-
-
-
-
+    return render(request, 'evaluacion_tecnico_lista.html', context)
 
 
 
