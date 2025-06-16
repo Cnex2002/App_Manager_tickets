@@ -75,7 +75,7 @@ def perfil(request):
 @login_required
 def completar_registro(request):
     if request.method == 'POST':
-        formulario = UsuarioForm(request.POST)
+        formulario = UsuarioForm2(request.POST)
         if formulario.is_valid():
             usuario = formulario.save(commit=False)
             usuario.usuarios = request.user
@@ -83,7 +83,7 @@ def completar_registro(request):
             
             return redirect('perfil')
     else:
-        formulario = UsuarioForm()
+        formulario = UsuarioForm2()
 
     contexto = {
         'formulario': formulario
@@ -1230,6 +1230,8 @@ def generar_reporte_excel(request):
 
 
 # Vistas para Usuarios
+
+
 @login_required
 @user_passes_test(is_staff_check)
 def usuario_lista(request):
@@ -1371,6 +1373,7 @@ def cambiar_contrasena(request):
     else:
         form = PasswordChangeForm(request.user)
     return render(request, 'cambiar_contrasena.html', {'form': form})
+
 
 
 @login_required
