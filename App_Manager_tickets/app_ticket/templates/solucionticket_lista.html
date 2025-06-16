@@ -1,17 +1,8 @@
-
-{# app_ticket/templates/tecnico_ticket.html #}
+{# app_ticket/templates/solucionticket_lista.html #}
 
 {% extends "base.html" %}
-{% block title %}Mis Tickets Asignados{% endblock title %} {# Cambié el título por algo más descriptivo #}
+{% block title %}Lista de Soluciones de Tickets{% endblock title %}
 {% block content %}
-
-
-
-
-
-
-
-
 
     <style>
         .img-thumbnail {
@@ -28,6 +19,8 @@
         .modal-img {
             max-width: 100%;
             max-height: 80vh;
+            display: block; /* Para centrar la imagen dentro del modal-body */
+            margin: auto;
         }
         .image-gallery {
             display: flex;
@@ -52,123 +45,249 @@
             justify-content: center;
             font-size: 12px;
         }
+        /* Estilos para las secciones del modal de detalle */
+        .modal-body .card-body p {
+            margin-bottom: 0.5rem;
+        }
+        .modal-body .card-header {
+            padding: 0.75rem 1.25rem;
+            margin-bottom: 0;
+            background-color: rgba(0,0,0,.03);
+            border-bottom: 1px solid rgba(0,0,0,.125);
+        }
+        .modal-body .card-title {
+            margin-bottom: 0;
+        }
+        .modal-body .image-gallery-detail img {
+            max-width: 150px; /* Tamaño más pequeño en el modal principal */
+            height: auto;
+            border: 1px solid #ddd;
+            padding: 5px;
+            border-radius: 5px;
+            cursor: zoom-in;
+            transition: transform 0.2s ease-in-out;
+        }
+        .modal-body .image-gallery-detail img:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
     </style>
 
-
-
-
     <h1 class="mb-4">Lista de Soluciones de Tickets</h1>
-    <table class="table table-bordered table-hover">
-        <thead class="table-dark">
-            <tr>
-                <th>Ticket ID</th>
-                <th>Título</th>
-                <th>Imágenes</th>
-                <th>Comentarios</th>
-                <th>Fecha de Solución</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for solucion in soluciones %}
-            <tr>
-                <td>{{ solucion.ticket.id }}</td>
-                <td>{{ solucion.ticket.titulo }}</td>
-                <td>
-                   {{solucion.ticket.descripcion}}
-                </td>
-                <td>{{ solucion.comentario|truncatechars:50|default:"Sin comentarios" }}</td>
-                <td>{{ solucion.fecha_subida|date:"d/m/Y H:i" }}</td>
-                <td>
-                    <button class="btn btn-info btn-sm" data-bs-toggle="modal" 
-                            data-bs-target="#solucionModal{{ solucion.id }}">
-                        Ver Detalles
-                    </button>
-                </td>
-            </tr>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            Buscador de Soluciones
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{% url 'lista_soluciontickets' %}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label for="id_q" class="form-label">Buscar por Título de Ticket o Comentario:</label>
+                        <input type="text" class="form-control" id="id_q" name="q" value="{{ query|default_if_none:'' }}" placeholder="Ej. Problema de red, Impresora, etc.">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="id_fecha_desde" class="form-label">Fecha de Solución Desde:</label>
+                        <input type="date" class="form-control" id="id_fecha_desde" name="fecha_desde" value="{{ fecha_desde|default_if_none:'' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="id_fecha_hasta" class="form-label">Fecha de Solución Hasta:</label>
+                        <input type="date" class="form-control" id="id_fecha_hasta" name="fecha_hasta" value="{{ fecha_hasta|default_if_none:'' }}">
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-primary w-100">Buscar</button>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <a href="{% url 'lista_soluciontickets' %}" class="btn btn-secondary btn-sm">Limpiar Filtros</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    {% if messages %}
+        <div class="messages mb-4">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
             {% endfor %}
-        </tbody>
-    </table>
+        </div>
+    {% endif %}
 
-    {% for solucion in soluciones %}
-    <!-- Modal para detalles de solución -->
-    <div class="modal fade" id="solucionModal{{ solucion.id }}" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Detalles de Solución - Ticket #{{ solucion.ticket.id }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+    {% if soluciones %}
+        <div class="row">
+            {% for solucion in soluciones %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Ticket: {{ solucion.ticket.titulo }}</h5>
+                            <small class="text-white-50">#{{ solucion.ticket.id }}</small>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text"><strong>Fecha de Solución:</strong> {{ solucion.fecha_subida|date:"d/m/Y H:i" }}</p>
+                            <p class="card-text"><strong>Comentario:</strong> {{ solucion.comentario|default:"No hay comentario." }}</p>
+                            {% if solucion.imagenes.all %}
+                                <p class="card-text"><strong>Imágenes adjuntas:</strong></p>
+                                <div class="image-gallery">
+                                    {% for imagen in solucion.imagenes.all %}
+                                        <div class="image-container">
+                                            <img src="{{ imagen.imagen.url }}" class="img-thumbnail" alt="Imagen de solución" data-bs-toggle="modal" data-bs-target="#imageModal{{ imagen.id }}">
+                                            {% if solucion.imagenes.all|length > 1 and forloop.first %}
+                                                <span class="image-count-badge">{{ solucion.imagenes.all|length }}</span>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="card-text text-muted">No hay imágenes adjuntas.</p>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer text-muted d-flex justify-content-between align-items-center">
+                            <small>Solucionado por: {{ solucion.ticket.tecnico.nombre|default:"N/A" }}</small>
+                            <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#detalleModal{{ solucion.pk }}">
+                                Ver Detalles
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="modal-body">
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <h5>Información del Ticket</h5>
-                            <p><strong>Título:</strong> {{ solucion.ticket.titulo }}</p>
-                            <p><strong>Descripción:</strong> {{ solucion.ticket.descripcion }}</p>
-                            <p><strong>Estado:</strong> {{ solucion.ticket.get_estado_display }}</p>
-                            <p><strong>Prioridad:</strong> {{ solucion.ticket.get_prioridad_display }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <h5>Información de Cierre</h5>
-                            <p><strong>Fecha creación:</strong> {{ solucion.ticket.fecha_creacion|date:"d/m/Y H:i" }}</p>
-                            <p><strong>Fecha cierre:</strong> {{ solucion.ticket.fecha_cierre|date:"d/m/Y H:i" }}</p>
-                            <p><strong>Técnico:</strong> {{ solucion.ticket.tecnico.nombre|default:"No asignado" }}</p>
-                            <p><strong>Cliente:</strong> {{ solucion.ticket.cliente.nombres|default:"No especificado" }}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <h5>Solución Aplicada</h5>
-                        <div class="p-3 bg-light rounded">
-                            {{ solucion.comentario|linebreaks|default:"No se proporcionaron comentarios" }}
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <h5>Imágenes de la Solución ({{ solucion.imagenes.count }})</h5>
-                        {% if solucion.imagenes.all %}
-                        <div class="image-gallery">
-                            {% for imagen in solucion.imagenes.all %}
-                            <div>
-                                <img src="{{ imagen.imagen.url }}" class="img-thumbnail"
-                                     data-bs-toggle="modal" data-bs-target="#imageModal{{ imagen.id }}"
-                                     title="Haz clic para ampliar">
+
+                <div class="modal fade" id="galleryModal{{ solucion.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Galería de Imágenes para Ticket: {{ solucion.ticket.titulo }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
-                            {% endfor %}
+                            <div class="modal-body">
+                                {% if solucion.imagenes.all %}
+                                <div id="carousel{{ solucion.id }}" class="carousel slide" data-bs-ride="carousel">
+                                    <div class="carousel-inner text-center">
+                                        {% for imagen in solucion.imagenes.all %}
+                                        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                            <img src="{{ imagen.imagen.url }}" class="d-block w-100 modal-img" alt="Imagen de solución">
+                                            <div class="carousel-caption d-none d-md-block bg-dark opacity-75 p-2 rounded">
+                                                <small>Subida el {{ imagen.fecha_subida|date:"d/m/Y H:i" }}</small>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#carousel{{ solucion.id }}" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Previous</span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#carousel{{ solucion.id }}" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Next</span>
+                                    </button>
+                                </div>
+                                {% else %}
+                                <div class="alert alert-info">No hay imágenes adjuntas a esta solución</div>
+                                {% endif %}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
                         </div>
-                        {% else %}
-                        <div class="alert alert-info">No hay imágenes adjuntas a esta solución</div>
-                        {% endif %}
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Modales individuales para cada imagen (zoom) -->
-    {% for imagen in solucion.imagenes.all %}
-    <div class="modal fade" id="imageModal{{ imagen.id }}" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Imagen #{{ forloop.counter }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body text-center">
-                    <img src="{{ imagen.imagen.url}}" class="modal-img">
+                {% for imagen in solucion.imagenes.all %}
+                <div class="modal fade" id="imageModal{{ imagen.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Imagen #{{ forloop.counter }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body text-center">
+                                <img src="{{ imagen.imagen.url}}" class="modal-img">
 
+                            </div>
+                            <div class="modal-footer">
+                                <small class="text-muted">Subida el {{ imagen.solucion.fecha_subida|date:"d/m/Y H:i" }}</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <small class="text-muted">Subida el {{ imagen.solucion.fecha_subida|date:"d/m/Y H:i" }}</small>
+                {% endfor %}
+
+                <div class="modal fade" id="detalleModal{{ solucion.pk }}" tabindex="-1" aria-labelledby="detalleModalLabel{{ solucion.pk }}" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title" id="detalleModalLabel{{ solucion.pk }}">Detalles de Solución para Ticket #{{ solucion.ticket.id }}</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-success text-white">
+                                        <h6 class="card-title mb-0">Información del Ticket Asociado</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>ID del Ticket:</strong> {{ solucion.ticket.id }}</p>
+                                        <p><strong>Título del Ticket:</strong> {{ solucion.ticket.titulo }}</p>
+                                        <p><strong>Descripción del Ticket:</strong> {{ solucion.ticket.descripcion|default:"No hay descripción." }}</p>
+                                        <p><strong>Categoría:</strong> {{ solucion.ticket.categoria.nombre }}</p>
+                                        <p><strong>Cliente:</strong> {{ solucion.ticket.cliente.nombres }} (RUC: {{ solucion.ticket.cliente.ruc }})</p>
+                                        <p><strong>Empresa Cliente:</strong> {{ solucion.ticket.cliente.empresa.nombre }}</p>
+                                        <p><strong>Sucursal Cliente:</strong> {{ solucion.ticket.cliente.departamento.sucursal.nombre }}</p>
+                                        <p><strong>Departamento Cliente:</strong> {{ solucion.ticket.cliente.departamento.nombre }}</p>
+                                        <p><strong>Estado del Ticket:</strong> <span class="badge bg-{% if solucion.ticket.estado == 'abierto' %}danger{% elif solucion.ticket.estado == 'en_proceso' %}warning{% elif solucion.ticket.estado == 'resuelto' %}success{% else %}secondary{% endif %}">{{ solucion.ticket.get_estado_display }}</span></p>
+                                        <p><strong>Fecha de Creación del Ticket:</strong> {{ solucion.ticket.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                                        {% if solucion.ticket.fecha_cierre %}
+                                            <p><strong>Fecha de Cierre del Ticket:</strong> {{ solucion.ticket.fecha_cierre|date:"d/m/Y H:i" }}</p>
+                                        {% endif %}
+                                        {% if solucion.ticket.tecnico %}
+                                            <p><strong>Técnico Asignado:</strong> {{ solucion.ticket.tecnico.nombre }}</p>
+                                        {% else %}
+                                            <p><strong>Técnico Asignado:</strong> N/A</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="card-title mb-0">Detalles de la Solución</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Fecha de Subida de la Solución:</strong> {{ solucion.fecha_subida|date:"d/m/Y H:i" }}</p>
+                                        <p><strong>Comentario de la Solución:</strong></p>
+                                        <div class="alert alert-light border">
+                                            {{ solucion.comentario|default:"No se proporcionó un comentario para esta solución." }}
+                                        </div>
+
+                                        {% if solucion.imagenes.all %}
+                                            <h6 class="mt-3">Imágenes de la Solución:</h6>
+                                            <div class="image-gallery-detail">
+                                                {% for imagen in solucion.imagenes.all %}
+                                                    <img src="{{ imagen.imagen.url }}" alt="Imagen de solución" class="img-fluid rounded shadow-sm" data-bs-toggle="modal" data-bs-target="#imageModal{{ imagen.id }}">
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <div class="alert alert-info mt-3">No hay imágenes adjuntas a esta solución.</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            {% endfor %}
         </div>
-    </div>
-    {% endfor %}
-    {% endfor %}
+    {% else %}
+        <div class="alert alert-warning" role="alert">
+            No se encontraron soluciones de tickets.
+        </div>
+    {% endif %}
 
 
 {% endblock content %}
