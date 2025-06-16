@@ -33,10 +33,30 @@ from django.core.mail import send_mail
 def is_staff_check(user):
     return user.is_staff
 
+
+
+def is_admin_check(user):
+    if hasattr(user, 'usuario'):
+        return user.usuario.rol == 'admin'
+    return False
+
+def is_supervisor_check(user):
+    if hasattr(user, 'usuario'):
+        return user.usuario.rol == 'supervisor'
+    return False
+
+def is_atencion_check(user):
+    if hasattr(user, 'usuario'):
+        return user.usuario.rol == 'atencion'
+    return False
+
 def is_tecnico_check(user):
     if hasattr(user, 'usuario'):
         return user.usuario.rol == 'tecnico'
     return False
+
+
+
 
 
 #profile
@@ -61,7 +81,7 @@ def completar_registro(request):
             usuario.usuarios = request.user
             usuario.save()
             
-            return redirect('lista_empresas')
+            return redirect('perfil')
     else:
         formulario = UsuarioForm()
 
@@ -70,6 +90,8 @@ def completar_registro(request):
 
     }
     return render(request, 'ticket_nuevo.html', contexto)
+
+
 @login_required
 def empresa_nueva(request):
     if request.method == 'POST':
