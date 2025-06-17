@@ -701,33 +701,27 @@ def chatbox_view(request):
     return render(request, 'chatbox.html')
 
 # Vista que maneja las consultas enviadas desde el chatbox (POST)
+@login_required
 def chatbox_query(request):
-    # Verifica que la solicitud sea de tipo POST
     if request.method == 'POST':
-        # Obtiene la pregunta enviada desde el formulario o petición AJAX
         pregunta = request.POST.get('pregunta', '')
+        if pregunta:
+            # CAMBIA esta línea:
+            # resultados = searcher.search_solution(pregunta)
+            # A esta:
+            resultados = searcher.query(pregunta)
+            
+            respuestas = []
+            for r in resultados:
+                # Asegurarse de que 'similitud' sea un float estándar de Python
+                # Esto ya lo habías hecho y es correcto.
+                if 'similitud' in r:
+                    r['similitud'] = float(r['similitud']) 
+                respuestas.append(r)
 
-        # Verifica que la pregunta no esté vacía
-        if pregunta.strip() == '':
-            return JsonResponse({'error': 'No se recibió ninguna pregunta'})
-
-        # Llama al sistema inteligente (motor de búsqueda semántica) para obtener respuestas similares
-        resultados = searcher.query(pregunta, top_k=3)
-
-        # Construye la lista de respuestas que se enviará al frontend
-        respuestas = []
-        for r in resultados:
-            respuestas.append({
-                'ticket_id': r['ticket_id'],     # ID del ticket relacionado
-                'problema': r['problema'],       # Problema registrado en el sistema
-                'solucion': r['solucion'],       # Solución asociada al ticket
-                'similitud': r['similitud']      # Grado de similitud con la pregunta del usuario
-            })
-
-        # Devuelve las respuestas como un JSON al cliente (chatbox)
-        return JsonResponse({'respuestas': respuestas})
-
-    # Si no se utiliza el método POST, retorna error 405 (Método no permitido)
+            return JsonResponse({'respuestas': respuestas})
+        else:
+            return JsonResponse({'error': 'No se proporcionó ninguna pregunta.'}, status=400)
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 
@@ -1498,3 +1492,33 @@ def tecnico_tickets_asignados(request):
         'titulo': 'Mis Tickets Asignados'
     }
     return render(request, 'tecnico_ticket.html', context)
+
+
+
+
+def buscar_cliente(request):
+    query = request.GET.get('q', '')
+    
+    if query:
+        clientes = Cliente.objects.filter(
+            Q(nombres__icontains=query) |
+            Q(ruc__icontains=query) |
+            Q(telefono__icontains=query) |
+            Q(correo__icontains=query) |
+            Q(anydesk_empresa__icontains=query)
+        )
+    else:
+        clientes = Cliente.objects.none()  # No devolvemos todos para evitar carga innecesaria
+
+    results = []
+    for cliente in clientes:
+        results.append({
+            'id': cliente.id,
+            'nombre': cliente.nombres,
+            'ruc': cliente.ruc,
+            'telefono': cliente.telefono,
+            'correo': cliente.correo,
+        })
+
+
+    return JsonResponse({'results': results})

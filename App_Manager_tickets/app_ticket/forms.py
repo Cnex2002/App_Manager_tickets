@@ -80,7 +80,7 @@ class TicketForm(forms.ModelForm):
         # Extraer 'request' de los kwargs antes de llamar al super().__init__
         request = kwargs.pop('request', None) 
         super().__init__(*args, **kwargs)
-
+        self.fields['cliente'].widget = forms.HiddenInput()
         # Si hay un request y el usuario está autenticado
         if request and request.user.is_authenticated:
             try:
@@ -210,7 +210,7 @@ class UsuarioForm2(forms.ModelForm):
         # Filtra las opciones de rol para excluir 'administrador'
         ROLES_CHOICES_FILTRADOS = [
             (value, label) for value, label in self.instance._meta.get_field('rol').choices
-            if value != 'admin' and value != 'supervisor'
+            if value != 'admin'
         ]
         self.fields['rol'].choices = ROLES_CHOICES_FILTRADOS
 

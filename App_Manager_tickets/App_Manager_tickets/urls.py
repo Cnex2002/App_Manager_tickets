@@ -92,9 +92,8 @@ urlpatterns = [
     path('tickets/departamento/', views.ver_tickets_departamento, name='ver_tickets_departamento'),
     path('tecnico/tickets/', views.tecnico_tickets_asignados, name='tecnico_tickets_asignados'),
 
-
+    path('buscar_cliente/', views.buscar_cliente, name='buscar_cliente'),
     
-   
 
     
 ]
