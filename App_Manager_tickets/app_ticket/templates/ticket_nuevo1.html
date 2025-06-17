@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}<h1>Nuevo Ticket{% endblock title %}
+
+{% block content %}
+<h2>{% if formulario.instance.id %}Editar{% else %}Crear{% endif %} Ticket</h2>
+<form method="POST" class="post-form">
+    {% csrf_token %}
+    <input type="hidden" name="origen" value="{{ origen }}">
+   <div class="mb-3">
+    <label for="id_titulo" class="form-label"><strong>Título</strong></label>
+    {{ formulario.titulo }}
+</div>
+
+<div class="mb-3">
+    <label for="id_descripcion" class="form-label"><strong>Descripción</strong></label>
+    {{ formulario.descripcion }}
+</div>
+
+<div class="mb-3">
+    <label for="id_estado" class="form-label"><strong>Estado</strong></label>
+    {{ formulario.estado }}
+</div>
+
+<div class="mb-3">
+    <label for="id_prioridad" class="form-label"><strong>Prioridad</strong></label>
+    {{ formulario.prioridad }}
+</div>
+
+<div class="mb-3">
+    <label for="id_categoria" class="form-label"><strong>Categoría</strong></label>
+    {{ formulario.categoria }}
+</div>
+
+<!-- Campo de búsqueda -->
+<div class="mb-3">
+    <label for="buscar_cliente">Buscar Cliente:</label>
+    <input type="text" id="buscar_cliente" class="form-control" placeholder="Buscar por nombre, RUC, teléfono, correo o Anydesk">
+    <button type="button" class="btn btn-info mt-2" onclick="buscarCliente()">Buscar</button>
+</div>
+
+<!-- Resultados -->
+<div id="resultado_clientes" class="mt-3">
+    {% if formulario.instance.id and formulario.instance.cliente %}
+    <div class="alert alert-info">
+        Cliente actual: <strong>{{ formulario.instance.cliente.nombres }}</strong>
+        {% if formulario.instance.cliente.ruc %} - {{ formulario.instance.cliente.ruc }}{% endif %}
+        {% if formulario.instance.cliente.telefono %} - {{ formulario.instance.cliente.telefono }}{% endif %}
+        {% if formulario.instance.cliente.correo %} - {{ formulario.instance.cliente.correo }}{% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Select real del formulario Django -->
+<div class="mt-3">
+  <label for="id_cliente"><strong>Cliente seleccionado:</strong></label>
+  {{ formulario.cliente }}
+</div>
+
+<div class="mb-3">
+    <label for="id_tecnico" class="form-label"><strong>Técnico asignado</strong></label>
+    {{ formulario.tecnico }}
+</div>
+
+    <button type="submit" class="btn btn-primary">Guardar</button>
+</form>
+
+<script>
+// Mostrar el cliente actual al cargar la página en modo edición
+document.addEventListener('DOMContentLoaded', function() {
+    const clienteId = document.getElementById("id_cliente").value;
+    if (clienteId && clienteId !== "") {
+        // Podrías hacer una llamada AJAX aquí para obtener los detalles si no los tienes en el template
+        // O simplemente mostrar el nombre si ya está disponible en el contexto
+    }
+});
+
+function buscarCliente() {
+    const query = document.getElementById("buscar_cliente").value;
+    const resultadoDiv = document.getElementById("resultado_clientes");
+    resultadoDiv.innerHTML = "Buscando...";
+
+    fetch(`/buscar_cliente/?q=${encodeURIComponent(query)}`)
+    .then(response => response.json())
+    .then(data => {
+        resultadoDiv.innerHTML = "";  // Limpiar
+        
+        // Si estamos en modo edición y hay un cliente actual, mostrarlo de nuevo
+        const clienteActualId = document.getElementById("id_cliente").value;
+        if (clienteActualId && clienteActualId !== "") {
+            // Aquí deberías incluir la lógica para mostrar el cliente actual
+            // como lo haces en el template con Django
+        }
+        
+        if (data.results.length === 0) {
+            resultadoDiv.innerHTML += "<div class='alert alert-secondary'>No se encontró ningún cliente.</div>";
+        } else {
+            const lista = document.createElement("ul");
+            lista.classList.add("list-group");
+
+            data.results.forEach(cliente => {
+                const item = document.createElement("li");
+                item.classList.add("list-group-item", "list-group-item-action");
+                item.style.cursor = "pointer";
+                item.innerHTML = `<strong>${cliente.nombre}</strong> - ${cliente.ruc || ''} - ${cliente.telefono || ''} - ${cliente.correo || ''}`;
+
+                item.onclick = function() {
+                    // Cambiar el valor del <select> del cliente
+                    const select = document.getElementById("id_cliente");
+                    select.value = cliente.id;
+                    resultadoDiv.innerHTML = `<div class="alert alert-success">Cliente seleccionado: <strong>${cliente.nombre}</strong></div>`;
+                    
+                    // Si había un cliente actual, lo mantenemos en el display
+                    if (clienteActualId && clienteActualId !== "") {
+                        // Aquí podrías agregar lógica adicional si necesitas
+                    }
+                };
+                lista.appendChild(item);
+            });
+
+            resultadoDiv.appendChild(lista);
+        }
+    })
+    .catch(error => {
+        console.error("Error en la búsqueda:", error);
+        resultadoDiv.innerHTML = "<div class='alert alert-danger'>Error al buscar cliente.</div>";
+    });
+}
+</script>
+
+{% endblock content %}

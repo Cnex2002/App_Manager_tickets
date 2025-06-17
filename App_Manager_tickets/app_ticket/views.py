@@ -233,7 +233,7 @@ def ticket_nuevo(request):
     else:
         # Pasar el request al formulario
         formulario = TicketForm(request=request)
-    return render(request, 'ticket_nuevo.html', {'formulario': formulario, 'titulo': 'Crear Nuevo Ticket'})
+    return render(request, 'ticket_nuevo1.html', {'formulario': formulario, 'titulo': 'Crear Nuevo Ticket'})
 
 
 
@@ -521,7 +521,7 @@ def ticket_editar(request, id):
     contexto = {
         'formulario': formulario
     }
-    return render(request, 'ticket_nuevo.html', contexto)
+    return render(request, 'ticket_nuevo1.html', contexto)
 
 
 
