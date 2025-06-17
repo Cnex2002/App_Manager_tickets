@@ -1,76 +1,105 @@
-{% extends "base.html" %}
+{# app_ticket/templates/usuario_lista.html #}
 
+{% extends "base.html" %}
 {% block title %}Lista de Usuarios{% endblock title %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2 class="mb-4">Lista de Usuarios del Sistema</h2>
 
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h1 class="h4 card-title mb-0">Lista de Usuarios del Sistema</h1>
+        
+    </div>
+    <div class="card-body">
+        {% if usuarios %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped border">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Nombre Completo</th>
+                            <th>Email</th>
+                            <th class="text-center">Rol</th>
+                            <th>Departamento</th>
+                            <th class="text-center">Activo</th>
+                            <th class="text-center">Staff</th>
+                            <th class="text-center">Superuser</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user_personalizado in usuarios %}
+                        <tr>
+                            <td>{{ user_personalizado.usuarios.username }}</td>
+                            <td>{{ user_personalizado.nombre }}</td>
+                            <td>{{ user_personalizado.usuarios.email }}</td>
+                            <td class="text-center">
+                                {% if user_personalizado.rol == 'admin' %}
+                                    <span class="badge bg-primary">{{ user_personalizado.get_rol_display }}</span>
+                                {% elif user_personalizado.rol == 'supervisor' %}
+                                    <span class="badge bg-info text-dark">{{ user_personalizado.get_rol_display }}</span>
+                                {% elif user_personalizado.rol == 'atencion' %}
+                                    <span class="badge bg-secondary">{{ user_personalizado.get_rol_display }}</span>
+                                {% elif user_personalizado.rol == 'tecnico' %}
+                                    <span class="badge bg-success">{{ user_personalizado.get_rol_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark">{{ user_personalizado.get_rol_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user_personalizado.departamento.nombre|default:"N/A" }}</td>
+                            <td class="text-center">
+                                {% if user_personalizado.usuarios.is_active %}
+                                    <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Sí</span>
+                                {% else %}
+                                    <span class="badge bg-danger"><i class="bi bi-x-circle-fill"></i> No</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if user_personalizado.usuarios.is_staff %}
+                                    <span class="badge bg-info text-dark"><i class="bi bi-person-fill"></i> Sí</span>
+                                {% else %}
+                                    <span class="badge bg-secondary"><i class="bi bi-person-fill-slash"></i> No</span>
+                                {% endif %}
+                            </td>
+                             <td class="text-center">
+                                {% if user_personalizado.usuarios.is_superuser %}
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-star-fill"></i> Sí</span>
+                                {% else %}
+                                    <span class="badge bg-secondary"><i class="bi bi-star"></i> No</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <a href="{% url 'usuario_editar' user_personalizado.id %}" class="btn btn-primary btn-sm me-1" title="Editar Usuario">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'usuario_eliminar' user_personalizado.id %}" class="btn btn-danger btn-sm" title="Eliminar Usuario" onclick="return confirm('¿Estás seguro de eliminar este usuario? Esto también eliminará su cuenta de Django.');">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center">
+                                <div class="alert alert-info my-3" role="alert">
+                                    <h4 class="alert-heading">No se encontraron usuarios</h4>
+                                    <p>No hay usuarios registrados en el sistema.</p>
+                                    <hr>
+                                    <p class="mb-0">Puede añadir un nuevo usuario usando el botón "Nuevo Usuario".</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-        {% endfor %}
-    {% endif %}
-
-   
-
-    <table class="table table-striped table-hover">
-        <thead>
-            <tr>
-                <th>Username (Django)</th>
-                <th>Nombre Completo</th>
-                <th>Email</th>
-                <th>Rol (Personalizado)</th>
-                <th>Departamento</th>
-                <th>Activo</th>
-                <th>Staff</th>
-                <th>Superuser</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for user_personalizado in usuarios %}
-            <tr>
-                <td>{{ user_personalizado.usuarios.username }}</td>
-                <td>{{ user_personalizado.nombre }}</td>
-                <td>{{ user_personalizado.usuarios.email }}</td>
-                <td>{{ user_personalizado.get_rol_display }}</td>
-                <td>{{ user_personalizado.departamento.nombre|default:"N/A" }}</td>
-                <td>
-                    {% if user_personalizado.usuarios.is_active %}
-                        <span class="badge bg-success">Sí</span>
-                    {% else %}
-                        <span class="badge bg-danger">No</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if user_personalizado.usuarios.is_staff %}
-                        <span class="badge bg-info text-dark">Sí</span>
-                    {% else %}
-                        <span class="badge bg-secondary">No</span>
-                    {% endif %}
-                </td>
-                 <td>
-                    {% if user_personalizado.usuarios.is_superuser %}
-                        <span class="badge bg-warning text-dark">Sí</span>
-                    {% else %}
-                        <span class="badge bg-secondary">No</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="{% url 'usuario_editar' user_personalizado.id %}" class="btn btn-primary btn-sm">Editar</a>
-                    <a href="{% url 'usuario_eliminar' user_personalizado.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar este usuario? Esto también eliminará su cuenta de Django.');">Eliminar</a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="9">No hay usuarios registrados en el sistema.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        {% else %}
+            <div class="alert alert-info my-3" role="alert">
+                <h4 class="alert-heading">No se encontraron usuarios</h4>
+                <p>No hay usuarios registrados en el sistema.</p>
+                <hr>
+                <p class="mb-0">Puede añadir un nuevo usuario usando el botón "Nuevo Usuario".</p>
+            </div>
+        {% endif %}
+    </div>
 </div>
 {% endblock content %}

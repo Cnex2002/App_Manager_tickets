@@ -1,76 +1,203 @@
 {# app_ticket/templates/tecnico_ticket.html #}
 
 {% extends "base.html" %}
-{% block title %}Mis Tickets Asignados{% endblock title %} {# Cambié el título por algo más descriptivo #}
+{% block title %}Mis Tickets Asignados{% endblock title %}
+
 {% block content %}
 
-
-    <div class="container mt-5">
-        <h1>Mis Tickets Asignados</h1><br>
-
-        {# Por ahora, los filtros y la funcionalidad de click no se implementan, como pediste #}
-        <div class="ticket-filters">
-            <div class="row">
-                <div class="col-md-4 filter-group">
-                    <label for="filter-estado" class="filter-label">Estado:</label>
-                    <select id="filter-estado" class="filter-select">
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h1 class="h4 card-title mb-0">Mis Tickets Asignados</h1>
+       
+        {# <a href="{% url 'ticket_nuevo' %}" class="btn btn-primary"><i class="bi bi-plus-circle me-2"></i>Crear Ticket</a> #}
+    </div>
+    <div class="card-body">
+        
+        <div class="mb-4 p-3 border rounded bg-light">
+            <h5 class="mb-3"><i class="bi bi-funnel me-2"></i>Filtros de Tickets</h5>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="filter-estado" class="form-label fw-bold">Estado:</label>
+                    <select id="filter-estado" class="form-select">
                         <option value="">Todos</option>
-                        <option value="Abierto">Abierto</option>
-                        <option value="En_Progreso">En Progreso</option>
-                        <option value="Resuelto">Resuelto</option>
-                        <option value="Cerrado">Cerrado</option>
+                        <option value="abierto">Abierto</option>
+                        <option value="en_progreso">En Progreso</option>
+                        <option value="cerrado">Cerrado</option>
                     </select>
                 </div>
-                <div class="col-md-4 filter-group">
-                    <label for="filter-prioridad" class="filter-label">Prioridad:</label>
-                    <select id="filter-prioridad" class="filter-select">
+                <div class="col-md-4">
+                    <label for="filter-prioridad" class="form-label fw-bold">Prioridad:</label>
+                    <select id="filter-prioridad" class="form-select">
                         <option value="">Todas</option>
-                        <option value="Alta">Alta</option>
-                        <option value="Media">Media</option>
-                        <option value="Baja">Baja</option>
+                        <option value="baja">Baja</option>
+                        <option value="media">Media</option>
+                        <option value="alta">Alta</option>
+                        <option value="critica">Crítica</option>
                     </select>
                 </div>
-                <div class="col-md-4 filter-group">
-                    <label for="filter-fecha" class="filter-label">Fecha de Creación:</label>
-                    <input type="date" id="filter-fecha" class="filter-input">
+                <div class="col-md-4">
+                    <label for="filter-busqueda" class="form-label fw-bold">Buscar:</label>
+                    <input type="text" id="filter-busqueda" class="form-control" placeholder="Buscar por título, descripción o cliente" value="{{ query|default:'' }}">
                 </div>
+            </div>
+            <div class="mt-3 text-end">
+                <button id="aplicar-filtros" class="btn btn-primary me-2"><i class="bi bi-funnel-fill me-2"></i>Aplicar Filtros</button>
+                <button id="limpiar-filtros" class="btn btn-secondary"><i class="bi bi-arrow-counterclockwise me-2"></i>Limpiar Filtros</button>
             </div>
         </div>
 
-        <table class="table table-hover mt-4">
-            <thead>
-                <tr>
-                    <th>Título</th>
-                    <th>Descripción</th>
-                    <th>Estado</th>
-                    <th>Prioridad</th>
-                    <th>Fecha Creación</th>
-                    <th>Fecha Cierre</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for ticket in tickets %}
-                {# Por ahora, la funcionalidad de dar click a un ticket no se implementa #}
-                <tr class="ticket-row">
-                    <td>{{ ticket.titulo }}</td>
-                    <td>{{ ticket.descripcion }}</td>
-                    <td><span class="status-badge status-{{ ticket.estado|slugify }}">{{ ticket.get_estado_display }}</span></td>
-                    <td class="priority-{{ ticket.prioridad|slugify }}">{{ ticket.get_prioridad_display }}</td>
-                    <td>{{ ticket.fecha_creacion|date:"Y-m-d H:i" }}</td>
-                    <td>{% if ticket.fecha_cierre %}{{ ticket.fecha_cierre|date:"Y-m-d H:i" }}{% else %}N/A{% endif %}</td>
-                    <td>
-                    {% if ticket.estado != 'cerrado' %}
-                    <a href="{% url 'solucionticket_nueva' ticket.id %}" class="btn btn-primary">Cerrar Ticket</a> 
-                    {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6">No tienes tickets asignados en este momento.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        {% if tickets %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Título</th>
+                            <th scope="col">Cliente</th>
+                            <th scope="col">Prioridad</th>
+                            <th scope="col">Estado</th>
+                            <th scope="col">Fecha Creación</th>
+                            <th scope="col">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in tickets %}
+                        <tr class="ticket-row" 
+                            data-estado="{{ ticket.estado }}" 
+                            data-prioridad="{{ ticket.prioridad }}">
+                            <td>{{ ticket.id }}</td>
+                            <td>{{ ticket.titulo }}</td>
+                            <td>{{ ticket.cliente.nombres }}</td>
+                            <td>
+                                {% if ticket.prioridad == 'baja' %}
+                                    <span class="badge bg-success">Baja</span>
+                                {% elif ticket.prioridad == 'media' %}
+                                    <span class="badge bg-info text-dark">Media</span>
+                                {% elif ticket.prioridad == 'alta' %}
+                                    <span class="badge bg-warning text-dark">Alta</span>
+                                {% elif ticket.prioridad == 'critica' %}
+                                    <span class="badge bg-danger">Crítica</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Desconocida</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ticket.estado == 'abierto' %}
+                                    <span class="badge bg-danger">Abierto</span>
+                                {% elif ticket.estado == 'en_progreso' %}
+                                    <span class="badge bg-warning text-dark">En Progreso</span>
+                                {% elif ticket.estado == 'cerrado' %}
+                                    <span class="badge bg-secondary">Cerrado</span>
+                                {% else %}
+                                    <span class="badge bg-info">Desconocido</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ ticket.fecha_creacion|date:"d M Y H:i" }}</td>
+                            <td>
+                                {# Para que el técnico solo pueda resolverlo #}
+                                {% comment %}
+                                Puedes crear una URL para ver los detalles del ticket y manejar la acción de cerrar dentro de esa vista.
+                                <a href="{% url 'ticket_detalle' ticket.id %}" class="btn btn-info btn-sm me-1" title="Ver Detalles">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% endcomment %}
+
+                                {% if ticket.estado != 'cerrado' %}
+                                <a href="{% url 'solucionticket_nueva' ticket.id %}" class="btn btn-success btn-sm" title="Resolver/Cerrar Ticket">
+                                    <i class="bi bi-check-circle me-1"></i>Resolver/Cerrar
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info" role="alert">\
+                <h4 class="alert-heading">No tienes tickets asignados</h4>\
+                <p>No se encontraron tickets asignados a tu cuenta en este momento.</p>\
+                <hr>\
+                <p class="mb-0">¡Mantente atento, pronto podrías tener nuevas tareas!</p>\
+            </div>
+        {% endif %}
     </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const estadoFilter = document.getElementById('filter-estado');
+        const prioridadFilter = document.getElementById('filter-prioridad');
+        const busquedaInput = document.getElementById('filter-busqueda');
+        const aplicarFiltrosBtn = document.getElementById('aplicar-filtros');
+        const limpiarFiltrosBtn = document.getElementById('limpiar-filtros');
+        const ticketRows = document.querySelectorAll('.ticket-row');
+
+        // Función para aplicar filtros
+        function applyFilters() {
+            const estado = estadoFilter.value;
+            const prioridad = prioridadFilter.value;
+            const busqueda = busquedaInput.value.toLowerCase();
+
+            ticketRows.forEach(row => {
+                const rowEstado = row.dataset.estado;
+                const rowPrioridad = row.dataset.prioridad;
+                const rowText = row.innerText.toLowerCase(); // Texto de la fila para búsqueda general
+
+                const matchesEstado = (estado === '' || rowEstado === estado);
+                const matchesPrioridad = (prioridad === '' || rowPrioridad === prioridad);
+                const matchesBusqueda = (busqueda === '' || rowText.includes(busqueda));
+
+                if (matchesEstado && matchesPrioridad && matchesBusqueda) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // Cargar filtros guardados en localStorage al cargar la página
+        const savedEstado = localStorage.getItem('tecnico_ticket_estado_filter');
+        const savedPrioridad = localStorage.getItem('tecnico_ticket_prioridad_filter');
+        // La búsqueda se maneja directamente desde la URL o el valor inicial del input
+        
+        if (savedEstado) {
+            estadoFilter.value = savedEstado;
+        }
+        if (savedPrioridad) {
+            prioridadFilter.value = savedPrioridad;
+        }
+
+        // Aplicar filtros iniciales si hay valores guardados o en la URL
+        applyFilters();
+
+        // Event Listeners
+        aplicarFiltrosBtn.addEventListener('click', function() {
+            localStorage.setItem('tecnico_ticket_estado_filter', estadoFilter.value);
+            localStorage.setItem('tecnico_ticket_prioridad_filter', prioridadFilter.value);
+            // Redirige para que la búsqueda se maneje en el backend
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('q', busquedaInput.value);
+            currentUrl.searchParams.set('estado', estadoFilter.value);
+            currentUrl.searchParams.set('prioridad', prioridadFilter.value);
+            window.location.href = currentUrl.toString();
+        });
+
+        limpiarFiltrosBtn.addEventListener('click', function() {
+            estadoFilter.value = '';
+            prioridadFilter.value = '';
+            busquedaInput.value = '';
+            localStorage.removeItem('tecnico_ticket_estado_filter');
+            localStorage.removeItem('tecnico_ticket_prioridad_filter');
+            // Redirige para limpiar los parámetros de la URL
+            window.location.href = '{% url "tecnico_tickets_asignados" %}';
+        });
+
+        // Opcional: Aplicar filtros en tiempo real si se prefiere, aunque para búsqueda es mejor recargar
+        // estadoFilter.addEventListener('change', applyFilters);
+        // prioridadFilter.addEventListener('change', applyFilters);
+        // busquedaInput.addEventListener('keyup', applyFilters); // Esto puede ser costoso con muchos tickets
+    });
+</script>
 
 {% endblock content %}

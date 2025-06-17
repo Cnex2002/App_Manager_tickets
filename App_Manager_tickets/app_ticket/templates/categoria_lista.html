@@ -1,34 +1,53 @@
+{# app_ticket/templates/categoria_lista.html #}
+
 {% extends "base.html" %}
-{% block title %}Categoria{% endblock title %}
+{% block title %}Categorías{% endblock title %}
+
 {% block content %}
 
-<div class="d-flex">
-
-<div class="container-fluid" >
-<h1 class="mt-4">Lista de Categorías</h1>
-<a href="{% url 'categoria_nuevo' %}" class="btn btn-success">Nueva Categoría</a>
-<table class="table mt-3">
-
-    <thead>
-        <tr>
-            <th>Nombre</th>
-            <th>Accion</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for cat in categorias %}
-        <tr>
-            <td>{{ cat.nombre }}</td>
-            <td>
-                <a href="{% url 'categoria_editar' cat.id %}" class="btn btn-primary">Editar</a>
-                <a href="{% url 'categoria_eliminar' cat.id %}" class="btn btn-danger btn-sm">Eliminar</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h1 class="h4 card-title mb-0">Lista de Categorías</h1>
+        <a href="{% url 'categoria_nuevo' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle me-2"></i>Nueva Categoría
+        </a>
+    </div>
+    <div class="card-body">
+        {% if categorias %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped border">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cat in categorias %}
+                        <tr>
+                            <td>{{ cat.nombre }}</td>
+                            <td class="text-center">
+                                <a href="{% url 'categoria_editar' cat.id %}" class="btn btn-primary btn-sm me-1" title="Editar Categoría">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'categoria_eliminar' cat.id %}" class="btn btn-danger btn-sm" title="Eliminar Categoría">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                <h4 class="alert-heading">No se encontraron categorías</h4>
+                <p>No hay categorías registradas en el sistema.</p>
+                <hr>
+                <p class="mb-0">Puede añadir una nueva categoría usando el botón "Nueva Categoría".</p>
+            </div>
+        {% endif %}
+    </div>
 </div>
-</div>
+
 {% endblock content %}
-
-

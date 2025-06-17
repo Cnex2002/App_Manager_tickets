@@ -2,61 +2,100 @@
 {% load static %}
 {% load i18n %}
 
+{% block title %}Iniciar Sesión - App Manager Tickets{% endblock title %}
 
-{% block title %}Registro de nuevo paciente{% endblock title %}
-    
 {% block content %}
-                    
-                        <div class="text-center mb-7"><a class="d-flex flex-center text-decoration-none mt-4 mb-4" href="https://human-centric-hce.s3.amazonaws.com/index.html">
-                              <div class="d-flex align-items-center fw-bolder fs-3 d-inline-block"><img src="https://humancentric.school/wp-content/uploads/2024/08/HumanCentric-Isotipo.png" alt="phoenix" width="58" />
-                              </div>
-                            </a>
-                            <h3 class="text-body-highlight">Iniciar sesion</h3>
-                            
-                          </div>
-                        <div class="card-body p-4">
-                            <div class="p-3">
-                                <form class="mt-4 needs-validation" novalidate method="POST" action="{% url 'account_login' %}">
-                                    {% csrf_token %}
-                                    <div class="mb-3">
-                                        {{ form.login }}
-                                    </div>
+{# El contenido de este bloque se inyectará dentro del .card-body en base.html #}
 
-                                    <div class="mb-3">
-                                        {{ form.password }}
-                                    </div>
+<div class="text-center mb-4">
+    {# Puedes usar tu logo aquí. Asegúrate que static/images/logo.svg exista y sea adecuado #}
+   
+    <h3 class="card-title text-primary">¡Bienvenido de nuevo!</h3>
+    <p class="text-muted">Inicia sesión para acceder al panel de administración.</p>
+</div>
 
-                                    <div class="mb-3 row">
-                                        <div class="col-sm-6">
-                                            <div class="form-check">
-                                                {{ form.remember }}
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-6 text-end">
-                                            <button class="btn btn-primary w-md waves-effect waves-light" type="submit">Ingresar</button>
-                                        </div>
-                                    </div>
-                                    
+{# El bloque de mensajes ya está en base.html, no es necesario duplicarlo aquí #}
 
-                                    <div class="mt-2 mb-0 row">
-                                        <div class="col-12 mt-4">
-                                            <a href="{% url 'account_reset_password' %}"><i class="mdi mdi-lock"></i> Olvidaste tu contraseña?</a>
-                                        </div>
-                                    </div>
+<form method="POST" action="{% url 'account_login' %}">
+    {% csrf_token %}
 
-                                </form>
+    <div class="mb-3">
+        <label for="{{ form.login.id_for_label }}" class="form-label">Correo electrónico</label>
+        {# Aseguramos la clase form-control. Necesitarás el filtro |add_class de django-widget-tweaks o similar #}
+        {# Si no usas django-widget-tweaks, la clase 'form-control' debe venir del widget en forms.py #}
+        {{ form.login }} 
+        {% if form.login.errors %}
+            <div class="text-danger small mt-1">
+                {% for error in form.login.errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
 
-                            </div>
-                        </div>
+    <div class="mb-3">
+        <label for="{{ form.password.id_for_label }}" class="form-label">Contraseña</label>
+        <div class="input-group">
+            {{ form.password }}
+            <button class="btn btn-outline-secondary" type="button" id="password-addon">
+                <i class="mdi mdi-eye-outline"></i> {# Asegúrate de tener los íconos MDI cargados en base.html o en extra_css #}
+            </button>
+        </div>
+        {% if form.password.errors %}
+            <div class="text-danger small mt-1">
+                {% for error in form.password.errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
 
+  
 
-                    <div class="mt-5 text-center">
+    <div class="d-grid gap-2 mb-3">
+        <button type="submit" class="btn btn-primary btn-lg">Ingresar</button>
+    </div>
+
+    <div class="text-center">
+        <a href="{% url 'account_reset_password' %}" class="text-muted small">¿Olvidaste tu contraseña?</a>
+    </div>
+</form>
+<div class="mt-5 text-center">
                         <p>No tienes cuenta ? <a href="{{ signup_url }}" class="fw-medium text-primary"> Registrate ahora </a> </p>
                         
                     </div>
+<div class="text-center mt-4 text-muted small">
+    <p>&copy; <script>document.write(new Date().getFullYear())</script> App Manager Tickets. Todos los derechos reservados.</p>
+</div>
 
 {% endblock content %}
 
-  
-  
+{% block extra_js %}
+<script>
+    // Script para mostrar/ocultar contraseña
+    document.addEventListener('DOMContentLoaded', function() {
+        const passwordField = document.getElementById('{{ form.password.id_for_label }}');
+        const passwordAddon = document.getElementById('password-addon');
 
+        if (passwordField && passwordAddon) {
+            passwordAddon.addEventListener('click', function() {
+                const icon = passwordAddon.querySelector('i');
+                if (passwordField.type === 'password') {
+                    passwordField.type = 'text';
+                    icon.classList.remove('mdi-eye-outline');
+                    icon.classList.add('mdi-eye-off-outline');
+                } else {
+                    passwordField.type = 'password';
+                    icon.classList.remove('mdi-eye-off-outline');
+                    icon.classList.add('mdi-eye-outline');
+                }
+            });
+        }
+    });
+</script>
+{% endblock extra_js %}
+
+{% block extra_css %}
+{# Si necesitas CSS específico para esta página, agrégalo aquí #}
+<link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.5.95/css/materialdesignicons.min.css" rel="stylesheet">
+{% endblock extra_css %}

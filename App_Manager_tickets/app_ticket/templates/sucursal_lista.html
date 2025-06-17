@@ -1,36 +1,65 @@
+{# app_ticket/templates/sucursal_lista.html #}
+
 {% extends "base.html" %}
-{% block title %}Sucursal{% endblock title %}
+{% block title %}Sucursales{% endblock title %}
+
 {% block content %}
 
-    <div class="container-fluid" >
-<h1 class="mt-4">Lista de Sucursales</h1>
-<a href="{% url 'sucursal_nuevo' %}" class="btn btn-success">Nueva Sucursal</a>
-<table class="table mt-3">
-    <thead>
-        <tr>
-            <th>Nombre</th>
-            <th>Dirección</th>
-            <th>Empresa</th>
-            <th>Estado</th>
-            <th>Accion</th>
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h1 class="h4 card-title mb-0">Lista de Sucursales</h1>
+        <a href="{% url 'sucursal_nuevo' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle me-2"></i>Nueva Sucursal
+        </a>
+    </div>
+    <div class="card-body">
+        {% if sucursales %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped border">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Dirección</th>
+                            <th>Empresa</th>
+                            <th class="text-center">Estado</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in sucursales %}
+                        <tr>
+                            <td>{{ s.nombre }}</td>
+                            <td>{{ s.direccion }}</td>
+                            <td>{{ s.empresa.nombre }}</td>
+                            <td class="text-center">
+                                {% if s.estado %}
+                                    <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <a href="{% url 'sucursal_editar' s.id %}" class="btn btn-primary btn-sm me-1" title="Editar Sucursal">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'sucursal_eliminar' s.id %}" class="btn btn-danger btn-sm" title="Eliminar Sucursal">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                <h4 class="alert-heading">No se encontraron sucursales</h4>
+                <p>No hay sucursales registradas en el sistema.</p>
+                <hr>
+                <p class="mb-0">Puede añadir una nueva sucursal usando el botón "Nueva Sucursal".</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
 
-        </tr>
-    </thead>
-    <tbody>
-        {% for s in sucursales %}
-        <tr>
-            <td>{{ s.nombre }}</td>
-            <td>{{ s.direccion }}</td>
-            <td>{{ s.empresa.nombre }}</td>
-            <td>{{ s.estado }}</td>
-            <td>
-                <a href="{% url 'sucursal_editar' s.id %}" class="btn btn-primary">Editar</a>
-                <a href="{% url 'sucursal_eliminar' s.id %}" class="btn btn-danger btn-sm">Eliminar</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-</div>
-</div>
 {% endblock content %}

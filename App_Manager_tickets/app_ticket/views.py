@@ -682,7 +682,7 @@ def solucionticket_nueva(request, id):
             ticket.fecha_cierre = timezone.now()
             ticket.save()
 
-            return redirect('lista_tickets')
+            return redirect('lista_soluciontickets')
     else:
         formulario = SolucionTicketForm()
 
@@ -1482,14 +1482,23 @@ def cambiar_contrasena(request):
 @user_passes_test(is_tecnico_check, login_url='/accounts/login/') # Asegura que solo los técnicos accedan
 def tecnico_tickets_asignados(request):
     # Obtener el objeto Usuario personalizado asociado al usuario de Django
-    usuario_tecnico = get_object_or_404(Usuario, usuarios=request.user) # Corrected field name here
+    usuario_tecnico = get_object_or_404(Usuario, usuarios=request.user) 
     
     # Obtener todos los tickets asignados a este técnico
     tickets = Ticket.objects.filter(tecnico=usuario_tecnico).order_by('-fecha_creacion')
     
+    query = request.GET.get('q')
+    if query:
+        tickets = tickets.filter(
+            Q(titulo__icontains=query) | 
+            Q(descripcion__icontains=query) |
+            Q(cliente_nombres_icontains=query) # Asume que Cliente tiene un campo 'nombres'
+        ).distinct()
+
     context = {
         'tickets': tickets,
-        'titulo': 'Mis Tickets Asignados'
+        'titulo': 'Mis Tickets Asignados',
+        'query': query, # Pasa la consulta al template para mantenerla en el campo de búsqueda
     }
     return render(request, 'tecnico_ticket.html', context)
 

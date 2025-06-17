@@ -1,52 +1,112 @@
+{# app_ticket/templates/perfil.html #}
+
 {% extends "base.html" %}
+{% block title %}Mi Perfil{% endblock title %}
+
 {% block content %}
 
-<div class="container mt-4">
-    <h2 class="mb-3">Información de Perfil</h2>
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h1 class="h4 card-title mb-0">Información de Perfil</h1>
+    </div>
+    <div class="card-body">
+        {# El bloque de mensajes se maneja globalmente en base.html, por lo que se elimina de aquí #}
 
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="card mb-4 border"> {# Añadimos 'border' para un borde más definido #}
+            <div class="card-header bg-light"> {# Fondo claro para los sub-headers #}
+                <h5 class="card-title mb-0">Datos de la Cuenta</h5>
             </div>
-        {% endfor %}
-    {% endif %}
-
-    <div class="card">
-        <div class="card-header">
-            Datos de la Cuenta
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item">
+                    <strong><i class="bi bi-person me-2 text-muted"></i>Usuario:</strong> {{ user.username }}
+                </li>
+                <li class="list-group-item">
+                    <strong><i class="bi bi-person-circle me-2 text-muted"></i>Nombre Completo:</strong>
+                    {% if user.get_full_name %}
+                        {{ user.get_full_name }}
+                    {% else %}
+                        <span class="text-muted">(No especificado)</span>
+                    {% endif %}
+                </li>
+                <li class="list-group-item">
+                    <strong><i class="bi bi-envelope me-2 text-muted"></i>Email:</strong>
+                    {% if user.email %}
+                        {{ user.email }}
+                    {% else %}
+                        <span class="text-muted">(No especificado)</span>
+                    {% endif %}
+                </li>
+                <li class="list-group-item">
+                    <strong><i class="bi bi-person-fill-gear me-2 text-muted"></i>Acceso Admin (Staff):</strong>
+                    {% if user.is_staff %}
+                        <span class="badge bg-info text-dark ms-1"><i class="bi bi-check-circle-fill me-1"></i>Sí</span>
+                    {% else %}
+                        <span class="badge bg-secondary ms-1"><i class="bi bi-x-circle-fill me-1"></i>No</span>
+                    {% endif %}
+                </li>
+                <li class="list-group-item">
+                    <strong><i class="bi bi-incognito me-2 text-muted"></i>Superuser:</strong>
+                    {% if user.is_superuser %}
+                        <span class="badge bg-warning text-dark ms-1"><i class="bi bi-check-circle-fill me-1"></i>Sí</span>
+                    {% else %}
+                        <span class="badge bg-secondary ms-1"><i class="bi bi-x-circle-fill me-1"></i>No</span>
+                    {% endif %}
+                </li>
+            </ul>
         </div>
-        <ul class="list-group list-group-flush">
-            <li class="list-group-item"><strong>Usuario:</strong> {{ user.username }}</li>
-            <li class="list-group-item"><strong>Nombre Completo:</strong> {% if user.get_full_name %}{{ user.get_full_name }}{% else %}<span class="text-muted">(No especificado)</span>{% endif %}</li>
-            <li class="list-group-item"><strong>Email:</strong> {% if user.email %}{{ user.email }}{% else %}<span class="text-muted">(No especificado)</span>{% endif %}</li>
-            <li class="list-group-item"><strong>Acceso Admin (Staff):</strong> {% if user.is_staff %}Sí <span class="badge bg-info text-dark ms-1">✔</span>{% else %}No{% endif %}</li>
-            <li class="list-group-item"><strong>Superuser:</strong> {% if user.is_superuser %}Sí <span class="badge bg-info text-dark ms-1">✔</span>{% else %}No{% endif %}</li>
-        </ul>
-    </div>
 
-    {% if usuario_personalizado %}
-    <div class="card mt-4">
-        <div class="card-header">
-            Datos del Usuario Personalizado
+        {% if usuario_personalizado %}
+        <div class="card mt-4 border">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">Datos del Usuario Personalizado</h5>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item">
+                    <strong><i class="bi bi-person-vcard me-2 text-muted"></i>Nombre (Usuario):</strong> {{ usuario_personalizado.nombre }}
+                </li>
+                <li class="list-group-item">
+                    <strong><i class="bi bi-briefcase me-2 text-muted"></i>Rol:</strong>
+                    {% if usuario_personalizado.rol == 'admin' %}
+                        <span class="badge bg-primary">{{ usuario_personalizado.get_rol_display }}</span>
+                    {% elif usuario_personalizado.rol == 'supervisor' %}
+                        <span class="badge bg-info text-dark">{{ usuario_personalizado.get_rol_display }}</span>
+                    {% elif usuario_personalizado.rol == 'atencion' %}
+                        <span class="badge bg-secondary">{{ usuario_personalizado.get_rol_display }}</span>
+                    {% elif usuario_personalizado.rol == 'tecnico' %}
+                        <span class="badge bg-success">{{ usuario_personalizado.get_rol_display }}</span>
+                    {% else %}
+                        <span class="badge bg-light text-dark">{{ usuario_personalizado.get_rol_display }}</span>
+                    {% endif %}
+                </li>
+                <li class="list-group-item">
+                    <strong><i class="bi bi-building me-2 text-muted"></i>Departamento:</strong>
+                    {% if usuario_personalizado.departamento %}
+                        {{ usuario_personalizado.departamento.nombre }} - {{ usuario_personalizado.departamento.sucursal.nombre }}
+                    {% else %}
+                        <span class="text-muted">(No asignado)</span>
+                    {% endif %}
+                </li>
+            </ul>
         </div>
-        <ul class="list-group list-group-flush">
-            <li class="list-group-item"><strong>Nombre (Usuario):</strong> {{ usuario_personalizado.nombre }}</li>
-            <li class="list-group-item"><strong>Rol:</strong> {{ usuario_personalizado.get_rol_display }}</li>
-            <li class="list-group-item"><strong>Departamento:</strong> {% if usuario_personalizado.departamento %}{{ usuario_personalizado.departamento.nombre }} - {{ usuario_personalizado.departamento.sucursal.nombre }}{% else %}<span class="text-muted">(No asignado)</span>{% endif %}</li>
-        </ul>
-    </div>
-    {% else %}
-    <div class="alert alert-warning mt-4" role="alert">
-        Aún no has completado tu perfil de usuario.
-        <a href="{% url 'completar_registro' %}" class="alert-link">Completar ahora</a>.
-    </div>
-    {% endif %}
+        {% else %}
+        <div class="alert alert-warning mt-4" role="alert">
+            <h4 class="alert-heading">Perfil Incompleto</h4>
+            <p>Aún no has completado tu perfil de usuario personalizado. Es necesario para acceder a todas las funcionalidades.</p>
+            <hr>
+            <p class="mb-0">
+                <a href="{% url 'completar_registro' %}" class="alert-link">Haz clic aquí para completar tu perfil ahora.</a>
+            </p>
+        </div>
+        {% endif %}
 
-    <div class="mt-4">
-        <a href="{% url 'perfil_editar' %}" class="btn btn-primary me-2">Editar Perfil</a>
-        <a href="{% url 'cambiar_contrasena' %}" class="btn btn-secondary">Cambiar Contraseña</a>
+        <div class="mt-4 pt-3 border-top"> {# Añadimos un borde superior para separar visualmente #}
+            <a href="{% url 'perfil_editar' %}" class="btn btn-primary me-2">
+                <i class="bi bi-pencil me-2"></i>Editar Perfil
+            </a>
+            <a href="{% url 'cambiar_contrasena' %}" class="btn btn-secondary">
+                <i class="bi bi-key me-2"></i>Cambiar Contraseña
+            </a>
+        </div>
     </div>
 </div>
 

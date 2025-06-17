@@ -1,14 +1,19 @@
+{# app_ticket/templates/evaluacion_lista.html #}
+
 {% extends "base.html" %}
-{% block title %}Evaluacion{% endblock title %}
+{% block title %}Evaluaciones{% endblock title %}
+
 {% block content %}
 
-<div class="d-flex">
-
-    <div class="container-fluid" >
-        <h1 class="mt-4">Lista de Evaluaciones</h1>
-        
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <a href="{% url 'evaluacion_nueva' %}" class="btn btn-success">Nueva Evaluacion</a>
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h1 class="h4 card-title mb-0">Lista de Evaluaciones</h1>
+        <a href="{% url 'evaluacion_nueva' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle me-2"></i>Nueva Evaluación
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="mb-4">
             <form class="d-flex" method="GET" action="{% url 'lista_evaluaciones' %}">
                 <input class="form-control me-2" type="search" placeholder="Buscar por Ticket o Comentario" aria-label="Search" name="q" value="{{ request.GET.q }}">
                 <button class="btn btn-outline-primary" type="submit">Buscar</button>
@@ -18,36 +23,61 @@
             </form>
         </div>
 
-        <table class="table mt-3">
-            <thead>
-                <tr>
-                    <th>Ticket</th>
-                    <th>Calificación</th>
-                    <th>Comentarios</th>
-                    <th>Fecha de evaluacion</th>
-                    <th>Acción</th> {# Agrega esta columna para las acciones #}
-                </tr>
-            </thead>
-            <tbody>
-                {% for evaluacion in evaluaciones %}\
-                <tr>
-                    <td>{{ evaluacion.ticket }}</td>
-                    <td>{{ evaluacion.calificacion }}</td>
-                    <td>{{ evaluacion.comentario}}</td>
-                    <td>{{ evaluacion.fecha_evaluacion}}</td>
-                    <td>
-                        <a href="{% url 'evaluacion_editar' evaluacion.id %}" class="btn btn-primary btn-sm">Editar</a>
-                        <a href="{% url 'evaluacion_eliminar' evaluacion.id %}" class="btn btn-danger btn-sm">Eliminar</a>
-                    </td>
-                </tr>
-                {% endfor %}\
-            </tbody>
-        </table>
-        {% if not evaluaciones %}
-            <div class="alert alert-info" role="alert">\
-                No se encontraron evaluaciones que coincidan con la búsqueda.\
+        {% if evaluaciones %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped border">
+                    <thead>
+                        <tr>
+                            <th>Ticket #</th>
+                            <th class="text-center">Calificación</th>
+                            <th>Comentarios</th>
+                            <th>Fecha de Evaluación</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for evaluacion in evaluaciones %}
+                        <tr>
+                            <td>{{ evaluacion.ticket.id }} - {{ evaluacion.ticket.titulo }}</td>
+                            <td class="text-center">
+                                {% if evaluacion.calificacion == 5 %}
+                                    <span class="badge bg-success">{{ evaluacion.get_calificacion_display }}</span>
+                                {% elif evaluacion.calificacion == 4 %}
+                                    <span class="badge bg-primary">{{ evaluacion.get_calificacion_display }}</span>
+                                {% elif evaluacion.calificacion == 3 %}
+                                    <span class="badge bg-warning text-dark">{{ evaluacion.get_calificacion_display }}</span>
+                                {% elif evaluacion.calificacion == 2 %}
+                                    <span class="badge bg-danger">{{ evaluacion.get_calificacion_display }}</span>
+                                {% elif evaluacion.calificacion == 1 %}
+                                    <span class="badge bg-dark">{{ evaluacion.get_calificacion_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Sin Calificar</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ evaluacion.comentario|default:"N/A" }}</td>
+                            <td>{{ evaluacion.fecha_evaluacion|date:"d M Y H:i"|default:"N/A" }}</td>
+                            <td class="text-center">
+                                <a href="{% url 'evaluacion_editar' evaluacion.id %}" class="btn btn-primary btn-sm me-1" title="Editar Evaluación">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'evaluacion_eliminar' evaluacion.id %}" class="btn btn-danger btn-sm" title="Eliminar Evaluación" onclick="return confirm('¿Estás seguro de eliminar esta evaluación?');">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                <h4 class="alert-heading">No se encontraron evaluaciones</h4>
+                <p>No hay evaluaciones registradas que coincidan con la búsqueda.</p>
+                <hr>
+                <p class="mb-0">Puede añadir una nueva evaluación usando el botón "Nueva Evaluación".</p>
             </div>
         {% endif %}
     </div>
 </div>
+
 {% endblock content %}

@@ -1,38 +1,65 @@
+{# app_ticket/templates/departamento_lista.html #}
+
 {% extends "base.html" %}
 {% block title %}Departamentos{% endblock title %}
+
 {% block content %}
 
-<body>
-    <div class="d-flex"></div>
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h1 class="h4 card-title mb-0">Lista de Departamentos</h1>
+        <a href="{% url 'departamento_nuevo' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle me-2"></i>Nuevo Departamento
+        </a>
+    </div>
+    <div class="card-body">
+        {% if departamentos %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped border">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Sucursal</th>
+                            <th>Observaciones</th>
+                            <th class="text-center">Estado</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in departamentos %}
+                        <tr>
+                            <td>{{ d.nombre }}</td>
+                            <td>{{ d.sucursal.nombre }}</td>
+                            <td>{{ d.observaciones }}</td>
+                            <td class="text-center">
+                                {% if d.estado %}
+                                    <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <a href="{% url 'departamento_editar' d.id %}" class="btn btn-primary btn-sm me-1" title="Editar Departamento">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'departamento_eliminar' d.id %}" class="btn btn-danger btn-sm" title="Eliminar Departamento">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                <h4 class="alert-heading">No se encontraron departamentos</h4>
+                <p>No hay departamentos registrados en el sistema.</p>
+                <hr>
+                <p class="mb-0">Puede añadir un nuevo departamento usando el botón "Nuevo Departamento".</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
 
-<div class="container-fluid" >
-<h1 class="mt-4">Lista de Departamentos</h1>
-<a href="{% url 'departamento_nuevo' %}" class="btn btn-success">Nuevo Departamento</a>
-<table class="table mt-3">
-    <thead>
-        <tr>
-            <th>Nombre</th>
-            <th>Sucursal</th>
-            <th>Observaciones</th>
-            <th>Estado</th>
-            <th>Accion</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for d in departamentos %}
-        <tr>
-            <td>{{ d.nombre }}</td>
-            <td>{{ d.sucursal.nombre }}</td>
-            <td>{{ d.observaciones }}</td>
-            <td>{{ d.estado }}</td>
-            <td>
-                <a href="{% url 'departamento_editar' d.id %}" class="btn btn-primary">Editar</a>
-                <a href="{% url 'departamento_eliminar' d.id %}" class="btn btn-danger btn-sm">Eliminar</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-</div>
-</div>
 {% endblock content %}
