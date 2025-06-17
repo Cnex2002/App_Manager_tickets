@@ -29,6 +29,9 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django.core.mail import send_mail
 from django.db.models import Q 
+# ERORES PYTHON
+from django.db.models import ProtectedError
+from django.contrib import messages
 
 # Helper para verificar si el usuario es staff (tiene acceso al admin)
 def is_staff_check(user):
@@ -547,9 +550,16 @@ def empresa_eliminar(request, id):
     empresa = get_object_or_404(Empresa, id=id)
 
     if request.method == 'POST':
-        empresa.delete()
-        return redirect('lista_empresas')  # Redirige a la lista
-
+        try:
+            empresa.delete()
+            messages.success(request, 'Empresa eliminada correctamente.')
+            return redirect('lista_empresas')  # Redirige a la lista
+        except ProtectedError:
+            # messages.error(request, 'No se puede eliminar porque hay datos relacionados con esta empresa.')
+            messages.error(request, 'No se puede eliminar Empresa por que hay sucursales relacionadas')
+            return redirect('lista_empresas')
+           
+            
     contexto = {
         'objeto': empresa,
         'url_cancelar': reverse('lista_empresas'),  # Usamos reverse() para obtener la URL
@@ -561,45 +571,67 @@ def sucursal_eliminar(request, id):
     sucursal = get_object_or_404(Sucursal, id=id)
 
     if request.method == 'POST':
-        sucursal.delete()
-        return redirect('lista_sucursales')  # Redirige a la lista
-
+        try:
+            sucursal.delete()
+            messages.success(request, 'Sucursal eliminada correctamente.')
+            return redirect('lista_sucursales')  # Redirige a la lista
+        except ProtectedError:
+            messages.error(request, 'No se puede eliminar Sucursal ya que tiene departamentos')
+            return redirect('lista_sucursales') 
+        
     contexto = {
         'objeto': sucursal,
         'url_cancelar': reverse('lista_sucursales'),  # Usamos reverse() para obtener la URL
     }
     return render(request, 'ticket_eliminar.html', contexto)
+
 def departamento_eliminar(request, id):
     departamento = get_object_or_404(Departamento, id=id)
 
     if request.method == 'POST':
-        departamento.delete()
-        return redirect('lista_departamentos')  # Redirige a la lista
-
+        try:
+            departamento.delete()
+            messages.success(request, 'Departamento eliminada correctamente.')
+            return redirect('lista_departamentos')  # Redirige a la lista
+        except ProtectedError:
+            messages.error(request, 'No se puede eliminar Departamento ya que tiene usuarios y sucursales')
+            return redirect('lista_departamentos') 
     contexto = {
         'objeto': departamento,
         'url_cancelar': reverse('lista_departamentos'),  # Usamos reverse() para obtener la URL
     }
     return render(request, 'ticket_eliminar.html', contexto)
+
 def categoria_eliminar(request, id):
     categoria = get_object_or_404(Categoria, id=id)
 
     if request.method == 'POST':
-        categoria.delete()
-        return redirect('lista_categorias')  # Redirige a la lista
-
+        try:
+            categoria.delete()
+            messages.success(request, 'Categoria eliminada correctamente.')
+            return redirect('lista_categorias')  # Redirige a la lista
+        except ProtectedError:
+            messages.error(request, 'No se puede eliminar Categoria ya que tiene un ticket asignado ')
+            return redirect('lista_categorias') 
+        
     contexto = {
         'objeto': categoria,
         'url_cancelar': reverse('lista_categorias'),  # Usamos reverse() para obtener la URL
     }
     return render(request, 'ticket_eliminar.html', contexto)
+
 def cliente_eliminar(request, id):
     cliente = get_object_or_404(Cliente, id=id)
 
     if request.method == 'POST':
-        cliente.delete()
-        return redirect('lista_clientes')  # Redirige a la lista
-    
+        try:    
+            cliente.delete()
+            messages.success(request, 'Cliente eliminada correctamente.')
+            return redirect('lista_clientes')  # Redirige a la lista
+        except ProtectedError:
+            messages.error(request, 'No se puede eliminar Cliente ya que tiene un ticket asignado ')
+            return redirect('lista_clientes') 
+
     contexto = {
         'objeto': cliente,
         'url_cancelar': reverse('lista_clientes'),  # Usamos reverse() para obtener la URL
@@ -611,12 +643,17 @@ def ticket_eliminar(request, id):
     ticket = get_object_or_404(Ticket, id=id)
 
     if request.method == 'POST':
-        ticket.delete()
-         # Redirigir según el origen
-        if origen == 'departamento':
+        try:
+            ticket.delete()
+            messages.success(request, 'Ticket eliminada correctamente.')
+            # Redirigir según el origen
+            if origen == 'departamento':
                 return redirect('ver_tickets_departamento')
-        else:
+            else:
                 return redirect('lista_tickets')   
+        except ProtectedError:
+            messages.error(request, 'No se puede eliminar Ticket ya que tiene un asignado al tecnico')
+            return redirect('lista_tickets') 
 
     contexto = {
     'objeto': ticket,
@@ -629,8 +666,13 @@ def evaluacion_eliminar(request, id):
     evaluacion = get_object_or_404(EvaluacionTecnico, id=id)
 
     if request.method == 'POST':
-        evaluacion.delete()
-        return redirect('lista_evaluaciones')  # Redirige a la lista
+        try:
+            evaluacion.delete()
+            messages.success(request, 'Evaluacion eliminada correctamente.')
+            return redirect('lista_evaluaciones')  # Redirige a la lista
+        except ProtectedError:
+            messages.error(request, 'No se puede eliminar Evaluacion ya que tiene informacion relacionada')
+            return redirect('lista_evaluaciones') 
 
     contexto = {
         'objeto': evaluacion,
@@ -1425,9 +1467,15 @@ def usuario_eliminar(request, id):
     usuario_personalizado = get_object_or_404(Usuario, id=id)
     # También eliminar el User de Django asociado para evitar orfandad
     user_django = usuario_personalizado.usuarios
-    usuario_personalizado.delete()
-    user_django.delete()
-    messages.success(request, 'Usuario eliminado correctamente.')
+    if user_django.is_superuser:
+        messages.error(request, 'No se puede eliminar un superusuario.')
+        return redirect('usuario_lista')
+    try:         
+        usuario_personalizado.delete()
+        user_django.delete()
+        messages.success(request, 'Usuario eliminado correctamente.')
+    except ProtectedError:
+        messages.error(request, 'No se puede eliminar usuario por que tiene datos relacionados.')
     return redirect('usuario_lista')
 
 
