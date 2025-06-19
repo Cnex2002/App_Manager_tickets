@@ -43,4 +43,5 @@ from .models import nombre-clase
 	python manage.py createsuperuser
 
 -correr app
+conda activate mientorno312
 python manage.py runserver
