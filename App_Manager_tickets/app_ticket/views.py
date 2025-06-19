@@ -286,7 +286,6 @@ def lista_empresas(request):
 
 
 @login_required
-
 def lista_clientes(request):
     query = request.GET.get('q')
     if query:
@@ -989,7 +988,6 @@ def buscar_cliente(request):
 
 
 @login_required
-@user_passes_test(is_supervisor_check or is_admin_check)
 def ver_tickets_departamento(request):
     if request.user.usuario.rol == 'supervisor':
         departamentos_usuario = Departamento.objects.filter(usuario__usuarios=request.user)
@@ -1015,35 +1013,8 @@ def ver_tickets_departamento(request):
         'titulo': titulo,
         'query': query,
     }
-    return render(request, 'ver_tickets_departamento.html', context)
+    return render(request, 'ticket_lista.html', context)
 
-
-def buscar_cliente(request):
-    query = request.GET.get('q', '')
-    
-    if query:
-        clientes = Cliente.objects.filter(
-            Q(nombres__icontains=query) |
-            Q(ruc__icontains=query) |
-            Q(telefono__icontains=query) |
-            Q(correo__icontains=query) |
-            Q(anydesk_empresa__icontains=query)
-        )
-    else:
-        clientes = Cliente.objects.none()  # No devolvemos todos para evitar carga innecesaria
-
-    results = []
-    for cliente in clientes:
-        results.append({
-            'id': cliente.id,
-            'nombres': cliente.nombres,
-            'ruc': cliente.ruc,
-            'telefono': cliente.telefono,
-            'correo': cliente.correo,
-            'anydesk_empresa': cliente.anydesk_empresa,
-            'empresa': cliente.empresa,
-        })
-    return JsonResponse(results, safe=False)
 
 
 
