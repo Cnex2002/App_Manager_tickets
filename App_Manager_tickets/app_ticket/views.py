@@ -322,15 +322,49 @@ def lista_departamentos(request):
 
 
 
+@login_required
 def lista_tickets(request):
+    query = request.GET.get('q')
+    user = request.user
+    tickets = Ticket.objects.all()
 
-    contexto = {
-        'tickets': Ticket.objects.all(),
+    if user.is_superuser:  # Admin ve todos los tickets
+        if query:
+            tickets = tickets.filter(
+                Q(titulo__icontains=query) |
+                Q(descripcion__icontains=query) |
+                Q(cliente__nombres__icontains=query) |
+                Q(tecnico__nombre__icontains=query) |
+                Q(estado__icontains=query) |
+                Q(prioridad__icontains=query)
+            )
+    else:  # Supervisores y Atención solo ven tickets de su departamento
+        try:
+            usuario_perfil = Usuario.objects.get(usuarios=user)
+            if usuario_perfil.departamento:
+                # Filter tickets where the 'tecnico' (Usuario) belongs to the user's department
+                tickets = tickets.filter(tecnico__departamento=usuario_perfil.departamento)
+                
+                if query:
+                    tickets = tickets.filter(
+                        Q(titulo__icontains=query) |
+                        Q(descripcion__icontains=query) |
+                        Q(cliente__nombres__icontains=query) |
+                        Q(tecnico__nombre__icontains=query) |
+                        Q(estado__icontains=query) |
+                        Q(prioridad__icontains=query)
+                    )
+            else:
+                messages.warning(request, "Tu usuario no está asociado a un departamento. No puedes ver tickets.")
+                tickets = Ticket.objects.none() # No mostrar tickets si no hay departamento
+        except Usuario.DoesNotExist:
+            messages.error(request, "No se encontró el perfil de usuario. Contacta al administrador.")
+            tickets = Ticket.objects.none() # No mostrar tickets si no hay perfil de usuario
+
+    context = {
+        'tickets': tickets
     }
-    return render(request, 'ticket_lista.html', contexto)
-
-
-
+    return render(request, 'ticket_lista.html', context)
 
 
 def lista_soluciontickets(request):

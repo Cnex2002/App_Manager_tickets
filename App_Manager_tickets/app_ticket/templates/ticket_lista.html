@@ -1,47 +1,86 @@
+{# app_ticket/templates/ticket_lista.html #}
+
 {% extends "base.html" %}
-{% block title %}Ticket{% endblock title %}
+{% block title %}Tickets{% endblock title %}
+
 {% block content %}
 
-<div class="d-flex">
-
-
-<div class="container-fluid" >
-<h1 class="mt-4">Lista de Tickets</h1>
-<a href="{% url 'ticket_nuevo' %}?origen=departamento" class="btn btn-success">Nuevo Ticket</a>
-<table class="table mt-3">
-    <thead>
-        <tr>
-            <th>Título</th>
-            <th>Estado</th>
-            <th>Prioridad</th>
-            <th>Categoría</th>
-            <th>Cliente</th>
-            <th>Técnico</th>
-            <th>Fecha Creación</th>
-            <th>Accion</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for t in tickets %}
-        <tr>
-            <td>{{ t.titulo }}</td>
-            <td>{{ t.estado }}</td>
-            <td>{{ t.prioridad }}</td>
-            <td>{{ t.categoria.nombre }}</td>
-            <td>{{ t.cliente.nombres }}</td>
-            <td>{{ t.tecnico.nombre }}</td>
-            <td>{{ t.fecha_creacion }}</td>
-            <td>
-                 <a href="{% url 'ticket_editar' t.id %}?origen=departamento" class="btn btn-primary">Editar</a>
-                {% if t.estado != 'cerrado' %}
-                <a href="{% url 'solucionticket_nueva' t.id %}" class="btn btn-primary">Cerrar Ticket</a>
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h1 class="h4 card-title mb-0">Lista de Tickets</h1>
+        <a href="{% url 'ticket_nuevo' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle me-2"></i>Nuevo Ticket
+        </a>
+    </div>
+    <div class="card-body">
+        {# El buscador se agregará en una iteración futura, por ahora se omite #}
+        {# AHORA SE DESCOMENTA Y USA #}
+        <div class="mb-4">
+            <form class="d-flex" method="GET" action="{% url 'lista_tickets' %}"> {# Asegúrate que 'lista_tickets' sea el nombre de la URL de tu vista #}
+                <input class="form-control me-2" type="search" placeholder="Buscar por Título, Cliente, Técnico, Estado, Prioridad..." aria-label="Search" name="q" value="{{ request.GET.q|default_if_none:'' }}">
+                <button class="btn btn-outline-primary" type="submit">Buscar</button>
+                {% if request.GET.q %}
+                    <a href="{% url 'lista_tickets' %}" class="btn btn-outline-secondary ms-2">Limpiar Filtros</a>
                 {% endif %}
-                <a href="{% url 'ticket_eliminar' t.id %}?origen=departamento" class="btn btn-danger btn-sm">Eliminar</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+            </form>
+        </div>
+        {# FIN DEL BUSCADOR #}
+
+        {% if tickets %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">ID</th>
+                            <th scope="col">Título</th>
+                            <th scope="col">Cliente</th>
+                            <th scope="col">Departamento</th>
+                            <th scope="col">Técnico Asignado</th>
+                            <th scope="col">Estado</th>
+                            <th scope="col">Prioridad</th>
+                            <th scope="col">Fecha Creación</th>
+                            <th scope="col" class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in tickets %}
+                        <tr>
+                            <td>{{ t.id }}</td>
+                            <td>{{ t.titulo }}</td>
+                            <td>{{ t.cliente.nombres }}</td>
+                            <td>{{ t.departamento.nombre }}</td>
+                            <td>{{ t.tecnico.nombre|default:"Sin Asignar" }}</td>
+                            <td>{{ t.estado }}</td>
+                            <td>{{ t.prioridad }}</td>
+                            <td>{{ t.fecha_creacion|date:"d M Y H:i" }}</td>
+                            <td class="text-center">
+                                <a href="{% url 'ticket_editar' t.id %}" class="btn btn-primary btn-sm me-1" title="Editar Ticket">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if t.estado != 'cerrado' %}
+                                <a href="{% url 'solucionticket_nueva' t.id %}" class="btn btn-success btn-sm me-1" title="Cerrar Ticket">
+                                    <i class="bi bi-check-circle"></i>
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'ticket_eliminar' t.id %}" class="btn btn-danger btn-sm" title="Eliminar Ticket">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                <h4 class="alert-heading">No se encontraron tickets</h4>
+                <p>No hay tickets registrados o no se encontraron resultados para su búsqueda.</p>
+                <hr>
+                <p class="mb-0">Puede añadir un nuevo ticket usando el botón "Nuevo Ticket".</p>
+            </div>
+        {% endif %}
+
+    </div>
 </div>
-</div>
+
 {% endblock content %}
