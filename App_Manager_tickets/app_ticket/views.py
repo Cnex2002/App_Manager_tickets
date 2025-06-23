@@ -297,7 +297,7 @@ def lista_clientes(request):
             Q(empresa__icontains=query) # <-- ¡CAMBIO AQUÍ! Eliminado '__nombre'
         ).distinct()
 
-    paginator = Paginator(clientes_list, 3)
+    paginator = Paginator(clientes_list, 10)
     page = request.GET.get('page')
 
     try:
