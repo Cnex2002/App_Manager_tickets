@@ -44,4 +44,5 @@ from .models import nombre-clase
 
 -correr app
 conda activate mientorno312
+cd C:\Users\rento\OneDrive\Documentos\App_Manager_tickets
 python manage.py runserver

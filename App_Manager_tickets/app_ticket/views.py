@@ -987,33 +987,6 @@ def buscar_cliente(request):
 
 
 
-@login_required
-def ver_tickets_departamento(request):
-    if request.user.usuario.rol == 'supervisor':
-        departamentos_usuario = Departamento.objects.filter(usuario__usuarios=request.user)
-        # Filtra los tickets para incluir solo aquellos de los departamentos asociados al supervisor
-        tickets = Ticket.objects.filter(tecnico__departamento__in=departamentos_usuario).order_by('-fecha_creacion')
-        titulo = 'Tickets de Mi Departamento'
-    else: # Si es admin, ve todos los tickets
-        tickets = Ticket.objects.all().order_by('-fecha_creacion')
-        titulo = 'Tickets por Departamento'
-
-    query = request.GET.get('q')
-    if query:
-        tickets = tickets.filter(
-            Q(titulo__icontains=query) | 
-            Q(descripcion__icontains=query) |
-            Q(cliente__nombres__icontains=query) |
-            Q(tecnico__nombre__icontains=query) | # Asume que Usuario tiene un campo 'nombre'
-            Q(tecnico__departamento__nombre__icontains=query) # Busca por nombre de departamento del técnico
-        ).distinct()
-
-    context = {
-        'tickets': tickets,
-        'titulo': titulo,
-        'query': query,
-    }
-    return render(request, 'ticket_lista.html', context)
 
 
 
