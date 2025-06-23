@@ -42,6 +42,7 @@ import matplotlib.pyplot as plt
 import io
 import urllib
 import numpy as np
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 # Configurar el backend de Matplotlib para no usar una GUI
 plt.switch_backend('Agg')
 
@@ -284,20 +285,33 @@ def lista_empresas(request):
     return render(request, 'empresa_lista.html', contexto)
 
 
-
 @login_required
 def lista_clientes(request):
     query = request.GET.get('q')
+    clientes_list = Cliente.objects.all().order_by('nombres')
+
     if query:
-        clientes = Cliente.objects.filter(
+        clientes_list = clientes_list.filter(
             Q(nombres__icontains=query) |
             Q(ruc__icontains=query) |
-            Q(empresa__icontains=query) # Busca por el nombre de la empresa
-        )
-    else:
-        clientes = Cliente.objects.all()
-    return render(request, 'cliente_lista.html', {'clientes': clientes})
+            Q(empresa__icontains=query) # <-- ¡CAMBIO AQUÍ! Eliminado '__nombre'
+        ).distinct()
 
+    paginator = Paginator(clientes_list, 3)
+    page = request.GET.get('page')
+
+    try:
+        clientes = paginator.page(page)
+    except PageNotAnInteger:
+        clientes = paginator.page(1)
+    except EmptyPage:
+        clientes = paginator.page(paginator.num_pages)
+
+    context = {
+        'clientes': clientes,
+        'query': query,
+    }
+    return render(request, 'cliente_lista.html', context)
 
 
 
