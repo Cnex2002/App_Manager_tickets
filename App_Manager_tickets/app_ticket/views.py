@@ -500,16 +500,28 @@ def lista_evaluaciones(request):
     if query:
         evaluaciones = evaluaciones.filter(
             Q(ticket__titulo__icontains=query) | # Busca por el título del ticket
-            Q(comentario__icontains=query)      # Busca en el comentario de la evaluación
+            Q(comentario__icontains=query)       # Busca en el comentario de la evaluación
         )
+    
+    # Paginación
+    paginator = Paginator(evaluaciones, 10)  # Muestra 10 evaluaciones por página
+    page = request.GET.get('page')
+
+    try:
+        evaluaciones = paginator.page(page)
+    except PageNotAnInteger:
+        # Si la página no es un entero, entrega la primera página.
+        evaluaciones = paginator.page(1)
+    except EmptyPage:
+        # Si la página está fuera de rango (ej. 9999), entrega la última página de resultados.
+        evaluaciones = paginator.page(paginator.num_pages)
     
     context = {
         'evaluaciones': evaluaciones,
         'titulo': 'Lista de Evaluaciones',
+        'query': query, # Añade query al contexto para mantener el filtro en la paginación
     }
     return render(request, 'evaluacion_tecnico_lista.html', context)
-
-
 
 
 

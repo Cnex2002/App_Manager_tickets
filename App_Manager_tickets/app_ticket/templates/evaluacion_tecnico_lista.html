@@ -1,4 +1,4 @@
-{# app_ticket/templates/evaluacion_lista.html #}
+{# app_ticket/templates/evaluacion_tecnico_lista.html #}
 
 {% extends "base.html" %}
 {% block title %}Evaluaciones{% endblock title %}
@@ -28,18 +28,21 @@
                 <table class="table table-hover table-striped border">
                     <thead>
                         <tr>
-                            <th>Ticket #</th>
-                            <th class="text-center">Calificación</th>
-                            <th>Comentarios</th>
-                            <th>Fecha de Evaluación</th>
-                            <th class="text-center">Acciones</th>
+                            <th scope="col">ID Ticket</th>
+                            <th scope="col">Título del Ticket</th>
+                            <th scope="col">Calificación</th>
+                            <th scope="col">Comentario</th>
+                            <th scope="col">Fecha Evaluación</th>
+                            <th scope="col" class="text-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for evaluacion in evaluaciones %}
                         <tr>
-                            <td>{{ evaluacion.ticket.id }} - {{ evaluacion.ticket.titulo }}</td>
+                            <td>{{ evaluacion.ticket.id }}</td>
+                            <td>{{ evaluacion.ticket.titulo }}</td>
                             <td class="text-center">
+                                {# Muestra la calificación con badges de Bootstrap #}
                                 {% if evaluacion.calificacion == 5 %}
                                     <span class="badge bg-success">{{ evaluacion.get_calificacion_display }}</span>
                                 {% elif evaluacion.calificacion == 4 %}
@@ -60,7 +63,7 @@
                                 <a href="{% url 'evaluacion_editar' evaluacion.id %}" class="btn btn-primary btn-sm me-1" title="Editar Evaluación">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <a href="{% url 'evaluacion_eliminar' evaluacion.id %}" class="btn btn-danger btn-sm" title="Eliminar Evaluación" onclick="return confirm('¿Estás seguro de eliminar esta evaluación?');">
+                                <a href="{% url 'evaluacion_eliminar' evaluacion.id %}" class="btn btn-danger btn-sm" title="Eliminar Evaluación">
                                     <i class="bi bi-trash"></i>
                                 </a>
                             </td>
@@ -69,6 +72,44 @@
                     </tbody>
                 </table>
             </div>
+
+            {# Paginación #}
+            <nav aria-label="Page navigation example">
+                <ul class="pagination justify-content-center">
+                    {% if evaluaciones.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ evaluaciones.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">&laquo;</span>
+                        </li>
+                    {% endif %}
+
+                    {% for i in evaluaciones.paginator.page_range %}
+                        {% if evaluaciones.number == i %}
+                            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                        {% else %}
+                            <li class="page-item"><a class="page-link" href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}" >{{ i }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if evaluaciones.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ evaluaciones.next_page_number }}{% if query %}&q={{ query }}{% endif %}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">&raquo;</span>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+
         {% else %}
             <div class="alert alert-info" role="alert">
                 <h4 class="alert-heading">No se encontraron evaluaciones</h4>
