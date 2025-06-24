@@ -283,6 +283,35 @@
                 </div>
             {% endfor %}
         </div>
+
+        {# INICIO DE LA PAGINACION #}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if soluciones.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ soluciones.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for i in soluciones.paginator.page_range %}
+                    <li class="page-item {% if soluciones.number == i %}active{% endif %}">
+                        <a class="page-link" href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">{{ i }}</a>
+                    </li>
+                {% endfor %}
+
+                {% if soluciones.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ soluciones.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {# FIN DE LA PAGINACION #}
+
     {% else %}
         <div class="alert alert-warning" role="alert">
             No se encontraron soluciones de tickets.

@@ -375,10 +375,29 @@ def lista_tickets(request):
             messages.error(request, "No se encontró el perfil de usuario. Contacta al administrador.")
             tickets = Ticket.objects.none() # No mostrar tickets si no hay perfil de usuario
 
+    # Ordenar los tickets por fecha de creación descendente (los más recientes primero)
+    tickets = tickets.order_by('-fecha_creacion')
+
+    # Configuración de paginación
+    paginator = Paginator(tickets, 10)  # Muestra 10 tickets por página
+    page = request.GET.get('page')
+
+    try:
+        tickets = paginator.page(page)
+    except PageNotAnInteger:
+        # Si la página no es un entero, entrega la primera página.
+        tickets = paginator.page(1)
+    except EmptyPage:
+        # Si la página está fuera de rango (ej. 9999), entrega la última página de resultados.
+        tickets = paginator.page(paginator.num_pages)
+
+
     context = {
-        'tickets': tickets
+        'tickets': tickets,
+        'query': query, # Pasamos el query para que se mantenga en los enlaces de paginación
     }
     return render(request, 'ticket_lista.html', context)
+
 
 
 def lista_soluciontickets(request):
@@ -410,15 +429,26 @@ def lista_soluciontickets(request):
         except ValueError:
             messages.error(request, "Formato de fecha 'Hasta' inválido. Use AAAA-MM-DD.")
 
+    # Paginación
+    paginator = Paginator(soluciones, 5)  # Mostrar 5 soluciones por página
+    page = request.GET.get('page')
+    try:
+        soluciones_paginadas = paginator.page(page)
+    except PageNotAnInteger:
+        # Si la página no es un entero, entregar la primera página.
+        soluciones_paginadas = paginator.page(1)
+    except EmptyPage:
+        # Si la página está fuera de rango (ej. 9999), entregar la última página de resultados.
+        soluciones_paginadas = paginator.page(paginator.num_pages)
+
     context = {
-        'soluciones': soluciones,
+        'soluciones': soluciones_paginadas,  # Usar las soluciones paginadas
         'titulo': 'Lista de Soluciones de Tickets',
         'query': query,
         'fecha_desde': fecha_desde,
         'fecha_hasta': fecha_hasta,
     }
     return render(request, 'solucionticket_lista.html', context)
-
 
 
 
