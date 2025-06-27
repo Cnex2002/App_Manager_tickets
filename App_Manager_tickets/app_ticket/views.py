@@ -315,26 +315,89 @@ def lista_clientes(request):
 
 
 
+
 def lista_categorias(request):
+    query = request.GET.get('q')
+    if query:
+        categorias_list = Categoria.objects.filter(
+            Q(nombre__icontains=query)
+        ).order_by('nombre')
+    else:
+        categorias_list = Categoria.objects.all().order_by('nombre')
 
-    contexto = {
-        'categorias': Categoria.objects.all(),
+    paginator = Paginator(categorias_list, 10)  # Muestra 10 categorías por página
+    page = request.GET.get('page')
+
+    try:
+        categorias = paginator.page(page)
+    except PageNotAnInteger:
+        # Si la página no es un entero, entrega la primera página.
+        categorias = paginator.page(1)
+    except EmptyPage:
+        # Si la página está fuera de rango (ej. 9999), entrega la última página de resultados.
+        categorias = paginator.page(paginator.num_pages)
+
+    context = {
+        'categorias': categorias,
+        'query': query,
     }
-    return render(request, 'categoria_lista.html', contexto)
+    return render(request, 'categoria_lista.html', context)
+
+
+
+@login_required
 def lista_sucursales(request):
+    query = request.GET.get('q')
+    sucursales_list = Sucursal.objects.all().order_by('nombre')
 
-    contexto = {
-        'sucursales': Sucursal.objects.all(),
-    }
-    return render(request, 'sucursal_lista.html', contexto)
+    if query:
+        sucursales_list = sucursales_list.filter(
+            Q(nombre__icontains=query) |
+            Q(direccion__icontains=query) |
+            Q(empresa__nombre__icontains=query)
+        ).distinct()
+
+    paginator = Paginator(sucursales_list, 10)  # 10 sucursales por página
+    page = request.GET.get('page')
+    try:
+        sucursales = paginator.page(page)
+    except PageNotAnInteger:
+        sucursales = paginator.page(1)
+    except EmptyPage:
+        sucursales = paginator.page(paginator.num_pages)
+
+    return render(request, 'sucursal_lista.html', {'sucursales': sucursales, 'query': query})
+
+
+@login_required
 def lista_departamentos(request):
+    query = request.GET.get('q')
+    if query:
+        departamentos_list = Departamento.objects.filter(
+            Q(nombre__icontains=query) |
+            Q(sucursal__nombre__icontains=query) |
+            Q(observaciones__icontains=query)
+        ).order_by('nombre')
+    else:
+        departamentos_list = Departamento.objects.all().order_by('nombre')
 
-    contexto = {
-        'departamentos': Departamento.objects.all(),
+    paginator = Paginator(departamentos_list, 10)  # Muestra 10 departamentos por página
+    page = request.GET.get('page')
+
+    try:
+        departamentos = paginator.page(page)
+    except PageNotAnInteger:
+        # Si la página no es un entero, entrega la primera página.
+        departamentos = paginator.page(1)
+    except EmptyPage:
+        # Si la página está fuera de rango (ej. 9999), entrega la última página de resultados.
+        departamentos = paginator.page(paginator.num_pages)
+
+    context = {
+        'departamentos': departamentos,
+        'query': query,
     }
-    return render(request, 'departamento_lista.html', contexto)
-
-
+    return render(request, 'departamento_lista.html', context)
 
 @login_required
 def lista_tickets(request):
@@ -874,9 +937,32 @@ def chatbox_query(request):
 @login_required
 @user_passes_test(is_staff_check)
 def usuario_lista(request):
-    usuarios_personalizados = Usuario.objects.all().select_related('usuarios', 'departamento')
+    query = request.GET.get('q')
+    
+    usuarios_list = Usuario.objects.all().select_related('usuarios', 'departamento').order_by('nombre')
+
+    if query:
+        usuarios_list = usuarios_list.filter(
+            Q(usuarios__username__icontains=query) |
+            Q(nombre__icontains=query) |
+            Q(usuarios__email__icontains=query) |
+            Q(rol__icontains=query) |
+            Q(departamento__nombre__icontains=query)
+        ).distinct()
+
+    paginator = Paginator(usuarios_list,10)  # Muestra 10 usuarios por página
+    page = request.GET.get('page')
+
+    try:
+        usuarios_personalizados = paginator.page(page)
+    except PageNotAnInteger:
+        usuarios_personalizados = paginator.page(1)
+    except EmptyPage:
+        usuarios_personalizados = paginator.page(paginator.num_pages)
+
     contexto = {
         'usuarios': usuarios_personalizados,
+        'query': query,
     }
     return render(request, 'usuario_lista.html', contexto)
 
