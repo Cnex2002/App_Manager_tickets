@@ -2,6 +2,7 @@
 # and then applying the new date filtering logic.
 
 views_content_template = ""
+
 from django.utils import timezone
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
@@ -43,6 +44,13 @@ import io
 import urllib
 import numpy as np
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+#Importar funciones leer pdfs y descargar
+from django.template.loader import get_template
+from django.http import HttpResponse
+from xhtml2pdf import pisa
+import os
+
 # Configurar el backend de Matplotlib para no usar una GUI
 plt.switch_backend('Agg')
 
@@ -1941,3 +1949,56 @@ def reportes_view(request):
     }
 
     return render(request, 'reportes.html', context)
+
+
+def extraer_texto_pdf(ruta_pdf):
+    texto_completo = ""
+    with fitz.open(ruta_pdf) as doc:
+        for pagina in doc:
+            texto_completo += pagina.get_text()
+    return texto_completo
+
+
+
+def subir_manual(request):
+    if request.method == 'POST' and request.FILES.get('manual'):
+        archivo = request.FILES['manual']
+        ext = archivo.name.split('.')[-1].lower()
+
+        if ext not in ['pdf', 'docx']:
+            messages.error(request, "Solo se permiten archivos PDF o DOCX.")
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
+        carpeta_destino = os.path.join(settings.BASE_DIR, 'app_ticket', 'manuales')
+        os.makedirs(carpeta_destino, exist_ok=True)
+
+        ruta_destino = os.path.join(carpeta_destino, archivo.name)
+        
+        with open(ruta_destino, 'wb+') as destino:
+            for chunk in archivo.chunks():
+                destino.write(chunk)
+
+        messages.success(request, f"Archivo {archivo.name} subido correctamente.")
+        return redirect('perfil')
+
+    return render(request, 'subir_manual.html') 
+
+
+
+def exportar_problemas_soluciones_pdf(request):
+    soluciones = SolucionTicket.objects.select_related('ticket')
+
+    template_path = 'pdf_problemas_soluciones.html'  # Lo crearemos en el siguiente paso
+    context = {'soluciones': soluciones}
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="problemas_y_soluciones.pdf"'
+
+    template = get_template(template_path)
+    html = template.render(context)
+
+    pisa_status = pisa.CreatePDF(html, dest=response)
+
+    if pisa_status.err:
+        return HttpResponse('Error al generar el PDF', status=500)
+    return response
