@@ -1,4 +1,3 @@
-{# app_ticket/templates/usuario_lista.html #}
 
 {% extends "base.html" %}
 {% block title %}Lista de Usuarios{% endblock title %}
@@ -8,9 +7,22 @@
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <h1 class="h4 card-title mb-0">Lista de Usuarios del Sistema</h1>
-        
+        <a href="{% url 'usuario_nuevo' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle me-2"></i>Nuevo Usuario
+        </a>
     </div>
     <div class="card-body">
+        <div class="mb-4">
+            <form class="d-flex" method="GET" action="{% url 'usuario_lista' %}">
+                <input class="form-control me-2" type="search" placeholder="Buscar por Username, Nombre, Email, Rol o Departamento" aria-label="Search" name="q" value="{{ request.GET.q }}">
+                <button class="btn btn-outline-primary" type="submit">Buscar</button>
+                {# Botón de Limpiar Filtros #}
+                {% if request.GET.q %} {# Solo muestra el botón si hay un filtro aplicado #}
+                    <a href="{% url 'usuario_lista' %}" class="btn btn-outline-secondary ms-2">Limpiar Filtros</a>
+                {% endif %}
+            </form>
+        </div>
+
         {% if usuarios %}
             <div class="table-responsive">
                 <table class="table table-hover table-striped border">
@@ -92,6 +104,44 @@
                     </tbody>
                 </table>
             </div>
+
+            {# Paginación #}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if usuarios.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ usuarios.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">&laquo;</span>
+                        </li>
+                    {% endif %}
+
+                    {% for i in usuarios.paginator.page_range %}
+                        {% if usuarios.number == i %}
+                            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                        {% else %}
+                            <li class="page-item"><a class="page-link" href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}">{{ i }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if usuarios.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ usuarios.next_page_number }}{% if query %}&q={{ query }}{% endif %}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">&raquo;</span>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+
         {% else %}
             <div class="alert alert-info my-3" role="alert">
                 <h4 class="alert-heading">No se encontraron usuarios</h4>

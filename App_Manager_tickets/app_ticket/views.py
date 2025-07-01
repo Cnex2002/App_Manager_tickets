@@ -1,4 +1,7 @@
-import os
+# Reconstructing the views.py content based on previous successful generation
+# and then applying the new date filtering logic.
+
+views_content_template = ""
 from django.utils import timezone
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
@@ -8,14 +11,11 @@ import fitz
 from .models import *
 from .forms import *
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.template.loader import get_template
-from django.http import HttpResponse
-from xhtml2pdf import pisa
 
 
 from django.db.models import Count, Avg, F, ExpressionWrapper, DurationField
 from django.db.models.functions import TruncMonth
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date # <-- Added date here
 import pytz
 from django.utils import timezone
 from django.shortcuts import render
@@ -32,7 +32,20 @@ from django.contrib import messages
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django.core.mail import send_mail
-from django.db.models import Q 
+from django.db.models import Q
+# ERORES PYTHON
+from django.db.models import ProtectedError
+from django.contrib import messages
+
+# Importar Matplotlib
+import matplotlib.pyplot as plt
+import io
+import urllib
+import numpy as np
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+# Configurar el backend de Matplotlib para no usar una GUI
+plt.switch_backend('Agg')
+
 
 # Helper para verificar si el usuario es staff (tiene acceso al admin)
 def is_staff_check(user):
@@ -272,53 +285,181 @@ def lista_empresas(request):
     return render(request, 'empresa_lista.html', contexto)
 
 
-
 @login_required
-
 def lista_clientes(request):
     query = request.GET.get('q')
+    clientes_list = Cliente.objects.all().order_by('nombres')
+
     if query:
-        clientes = Cliente.objects.filter(
+        clientes_list = clientes_list.filter(
             Q(nombres__icontains=query) |
             Q(ruc__icontains=query) |
-            Q(empresa__icontains=query) # Busca por el nombre de la empresa
-        )
-    else:
-        clientes = Cliente.objects.all()
-    return render(request, 'cliente_lista.html', {'clientes': clientes})
+            Q(empresa__icontains=query) # <-- ¡CAMBIO AQUÍ! Eliminado '__nombre'
+        ).distinct()
+
+    paginator = Paginator(clientes_list, 10)
+    page = request.GET.get('page')
+
+    try:
+        clientes = paginator.page(page)
+    except PageNotAnInteger:
+        clientes = paginator.page(1)
+    except EmptyPage:
+        clientes = paginator.page(paginator.num_pages)
+
+    context = {
+        'clientes': clientes,
+        'query': query,
+    }
+    return render(request, 'cliente_lista.html', context)
 
 
 
 
 def lista_categorias(request):
+    query = request.GET.get('q')
+    if query:
+        categorias_list = Categoria.objects.filter(
+            Q(nombre__icontains=query)
+        ).order_by('nombre')
+    else:
+        categorias_list = Categoria.objects.all().order_by('nombre')
 
-    contexto = {
-        'categorias': Categoria.objects.all(),
+    paginator = Paginator(categorias_list, 10)  # Muestra 10 categorías por página
+    page = request.GET.get('page')
+
+    try:
+        categorias = paginator.page(page)
+    except PageNotAnInteger:
+        # Si la página no es un entero, entrega la primera página.
+        categorias = paginator.page(1)
+    except EmptyPage:
+        # Si la página está fuera de rango (ej. 9999), entrega la última página de resultados.
+        categorias = paginator.page(paginator.num_pages)
+
+    context = {
+        'categorias': categorias,
+        'query': query,
     }
-    return render(request, 'categoria_lista.html', contexto)
+    return render(request, 'categoria_lista.html', context)
+
+
+
+@login_required
 def lista_sucursales(request):
+    query = request.GET.get('q')
+    sucursales_list = Sucursal.objects.all().order_by('nombre')
 
-    contexto = {
-        'sucursales': Sucursal.objects.all(),
-    }
-    return render(request, 'sucursal_lista.html', contexto)
+    if query:
+        sucursales_list = sucursales_list.filter(
+            Q(nombre__icontains=query) |
+            Q(direccion__icontains=query) |
+            Q(empresa__nombre__icontains=query)
+        ).distinct()
+
+    paginator = Paginator(sucursales_list, 10)  # 10 sucursales por página
+    page = request.GET.get('page')
+    try:
+        sucursales = paginator.page(page)
+    except PageNotAnInteger:
+        sucursales = paginator.page(1)
+    except EmptyPage:
+        sucursales = paginator.page(paginator.num_pages)
+
+    return render(request, 'sucursal_lista.html', {'sucursales': sucursales, 'query': query})
+
+
+@login_required
 def lista_departamentos(request):
+    query = request.GET.get('q')
+    if query:
+        departamentos_list = Departamento.objects.filter(
+            Q(nombre__icontains=query) |
+            Q(sucursal__nombre__icontains=query) |
+            Q(observaciones__icontains=query)
+        ).order_by('nombre')
+    else:
+        departamentos_list = Departamento.objects.all().order_by('nombre')
 
-    contexto = {
-        'departamentos': Departamento.objects.all(),
+    paginator = Paginator(departamentos_list, 10)  # Muestra 10 departamentos por página
+    page = request.GET.get('page')
+
+    try:
+        departamentos = paginator.page(page)
+    except PageNotAnInteger:
+        # Si la página no es un entero, entrega la primera página.
+        departamentos = paginator.page(1)
+    except EmptyPage:
+        # Si la página está fuera de rango (ej. 9999), entrega la última página de resultados.
+        departamentos = paginator.page(paginator.num_pages)
+
+    context = {
+        'departamentos': departamentos,
+        'query': query,
     }
-    return render(request, 'departamento_lista.html', contexto)
+    return render(request, 'departamento_lista.html', context)
 
-
-
+@login_required
 def lista_tickets(request):
+    query = request.GET.get('q')
+    user = request.user
+    tickets = Ticket.objects.all()
 
-    contexto = {
-        'tickets': Ticket.objects.all(),
+    if user.is_superuser:  # Admin ve todos los tickets
+        if query:
+            tickets = tickets.filter(
+                Q(titulo__icontains=query) |
+                Q(descripcion__icontains=query) |
+                Q(cliente__nombres__icontains=query) |
+                Q(tecnico__nombre__icontains=query) |
+                Q(estado__icontains=query) |
+                Q(prioridad__icontains=query)
+            )
+    else:  # Supervisores y Atención solo ven tickets de su departamento
+        try:
+            usuario_perfil = Usuario.objects.get(usuarios=user)
+            if usuario_perfil.departamento:
+                # Filter tickets where the 'tecnico' (Usuario) belongs to the user's department
+                tickets = tickets.filter(tecnico__departamento=usuario_perfil.departamento)
+                
+                if query:
+                    tickets = tickets.filter(
+                        Q(titulo__icontains=query) |
+                        Q(descripcion__icontains=query) |
+                        Q(cliente__nombres__icontains=query) |
+                        Q(tecnico__nombre__icontains=query) |
+                        Q(estado__icontains=query) |
+                        Q(prioridad__icontains=query)
+                    )
+            else:
+                messages.warning(request, "Tu usuario no está asociado a un departamento. No puedes ver tickets.")
+                tickets = Ticket.objects.none() # No mostrar tickets si no hay departamento
+        except Usuario.DoesNotExist:
+            messages.error(request, "No se encontró el perfil de usuario. Contacta al administrador.")
+            tickets = Ticket.objects.none() # No mostrar tickets si no hay perfil de usuario
+
+    # Ordenar los tickets por fecha de creación descendente (los más recientes primero)
+    tickets = tickets.order_by('-fecha_creacion')
+
+    # Configuración de paginación
+    paginator = Paginator(tickets, 10)  # Muestra 10 tickets por página
+    page = request.GET.get('page')
+
+    try:
+        tickets = paginator.page(page)
+    except PageNotAnInteger:
+        # Si la página no es un entero, entrega la primera página.
+        tickets = paginator.page(1)
+    except EmptyPage:
+        # Si la página está fuera de rango (ej. 9999), entrega la última página de resultados.
+        tickets = paginator.page(paginator.num_pages)
+
+
+    context = {
+        'tickets': tickets,
+        'query': query, # Pasamos el query para que se mantenga en los enlaces de paginación
     }
-    return render(request, 'ticket_lista.html', contexto)
-
-
+    return render(request, 'ticket_lista.html', context)
 
 
 
@@ -351,15 +492,26 @@ def lista_soluciontickets(request):
         except ValueError:
             messages.error(request, "Formato de fecha 'Hasta' inválido. Use AAAA-MM-DD.")
 
+    # Paginación
+    paginator = Paginator(soluciones, 5)  # Mostrar 5 soluciones por página
+    page = request.GET.get('page')
+    try:
+        soluciones_paginadas = paginator.page(page)
+    except PageNotAnInteger:
+        # Si la página no es un entero, entregar la primera página.
+        soluciones_paginadas = paginator.page(1)
+    except EmptyPage:
+        # Si la página está fuera de rango (ej. 9999), entregar la última página de resultados.
+        soluciones_paginadas = paginator.page(paginator.num_pages)
+
     context = {
-        'soluciones': soluciones,
+        'soluciones': soluciones_paginadas,  # Usar las soluciones paginadas
         'titulo': 'Lista de Soluciones de Tickets',
         'query': query,
         'fecha_desde': fecha_desde,
         'fecha_hasta': fecha_hasta,
     }
     return render(request, 'solucionticket_lista.html', context)
-
 
 
 
@@ -411,16 +563,28 @@ def lista_evaluaciones(request):
     if query:
         evaluaciones = evaluaciones.filter(
             Q(ticket__titulo__icontains=query) | # Busca por el título del ticket
-            Q(comentario__icontains=query)      # Busca en el comentario de la evaluación
+            Q(comentario__icontains=query)       # Busca en el comentario de la evaluación
         )
+    
+    # Paginación
+    paginator = Paginator(evaluaciones, 10)  # Muestra 10 evaluaciones por página
+    page = request.GET.get('page')
+
+    try:
+        evaluaciones = paginator.page(page)
+    except PageNotAnInteger:
+        # Si la página no es un entero, entrega la primera página.
+        evaluaciones = paginator.page(1)
+    except EmptyPage:
+        # Si la página está fuera de rango (ej. 9999), entrega la última página de resultados.
+        evaluaciones = paginator.page(paginator.num_pages)
     
     context = {
         'evaluaciones': evaluaciones,
         'titulo': 'Lista de Evaluaciones',
+        'query': query, # Añade query al contexto para mantener el filtro en la paginación
     }
     return render(request, 'evaluacion_tecnico_lista.html', context)
-
-
 
 
 
@@ -551,9 +715,16 @@ def empresa_eliminar(request, id):
     empresa = get_object_or_404(Empresa, id=id)
 
     if request.method == 'POST':
-        empresa.delete()
-        return redirect('lista_empresas')  # Redirige a la lista
-
+        try:
+            empresa.delete()
+            messages.success(request, 'Empresa eliminada correctamente.')
+            return redirect('lista_empresas')  # Redirige a la lista
+        except ProtectedError:
+            # messages.error(request, 'No se puede eliminar porque hay datos relacionados con esta empresa.')
+            messages.error(request, 'No se puede eliminar Empresa por que hay sucursales relacionadas')
+            return redirect('lista_empresas')
+           
+            
     contexto = {
         'objeto': empresa,
         'url_cancelar': reverse('lista_empresas'),  # Usamos reverse() para obtener la URL
@@ -565,45 +736,67 @@ def sucursal_eliminar(request, id):
     sucursal = get_object_or_404(Sucursal, id=id)
 
     if request.method == 'POST':
-        sucursal.delete()
-        return redirect('lista_sucursales')  # Redirige a la lista
-
+        try:
+            sucursal.delete()
+            messages.success(request, 'Sucursal eliminada correctamente.')
+            return redirect('lista_sucursales')  # Redirige a la lista
+        except ProtectedError:
+            messages.error(request, 'No se puede eliminar Sucursal ya que tiene departamentos')
+            return redirect('lista_sucursales') 
+        
     contexto = {
         'objeto': sucursal,
         'url_cancelar': reverse('lista_sucursales'),  # Usamos reverse() para obtener la URL
     }
     return render(request, 'ticket_eliminar.html', contexto)
+
 def departamento_eliminar(request, id):
     departamento = get_object_or_404(Departamento, id=id)
 
     if request.method == 'POST':
-        departamento.delete()
-        return redirect('lista_departamentos')  # Redirige a la lista
-
+        try:
+            departamento.delete()
+            messages.success(request, 'Departamento eliminada correctamente.')
+            return redirect('lista_departamentos')  # Redirige a la lista
+        except ProtectedError:
+            messages.error(request, 'No se puede eliminar Departamento ya que tiene usuarios y sucursales')
+            return redirect('lista_departamentos') 
     contexto = {
         'objeto': departamento,
         'url_cancelar': reverse('lista_departamentos'),  # Usamos reverse() para obtener la URL
     }
     return render(request, 'ticket_eliminar.html', contexto)
+
 def categoria_eliminar(request, id):
     categoria = get_object_or_404(Categoria, id=id)
 
     if request.method == 'POST':
-        categoria.delete()
-        return redirect('lista_categorias')  # Redirige a la lista
-
+        try:
+            categoria.delete()
+            messages.success(request, 'Categoria eliminada correctamente.')
+            return redirect('lista_categorias')  # Redirige a la lista
+        except ProtectedError:
+            messages.error(request, 'No se puede eliminar Categoria ya que tiene un ticket asignado ')
+            return redirect('lista_categorias') 
+        
     contexto = {
         'objeto': categoria,
         'url_cancelar': reverse('lista_categorias'),  # Usamos reverse() para obtener la URL
     }
     return render(request, 'ticket_eliminar.html', contexto)
+
 def cliente_eliminar(request, id):
     cliente = get_object_or_404(Cliente, id=id)
 
     if request.method == 'POST':
-        cliente.delete()
-        return redirect('lista_clientes')  # Redirige a la lista
-    
+        try:    
+            cliente.delete()
+            messages.success(request, 'Cliente eliminada correctamente.')
+            return redirect('lista_clientes')  # Redirige a la lista
+        except ProtectedError:
+            messages.error(request, 'No se puede eliminar Cliente ya que tiene un ticket asignado ')
+            return redirect('lista_clientes') 
+
     contexto = {
         'objeto': cliente,
         'url_cancelar': reverse('lista_clientes'),  # Usamos reverse() para obtener la URL
@@ -615,12 +808,17 @@ def ticket_eliminar(request, id):
     ticket = get_object_or_404(Ticket, id=id)
 
     if request.method == 'POST':
-        ticket.delete()
-         # Redirigir según el origen
-        if origen == 'departamento':
+        try:
+            ticket.delete()
+            messages.success(request, 'Ticket eliminada correctamente.')
+            # Redirigir según el origen
+            if origen == 'departamento':
                 return redirect('ver_tickets_departamento')
-        else:
+            else:
                 return redirect('lista_tickets')   
+        except ProtectedError:
+            messages.error(request, 'No se puede eliminar Ticket ya que tiene un asignado al tecnico')
+            return redirect('lista_tickets') 
 
     contexto = {
     'objeto': ticket,
@@ -633,8 +831,13 @@ def evaluacion_eliminar(request, id):
     evaluacion = get_object_or_404(EvaluacionTecnico, id=id)
 
     if request.method == 'POST':
-        evaluacion.delete()
-        return redirect('lista_evaluaciones')  # Redirige a la lista
+        try:
+            evaluacion.delete()
+            messages.success(request, 'Evaluacion eliminada correctamente.')
+            return redirect('lista_evaluaciones')  # Redirige a la lista
+        except ProtectedError:
+            messages.error(request, 'No se puede eliminar Evaluacion ya que tiene informacion relacionada')
+            return redirect('lista_evaluaciones') 
 
     contexto = {
         'objeto': evaluacion,
@@ -730,620 +933,36 @@ def chatbox_query(request):
 
 
 
-def reportes_view(request):
-    fecha_inicio_str = request.GET.get('fecha_inicio')
-    fecha_fin_str = request.GET.get('fecha_fin')
-
-    tickets_filtrados = Ticket.objects.all()
-
-    if fecha_inicio_str:
-        # Usa pytz.utc aquí
-        fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').replace(tzinfo=pytz.utc)
-        tickets_filtrados = tickets_filtrados.filter(fecha_creacion__gte=fecha_inicio)
-    
-    if fecha_fin_str:
-        # Usa pytz.utc aquí
-        fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59, tzinfo=pytz.utc)
-        tickets_filtrados = tickets_filtrados.filter(fecha_creacion__lte=fecha_fin)
-
-
-    # KPI: Total Tickets Activos
-    total_tickets_activos = tickets_filtrados.exclude(estado='cerrado').count()
-
-    # KPI: Tiempo Promedio Resolución
-    tickets_resueltos = tickets_filtrados.filter(estado='cerrado', fecha_cierre__isnull=False)
-    tiempo_promedio_resolucion_horas = 0.0
-    if tickets_resueltos.exists():
-        total_duracion_segundos = 0
-        for ticket in tickets_resueltos:
-            if ticket.fecha_cierre and ticket.fecha_creacion:
-                duracion = ticket.fecha_cierre - ticket.fecha_creacion
-                total_duracion_segundos += duracion.total_seconds()
-        
-        if tickets_resueltos.count() > 0:
-            tiempo_promedio_resolucion_horas = (total_duracion_segundos / tickets_resueltos.count()) / 3600 # Convertir a horas
-    
-    # KPI: Calificación Promedio
-    calificacion_promedio = 0.0
-    evaluaciones = EvaluacionTecnico.objects.filter(ticket__in=tickets_filtrados, calificacion__isnull=False)
-    if evaluaciones.exists():
-        calificacion_promedio = evaluaciones.aggregate(avg_cal=Avg('calificacion'))['avg_cal']
-
-    # Tickets por Estado
-    tickets_por_estado = tickets_filtrados.values('estado').annotate(count=Count('estado'))
-
-    # Preparar datos para el gráfico de dona
-    labels_estados = []
-    data_estados = []
-    for item in tickets_por_estado:
-        labels_estados.append(item['estado'])
-        data_estados.append(item['count'])
-
-    # Tickets por Prioridad
-    tickets_por_prioridad = tickets_filtrados.values('prioridad').annotate(count=Count('prioridad')).order_by('-count')
-
-    # Preparar datos para el gráfico de barras por prioridad
-    labels_prioridad = []
-    data_prioridad = []
-    for item in tickets_por_prioridad:
-        labels_prioridad.append(item['prioridad'].capitalize()) # Capitalizar para una mejor presentación
-        data_prioridad.append(item['count'])
-
-    # Nuevo: Tickets por Categoría (Problemas más frecuentes)
-    tickets_por_categoria = tickets_filtrados.values('categoria__nombre').annotate(count=Count('categoria__nombre')).order_by('-count')
-
-    # Preparar datos para el gráfico de barras por categoría
-    labels_categoria = []
-    data_categoria = []
-    for item in tickets_por_categoria:
-        labels_categoria.append(item['categoria__nombre'])
-        data_categoria.append(item['count'])
-
-    # Nuevo: Tickets cerrados por Técnico (Técnicos más productivos)
-    tickets_cerrados_por_tecnico = tickets_filtrados.filter(estado='cerrado').values('tecnico__nombre').annotate(count=Count('tecnico__nombre')).order_by('-count')
-
-    # Preparar datos para el gráfico de barras por técnico
-    labels_tecnicos = []
-    data_tecnicos = []
-    for item in tickets_cerrados_por_tecnico:
-        labels_tecnicos.append(item['tecnico__nombre'])
-        data_tecnicos.append(item['count'])
-
-    # Nuevo: Departamentos con Más Incidencias
-    # CORRECCIÓN AQUÍ: Accedemos al departamento a través del técnico
-    tickets_por_departamento = tickets_filtrados.values('tecnico__departamento__nombre').annotate(count=Count('tecnico__departamento__nombre')).order_by('-count')
-
-    # Preparar datos para el gráfico de barras por departamento
-    labels_departamento = []
-    data_departamento = []
-    for item in tickets_por_departamento:
-        # Asegurarse de que el nombre del departamento no sea None si algún técnico no tiene departamento asignado
-        if item['tecnico__departamento__nombre']:
-            labels_departamento.append(item['tecnico__departamento__nombre'])
-            data_departamento.append(item['count'])
-
-
-    context = {
-        'total_tickets_activos': total_tickets_activos,
-        'tiempo_promedio_resolucion': round(tiempo_promedio_resolucion_horas, 2),
-        'calificacion_promedio': round(calificacion_promedio, 1) if calificacion_promedio else 0.0,
-        'fecha_inicio_str': fecha_inicio_str,
-        'fecha_fin_str': fecha_fin_str,
-        'labels_estados': labels_estados,
-        'data_estados': data_estados,
-        'labels_prioridad': labels_prioridad,
-        'data_prioridad': data_prioridad,
-        'labels_categoria': labels_categoria,
-        'data_categoria': data_categoria,
-        'labels_tecnicos': labels_tecnicos,
-        'data_tecnicos': data_tecnicos,
-        'labels_departamento': labels_departamento, 
-        'data_departamento': data_departamento,     
-    }
-
-    return render(request, 'reportes.html', context)
-
-@login_required
-def generar_reporte_excel(request):
-    reporte_tipo = request.GET.get('reporte_tipo')
-    fecha_inicio_str = request.GET.get('fecha_inicio')
-    fecha_fin_str = request.GET.get('fecha_fin')
-
-    # Verificar si las fechas están presentes
-    if not fecha_inicio_str or not fecha_fin_str:
-        messages.error(request, "Por favor, seleccione una fecha de inicio y una fecha de fin para generar el reporte.")
-        return redirect('reportes') # Redirige de vuelta a la página de reportes
-
-    tickets_base_query = Ticket.objects.all()
-
-    try:
-        fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').replace(tzinfo=pytz.utc)
-        fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59, tzinfo=pytz.utc)
-    except ValueError:
-        messages.error(request, "Por favor, seleccione un rango de fechas válido." , extra_tags='danger')
-        return redirect('reportes')
-
-    # Aplicar filtros de fecha a la consulta base
-    tickets_base_query = tickets_base_query.filter(
-        fecha_creacion__gte=fecha_inicio,
-        fecha_creacion__lte=fecha_fin
-    )
-
-    if reporte_tipo == 'tickets_estado_prioridad':
-        # ... (código existente para reporte_tipo 'tickets_estado_prioridad') ...
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename="reporte_tickets_estado_prioridad.xlsx"'
-
-        workbook = openpyxl.Workbook()
-        sheet = workbook.active
-        sheet.title = "Tickets por Estado y Prioridad"
-
-        # Estilos
-        header_font = Font(bold=True, color="FFFFFF")
-        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid") # Azul oscuro
-        header_alignment = Alignment(horizontal="center", vertical="center")
-        thin_border = Border(left=Side(style='thin'), 
-                             right=Side(style='thin'), 
-                             top=Side(style='thin'), 
-                             bottom=Side(style='thin'))
-
-        # Encabezados
-        # Quitamos 'Sucursal' y 'Departamento' porque ya no existen en Cliente
-        headers = [
-            "Título", "Descripción", "Estado", "Prioridad", 
-            "Categoría", "Cliente", "Técnico Asignado", "Fecha Creación", "Fecha Cierre"
-        ]
-        sheet.append(headers)
-
-        # Aplicar estilos a los encabezados
-        for col_num, cell in enumerate(sheet[1], 1):
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = header_alignment
-            cell.border = thin_border
-            sheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 20 # Ancho por defecto
-
-        # Datos
-        # select_related sigue siendo 'cliente', 'tecnico', 'categoria'
-        # La consulta base `tickets_base_query` ya tiene los filtros de fecha aplicados
-        tickets = tickets_base_query.select_related(
-            'cliente', 'tecnico', 'categoria'
-        ).order_by('fecha_creacion')
-
-        for ticket in tickets:
-            cliente_nombre = ticket.cliente.nombres if ticket.cliente else 'N/A'
-            
-            # Acceso a empresa: Ahora es un CharField directo
-            empresa_nombre = 'N/A'
-            if ticket.cliente and ticket.cliente.empresa:
-                empresa_nombre = ticket.cliente.empresa # Acceso directo, no .nombre
-
-            categoria_nombre = ticket.categoria.nombre if ticket.categoria else 'N/A'
-            
-            cliente_info = ''
-            if cliente_nombre != 'N/A' and empresa_nombre != 'N/A':
-                cliente_info = f"{cliente_nombre} ({empresa_nombre})"
-            elif cliente_nombre != 'N/A':
-                cliente_info = cliente_nombre
-            elif empresa_nombre != 'N/A':
-                cliente_info = f"({empresa_nombre})"
-
-
-            tecnico_asignado = 'No Asignado'
-            if ticket.tecnico and ticket.tecnico.usuarios:
-                tecnico_asignado = ticket.tecnico.usuarios.username
-            elif ticket.tecnico: # Si tiene objeto Tecnico pero no usuario asignado (quizás caso borde)
-                tecnico_asignado = f"Técnico sin usuario ({ticket.tecnico.pk})"
-
-
-            fecha_creacion_str = ''
-            if ticket.fecha_creacion:
-                fecha_creacion_str = ticket.fecha_creacion.astimezone(pytz.timezone(settings.TIME_ZONE)).strftime('%Y-%m-%d %H:%M:%S')
-
-            fecha_cierre_str = 'N/A'
-            if ticket.fecha_cierre:
-                fecha_cierre_str = ticket.fecha_cierre.astimezone(pytz.timezone(settings.TIME_ZONE)).strftime('%Y-%m-%d %H:%M:%S')
-
-
-            sheet.append([
-                ticket.titulo,
-                ticket.descripcion,
-                ticket.get_estado_display(), # Usa get_estado_display() para el valor legible
-                ticket.get_prioridad_display(), # Usa get_prioridad_display() para el valor legible
-                categoria_nombre,
-                cliente_info,
-                tecnico_asignado,
-                fecha_creacion_str,
-                fecha_cierre_str,
-            ])
-        
-        # Ajustar ancho de columnas automáticamente
-        for col in sheet.columns:
-            max_length = 0
-            column = col[0].column_letter # Get the column name
-            for cell in col:
-                try: # Necessary to avoid error on empty cells
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = (max_length + 2)
-            sheet.column_dimensions[column].width = adjusted_width
-
-        workbook.save(response)
-        return response
-    
-    elif reporte_tipo == 'rendimiento_tickets_categoria':
-        # ... (código existente para reporte_tipo 'rendimiento_tickets_categoria') ...
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename="reporte_rendimiento_tickets_categoria.xlsx"'
-
-        workbook = openpyxl.Workbook()
-        sheet = workbook.active
-        sheet.title = "Rendimiento por Categoría"
-
-        # Estilos
-        header_font = Font(bold=True, color="FFFFFF")
-        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid") # Azul oscuro
-        header_alignment = Alignment(horizontal="center", vertical="center")
-        thin_border = Border(left=Side(style='thin'), 
-                             right=Side(style='thin'), 
-                             top=Side(style='thin'), 
-                             bottom=Side(style='thin'))
-
-        # Encabezados
-        headers = [
-            "Categoría", "Número Total de Tickets", "Tickets Abiertos", 
-            "Tickets En Proceso", "Tickets Cerrados", "Tiempo Promedio de Cierre (Horas)"
-        ]
-        sheet.append(headers)
-
-        # Aplicar estilos a los encabezados
-        for col_num, cell in enumerate(sheet[1], 1):
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = header_alignment
-            cell.border = thin_border
-            sheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 25 # Ancho por defecto
-
-        # Datos para el reporte de rendimiento por categoría
-        categorias = Categoria.objects.all()
-
-        for categoria in categorias:
-            # Aplicar el filtro de fecha a las consultas de tickets por categoría
-            # La consulta base `tickets_base_query` ya tiene los filtros de fecha aplicados
-            total_tickets = tickets_base_query.filter(categoria=categoria).count()
-            tickets_abiertos = tickets_base_query.filter(categoria=categoria, estado='abierto').count()
-            tickets_en_proceso = tickets_base_query.filter(categoria=categoria, estado='en proceso').count()
-            tickets_cerrados = tickets_base_query.filter(categoria=categoria, estado='cerrado').count()
-
-            # Calcular tiempo promedio de cierre
-            tiempo_cierre_tickets = tickets_base_query.filter(
-                categoria=categoria, 
-                estado='cerrado', 
-                fecha_cierre__isnull=False
-            ).annotate(
-                tiempo_diff=ExpressionWrapper(
-                    F('fecha_cierre') - F('fecha_creacion'),
-                    output_field=DurationField()
-                )
-            ).aggregate(avg_tiempo_cierre=Avg('tiempo_diff'))
-
-            tiempo_promedio_cierre_horas = 'N/A'
-            if tiempo_cierre_tickets['avg_tiempo_cierre']:
-                total_seconds = tiempo_cierre_tickets['avg_tiempo_cierre'].total_seconds()
-                tiempo_promedio_cierre_horas = round(total_seconds / 3600, 2)
-
-            sheet.append([
-                categoria.nombre,
-                total_tickets,
-                tickets_abiertos,
-                tickets_en_proceso,
-                tickets_cerrados,
-                tiempo_promedio_cierre_horas,
-            ])
-        
-        # Ajustar ancho de columnas automáticamente
-        for col in sheet.columns:
-            max_length = 0
-            column = col[0].column_letter
-            for cell in col:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = (max_length + 2)
-            sheet.column_dimensions[column].width = adjusted_width
-
-        workbook.save(response)
-        return response
-
-    elif reporte_tipo == 'rendimiento_tecnicos_individuales':
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename="reporte_rendimiento_tecnicos.xlsx"'
-
-        workbook = openpyxl.Workbook()
-        sheet = workbook.active
-        sheet.title = "Rendimiento de Técnicos"
-
-        # Estilos (reutilizar los ya definidos o definir nuevos si es necesario)
-        header_font = Font(bold=True, color="FFFFFF")
-        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid") # Azul oscuro
-        header_alignment = Alignment(horizontal="center", vertical="center")
-        thin_border = Border(left=Side(style='thin'), 
-                             right=Side(style='thin'), 
-                             top=Side(style='thin'), 
-                             bottom=Side(style='thin'))
-
-        # Encabezados del reporte
-        headers = [
-            "Técnico",
-            "Número Total de Tickets Asignados",
-            "Tickets Cerrados",
-            "Tickets Abiertos/En Proceso",
-            "Tiempo Promedio de Resolución (Horas)",
-            "Calificación Promedio Recibida"
-        ]
-        sheet.append(headers)
-
-        # Aplicar estilos a los encabezados
-        for col_num, cell in enumerate(sheet[1], 1):
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = header_alignment
-            cell.border = thin_border
-            sheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 30 # Ancho por defecto
-
-        # Datos para el reporte de rendimiento por técnico
-        # Obtenemos todos los técnicos que tienen tickets asignados en el rango de fechas
-        tecnicos = Usuario.objects.filter(tickets_asignados__in=tickets_base_query).distinct()
-
-        for tecnico in tecnicos:
-            tecnico_nombre = tecnico.nombre 
-            
-            # Filtramos los tickets para este técnico dentro del rango de fechas
-            tickets_tecnico = tickets_base_query.filter(tecnico=tecnico)
-
-            total_tickets_asignados = tickets_tecnico.count()
-            tickets_cerrados = tickets_tecnico.filter(estado='cerrado').count()
-            tickets_abiertos_en_proceso = tickets_tecnico.filter(estado__in=['abierto', 'en proceso']).count()
-
-            # Calcular tiempo promedio de resolución para este técnico
-            tickets_resueltos_tecnico = tickets_tecnico.filter(estado='cerrado', fecha_cierre__isnull=False)
-            tiempo_promedio_resolucion_horas = 'N/A'
-            if tickets_resueltos_tecnico.exists():
-                total_duracion_segundos = 0
-                for ticket in tickets_resueltos_tecnico:
-                    if ticket.fecha_cierre and ticket.fecha_creacion:
-                        duracion = ticket.fecha_cierre - ticket.fecha_creacion
-                        total_duracion_segundos += duracion.total_seconds()
-                
-                if tickets_resueltos_tecnico.count() > 0:
-                    tiempo_promedio_resolucion_horas = round((total_duracion_segundos / tickets_resueltos_tecnico.count()) / 3600, 2) # Convertir a horas
-            
-            # Calcular calificación promedio
-            calificaciones_tecnico = EvaluacionTecnico.objects.filter(ticket__in=tickets_resueltos_tecnico, calificacion__isnull=False)
-            calificacion_promedio = 'N/A'
-            if calificaciones_tecnico.exists():
-                calificacion_promedio = round(calificaciones_tecnico.aggregate(avg_cal=Avg('calificacion'))['avg_cal'], 1)
-
-            sheet.append([
-                tecnico_nombre,
-                total_tickets_asignados,
-                tickets_cerrados,
-                tickets_abiertos_en_proceso,
-                tiempo_promedio_resolucion_horas,
-                calificacion_promedio,
-            ])
-        
-        # Ajustar ancho de columnas automáticamente
-        for col in sheet.columns:
-            max_length = 0
-            column = col[0].column_letter
-            for cell in col:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = (max_length + 2)
-            sheet.column_dimensions[column].width = adjusted_width
-
-        workbook.save(response)
-        return response
-
-    elif reporte_tipo == 'evaluaciones_clientes':  # Nuevo tipo de reporte
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename="reporte_evaluaciones_clientes.xlsx"'
-
-        workbook = openpyxl.Workbook()
-        sheet = workbook.active
-        sheet.title = "Evaluaciones de Clientes"
-
-        # Estilos (reutilizar los ya definidos)
-        header_font = Font(bold=True, color="FFFFFF")
-        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
-        header_alignment = Alignment(horizontal="center", vertical="center")
-        thin_border = Border(left=Side(style='thin'), 
-                             right=Side(style='thin'), 
-                             top=Side(style='thin'), 
-                             bottom=Side(style='thin'))
-
-        # Encabezados del reporte
-        headers = [
-            "ID del Ticket", 
-            "Título del Ticket", 
-            "Calificación", 
-            "Comentario de Evaluación", 
-            "Fecha de Evaluación", 
-            "Cliente", 
-            "Técnico Asignado"
-        ]
-        sheet.append(headers)
-
-        # Aplicar estilos a los encabezados
-        for col_num, cell in enumerate(sheet[1], 1):
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = header_alignment
-            cell.border = thin_border
-            sheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 25 # Ancho por defecto
-
-        # Obtener evaluaciones dentro del rango de fechas
-        # Filtramos las evaluaciones que están asociadas a tickets dentro del rango de fechas
-        evaluaciones = EvaluacionTecnico.objects.filter(
-            ticket__fecha_creacion__gte=fecha_inicio,
-            ticket__fecha_creacion__lte=fecha_fin
-        ).select_related('ticket', 'ticket__cliente', 'ticket__tecnico', 'ticket__tecnico__usuarios').order_by('fecha_evaluacion')
-
-        for eval_obj in evaluaciones:
-            ticket_id = eval_obj.ticket.id
-            ticket_titulo = eval_obj.ticket.titulo
-            calificacion = eval_obj.calificacion if eval_obj.calificacion is not None else 'N/A'
-            comentario = eval_obj.comentario if eval_obj.comentario else 'Sin comentario'
-            
-            fecha_evaluacion_str = ''
-            if eval_obj.fecha_evaluacion:
-                fecha_evaluacion_str = eval_obj.fecha_evaluacion.astimezone(pytz.timezone(settings.TIME_ZONE)).strftime('%Y-%m-%d %H:%M:%S')
-            
-            cliente_nombre = eval_obj.ticket.cliente.nombres if eval_obj.ticket.cliente else 'N/A'
-            
-            tecnico_asignado = 'No Asignado'
-            if eval_obj.ticket.tecnico and eval_obj.ticket.tecnico.usuarios:
-                tecnico_asignado = eval_obj.ticket.tecnico.usuarios.username
-            elif eval_obj.ticket.tecnico:
-                tecnico_asignado = f"Técnico sin usuario ({eval_obj.ticket.tecnico.pk})"
-
-            sheet.append([
-                ticket_id,
-                ticket_titulo,
-                calificacion,
-                comentario,
-                fecha_evaluacion_str,
-                cliente_nombre,
-                tecnico_asignado,
-            ])
-        
-        # Ajustar ancho de columnas automáticamente
-        for col in sheet.columns:
-            max_length = 0
-            column = col[0].column_letter
-            for cell in col:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = (max_length + 2)
-            sheet.column_dimensions[column].width = adjusted_width
-
-        workbook.save(response)
-        return response
-
-    elif reporte_tipo == 'rendimiento_departamentos': # Nuevo reporte por departamento
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename="reporte_rendimiento_departamentos.xlsx"'
-
-        workbook = openpyxl.Workbook()
-        sheet = workbook.active
-        sheet.title = "Rendimiento por Departamento"
-
-        # Estilos
-        header_font = Font(bold=True, color="FFFFFF")
-        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
-        header_alignment = Alignment(horizontal="center", vertical="center")
-        thin_border = Border(left=Side(style='thin'), 
-                             right=Side(style='thin'), 
-                             top=Side(style='thin'), 
-                             bottom=Side(style='thin'))
-
-        # Encabezados
-        headers = [
-            "Departamento", 
-            "Categoría Más Usada", 
-            "Tickets Cerrados", 
-            "Tickets Abiertos", 
-            "Calificación Promedio"
-        ]
-        sheet.append(headers)
-
-        # Aplicar estilos a los encabezados
-        for col_num, cell in enumerate(sheet[1], 1):
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = header_alignment
-            cell.border = thin_border
-            sheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 25
-
-        # Datos para el reporte de rendimiento por departamento
-        departamentos = Departamento.objects.all()
-
-        for departamento in departamentos:
-            departamento_nombre = departamento.nombre
-            
-            # Filtrar tickets asociados a este departamento (a través de los técnicos)
-            tickets_departamento = tickets_base_query.filter(tecnico__departamento=departamento)
-
-            # Categoría más usada
-            categoria_mas_usada = 'N/A'
-            top_categoria = tickets_departamento.values('categoria__nombre').annotate(
-                count=Count('categoria__nombre')
-            ).order_by('-count').first()
-            if top_categoria and top_categoria['categoria__nombre']:
-                categoria_mas_usada = top_categoria['categoria__nombre']
-
-            # Tickets cerrados y abiertos
-            tickets_cerrados = tickets_departamento.filter(estado='cerrado').count()
-            tickets_abiertos = tickets_departamento.filter(estado='abierto').count()
-
-            # Calificación promedio
-            calificacion_promedio_departamento = 'N/A'
-            evaluaciones_departamento = EvaluacionTecnico.objects.filter(
-                ticket__in=tickets_departamento, 
-                calificacion__isnull=False
-            )
-            if evaluaciones_departamento.exists():
-                calificacion_promedio_departamento = round(
-                    evaluaciones_departamento.aggregate(avg_cal=Avg('calificacion'))['avg_cal'], 1
-                )
-
-            sheet.append([
-                departamento_nombre,
-                categoria_mas_usada,
-                tickets_cerrados,
-                tickets_abiertos,
-                calificacion_promedio_departamento,
-            ])
-        
-        # Ajustar ancho de columnas automáticamente
-        for col in sheet.columns:
-            max_length = 0
-            column = col[0].column_letter
-            for cell in col:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = (max_length + 2)
-            sheet.column_dimensions[column].width = adjusted_width
-
-        workbook.save(response)
-        return response
-
-    return HttpResponse("Tipo de reporte no válido", status=400)
-
-
-# Vistas para Usuarios
-
 
 @login_required
 @user_passes_test(is_staff_check)
 def usuario_lista(request):
-    usuarios_personalizados = Usuario.objects.all().select_related('usuarios', 'departamento')
+    query = request.GET.get('q')
+    
+    usuarios_list = Usuario.objects.all().select_related('usuarios', 'departamento').order_by('nombre')
+
+    if query:
+        usuarios_list = usuarios_list.filter(
+            Q(usuarios__username__icontains=query) |
+            Q(nombre__icontains=query) |
+            Q(usuarios__email__icontains=query) |
+            Q(rol__icontains=query) |
+            Q(departamento__nombre__icontains=query)
+        ).distinct()
+
+    paginator = Paginator(usuarios_list,10)  # Muestra 10 usuarios por página
+    page = request.GET.get('page')
+
+    try:
+        usuarios_personalizados = paginator.page(page)
+    except PageNotAnInteger:
+        usuarios_personalizados = paginator.page(1)
+    except EmptyPage:
+        usuarios_personalizados = paginator.page(paginator.num_pages)
+
     contexto = {
         'usuarios': usuarios_personalizados,
+        'query': query,
     }
     return render(request, 'usuario_lista.html', contexto)
 
@@ -1429,9 +1048,15 @@ def usuario_eliminar(request, id):
     usuario_personalizado = get_object_or_404(Usuario, id=id)
     # También eliminar el User de Django asociado para evitar orfandad
     user_django = usuario_personalizado.usuarios
-    usuario_personalizado.delete()
-    user_django.delete()
-    messages.success(request, 'Usuario eliminado correctamente.')
+    if user_django.is_superuser:
+        messages.error(request, 'No se puede eliminar un superusuario.')
+        return redirect('usuario_lista')
+    try:         
+        usuario_personalizado.delete()
+        user_django.delete()
+        messages.success(request, 'Usuario eliminado correctamente.')
+    except ProtectedError:
+        messages.error(request, 'No se puede eliminar usuario por que tiene datos relacionados.')
     return redirect('usuario_lista')
 
 
@@ -1536,55 +1161,783 @@ def buscar_cliente(request):
 
     return JsonResponse({'results': results})
 
-def extraer_texto_pdf(ruta_pdf):
-    texto_completo = ""
-    with fitz.open(ruta_pdf) as doc:
-        for pagina in doc:
-            texto_completo += pagina.get_text()
-    return texto_completo
 
 
 
-def subir_manual(request):
-    if request.method == 'POST' and request.FILES.get('manual'):
-        archivo = request.FILES['manual']
-        ext = archivo.name.split('.')[-1].lower()
-
-        if ext not in ['pdf', 'docx']:
-            messages.error(request, "Solo se permiten archivos PDF o DOCX.")
-            return redirect(request.META.get('HTTP_REFERER', '/'))
-
-        carpeta_destino = os.path.join(settings.BASE_DIR, 'app_ticket', 'manuales')
-        os.makedirs(carpeta_destino, exist_ok=True)
-
-        ruta_destino = os.path.join(carpeta_destino, archivo.name)
-        
-        with open(ruta_destino, 'wb+') as destino:
-            for chunk in archivo.chunks():
-                destino.write(chunk)
-
-        messages.success(request, f"Archivo {archivo.name} subido correctamente.")
-        return redirect('perfil')
-
-    return render(request, 'subir_manual.html') 
 
 
 
-def exportar_problemas_soluciones_pdf(request):
-    soluciones = SolucionTicket.objects.select_related('ticket')
+# Helper function to generate and encode plots
+def get_plot_as_base64(plt):
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    buf.seek(0)
+    image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+    plt.close() # Close the plot to free up memory
+    return image_base64
 
-    template_path = 'pdf_problemas_soluciones.html'  # Lo crearemos en el siguiente paso
-    context = {'soluciones': soluciones}
+# Function to generate a blank image with a message
+def get_blank_plot_with_message(message="No hay datos disponibles para generar el gráfico."):
+    plt.figure(figsize=(10, 6))
+    plt.text(0.5, 0.5, message, horizontalalignment='center', verticalalignment='center', fontsize=12, color='gray')
+    plt.axis('off') # Hide axes
+    plt.title("Gráfico no disponible")
+    return get_plot_as_base64(plt)
 
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="problemas_y_soluciones.pdf"'
 
-    template = get_template(template_path)
-    html = template.render(context)
-
-    pisa_status = pisa.CreatePDF(html, dest=response)
-
-    if pisa_status.err:
-        return HttpResponse('Error al generar el PDF', status=500)
-    return response
+# 1. Tickets por Estado (Circular / Anillo)
+def tickets_por_estado_report(start_date=None, end_date=None):
+    queryset = Ticket.objects.all()
+    if start_date:
+        queryset = queryset.filter(fecha_creacion__gte=start_date)
+    if end_date:
+        queryset = queryset.filter(fecha_creacion__lte=end_date)
     
+    estados = queryset.values('estado').annotate(count=Count('id'))
+    labels = [e['estado'].capitalize() for e in estados]
+    sizes = [e['count'] for e in estados]
+    colors = ['#FF9999', '#66B2FF', '#99FF99'] # Light colors for better readability
+
+    if not sizes: # Handle case where no tickets are found
+        return get_blank_plot_with_message("No hay tickets en el rango de fechas seleccionado.")
+
+    fig1, ax1 = plt.subplots()
+    ax1.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=colors, wedgeprops={'edgecolor': 'black'})
+    ax1.axis('equal')   # Equal aspect ratio ensures that pie is drawn as a circle.
+    ax1.set_title('Tickets por Estado')
+    return get_plot_as_base64(plt)
+
+# 2. Departamentos con Más Incidencias (Barras Verticales)
+def departamentos_incidencias_report(start_date=None, end_date=None):
+    queryset = Ticket.objects.all()
+    if start_date:
+        queryset = queryset.filter(fecha_creacion__gte=start_date)
+    if end_date:
+        queryset = queryset.filter(fecha_creacion__lte=end_date)
+
+    # Use F() expression to access fields across relationships
+    departamentos = queryset.values(
+        departamento_nombre=F('tecnico__departamento__nombre')
+    ).annotate(count=Count('id')).order_by('-count')
+
+    labels = [d['departamento_nombre'] if d['departamento_nombre'] else 'Sin Departamento' for d in departamentos]
+    counts = [d['count'] for d in departamentos]
+
+    if not counts: # Handle case where no data is found
+        return get_blank_plot_with_message("No hay datos de incidencias por departamento en el rango de fechas seleccionado.")
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(labels, counts, color='skyblue')
+    plt.xlabel('Departamentos')
+    plt.ylabel('Número de Incidencias')
+    plt.title('Departamentos con Más Incidencias')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    return get_plot_as_base64(plt)
+
+# 3. Tendencia de Tickets por Mes (Gráfico de serie Temporal)
+def tendencia_tickets_por_mes_report(start_date=None, end_date=None):
+    queryset = Ticket.objects.all()
+    if start_date:
+        queryset = queryset.filter(fecha_creacion__gte=start_date)
+    if end_date:
+        queryset = queryset.filter(fecha_creacion__lte=end_date)
+
+    # Annotate with month and year for grouping
+    tickets_por_mes = queryset.annotate(
+        month=TruncMonth('fecha_creacion')
+    ).values('month').annotate(count=Count('id')).order_by('month')
+
+    months = [t['month'].strftime('%Y-%m') for t in tickets_por_mes]
+    counts = [t['count'] for t in tickets_por_mes]
+
+    if not months: # Handle case where no data is found
+        return get_blank_plot_with_message("No hay datos de tendencia de tickets por mes en el rango de fechas seleccionado.")
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(months, counts, marker='o', linestyle='-')
+    plt.xlabel('Mes y Año')
+    plt.ylabel('Número de Tickets')
+    plt.title('Tendencia de Tickets por Mes')
+    plt.grid(True)
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    return get_plot_as_base64(plt)
+
+# 4. Categorías con mas incidencias (Barras Verticales)
+def categorias_incidencias_report(start_date=None, end_date=None):
+    queryset = Ticket.objects.all()
+    if start_date:
+        queryset = queryset.filter(fecha_creacion__gte=start_date)
+    if end_date:
+        queryset = queryset.filter(fecha_creacion__lte=end_date)
+
+    categorias = queryset.values('categoria__nombre').annotate(count=Count('id')).order_by('-count')
+    labels = [c['categoria__nombre'] if c['categoria__nombre'] else 'Sin Categoría' for c in categorias]
+    counts = [c['count'] for c in categorias]
+
+    if not counts: # Handle case where no data is found
+        return get_blank_plot_with_message("No hay datos de incidencias por categoría en el rango de fechas seleccionado.")
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(labels, counts, color='lightcoral')
+    plt.xlabel('Categorías')
+    plt.ylabel('Número de Incidencias')
+    plt.title('Categorías con Más Incidencias')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    return get_plot_as_base64(plt)
+
+# 5. Calificación de tickets (histograma)
+def calificacion_tickets_report(start_date=None, end_date=None):
+    queryset = EvaluacionTecnico.objects.all()
+    if start_date:
+        queryset = queryset.filter(ticket__fecha_creacion__gte=start_date)
+    if end_date:
+        queryset = queryset.filter(ticket__fecha_creacion__lte=end_date)
+
+    calificaciones = queryset.values_list('calificacion', flat=True).exclude(calificacion__isnull=True)
+    
+    if not calificaciones:
+        return get_blank_plot_with_message("No hay datos de calificaciones en el rango de fechas seleccionado.")
+
+    # Map numerical ratings to their string representations
+    calificacion_map = dict(CALIFICACION_CHOICES)
+    display_calificaciones = [calificacion_map.get(c, 'Desconocido') for c in calificaciones]
+
+    # Count occurrences of each rating
+    from collections import Counter
+    rating_counts = Counter(display_calificaciones)
+    
+    # Order the labels according to CALIFICACION_CHOICES
+    # Only include labels for ratings that actually exist in the data
+    existing_ratings = sorted(list(set(c for c in calificaciones if c is not None)))
+    ordered_labels = [calificacion_map[i] for i in existing_ratings]
+    ordered_counts = [rating_counts[calificacion_map[label_key]] for label_key in existing_ratings]
+
+    plt.figure(figsize=(8, 5))
+    plt.bar(ordered_labels, ordered_counts, color='lightgreen')
+    plt.xlabel('Calificación')
+    plt.ylabel('Número de Evaluaciones')
+    plt.title('Distribución de Calificaciones de Tickets')
+    plt.tight_layout()
+    return get_plot_as_base64(plt)
+
+def tiempo_promedio_resolucion_report(start_date=None, end_date=None):
+    # Calcular el tiempo de resolución para cada ticket cerrado
+    tickets_cerrados = Ticket.objects.filter(estado='cerrado', fecha_cierre__isnull=False)
+
+    if start_date:
+        tickets_cerrados = tickets_cerrados.filter(fecha_creacion__gte=start_date)
+    if end_date:
+        tickets_cerrados = tickets_cerrados.filter(fecha_creacion__lte=end_date + timedelta(days=1))
+
+    ticket_durations = tickets_cerrados.annotate(
+        duration=ExpressionWrapper(F('fecha_cierre') - F('fecha_creacion'), output_field=DurationField())
+    ).filter(tecnico__isnull=False)
+
+    # Agrupar por técnico y calcular el promedio de resolución individual
+    tecnico_avg_durations = ticket_durations.values('tecnico__nombre').annotate(
+        avg_duration=Avg('duration')
+    ).order_by('tecnico__nombre')
+
+    # Convertir timedelta a horas/días para fácil comparación y filtrar outliers
+    tecnicos_resolucion = []
+    for item in tecnico_avg_durations:
+        if item['avg_duration']:
+            # Convertir a horas para la detección de outliers (o el valor que consideres alto)
+            duration_in_hours = item['avg_duration'].total_seconds() / 3600
+            tecnicos_resolucion.append({
+                'nombre': item['tecnico__nombre'],
+                'avg_duration_seconds': item['avg_duration'].total_seconds(),
+                'avg_duration_hours': duration_in_hours
+            })
+
+    # Calcular la mediana de los tiempos promedio de los técnicos para identificar outliers
+    # Usaremos el IQR para una detección robusta de outliers
+    avg_resolution_time_formatted = "No hay tickets cerrados para calcular el MTTR."
+    if tecnicos_resolucion:
+        all_avg_hours = [t['avg_duration_hours'] for t in tecnicos_resolucion]
+        Q1 = np.percentile(all_avg_hours, 25)
+        Q3 = np.percentile(all_avg_hours, 75)
+        IQR = Q3 - Q1
+        upper_bound = Q3 + 1.5 * IQR
+
+        # Filtrar técnicos con alto promedio de resolución (outliers)
+        filtered_tecnicos_resolucion = [
+            t for t in tecnicos_resolucion if t['avg_duration_hours'] <= upper_bound
+        ]
+
+        if filtered_tecnicos_resolucion:
+            # Calcular el promedio de resolución general sin los outliers
+            total_avg_seconds_filtered = sum(t['avg_duration_seconds'] for t in filtered_tecnicos_resolucion) / len(filtered_tecnicos_resolucion)
+            
+            # Convertir a formato legible (días, horas, minutos)
+            def format_duration(seconds):
+                days = int(seconds // (24 * 3600))
+                hours = int((seconds % (24 * 3600)) // 3600)
+                minutes = int((seconds % 3600) // 60)
+                return f"{days}d {hours}h {minutes}m"
+
+            avg_resolution_time_formatted = format_duration(total_avg_seconds_filtered)
+        else:
+            avg_resolution_time_formatted = "No hay datos suficientes para calcular el MTTR sin outliers."
+    
+
+    # Recalculamos el MTTR por mes, ya que el MTTR general ya ha sido limpiado de outliers.
+    # Esta parte se enfoca en la tendencia, no en la eliminación de outliers individuales por técnico.
+    
+    # Calcular el tiempo de resolución por mes (sin filtrar técnicos específicos aquí)
+    mttr_por_mes = tickets_cerrados.annotate(
+        month=TruncMonth('fecha_cierre'),
+        duration=ExpressionWrapper(F('fecha_cierre') - F('fecha_creacion'), output_field=DurationField())
+    ).values('month').annotate(
+        avg_duration_per_month=Avg('duration')
+    ).order_by('month')
+
+    fechas_mttr = []
+    durations_mttr = []
+
+    for item in mttr_por_mes:
+        if item['avg_duration_per_month']:
+            fechas_mttr.append(item['month'].strftime('%Y-%m'))
+            durations_mttr.append(item['avg_duration_per_month'].total_seconds() / 3600) # Convert to hours
+
+    if not durations_mttr: # Added check for empty data
+        mttr_img = get_blank_plot_with_message("No hay datos de MTTR por mes en el rango de fechas seleccionado.")
+    else:
+        plt.figure(figsize=(10, 6))
+        plt.plot(fechas_mttr, durations_mttr, marker='o', linestyle='-', color='orange')
+        plt.xlabel('Mes')
+        plt.ylabel('Tiempo Promedio de Resolución (Horas)')
+        plt.title('Tendencia del Tiempo Promedio de Resolución (MTTR) por Mes')
+        plt.xticks(rotation=45, ha='right')
+        plt.grid(True)
+        plt.tight_layout()
+        mttr_img = get_plot_as_base64(plt)
+
+    return mttr_img, avg_resolution_time_formatted
+
+
+def tickets_fuera_de_sla_report(start_date=None, end_date=None):
+    # Aquí se asume un SLA de ejemplo, por ejemplo, 48 horas (2 días) para tickets.
+    # DEBES DEFINIR TUS PROPIOS TIEMPOS DE SLA SEGÚN LA PRIORIDAD, CATEGORÍA, ETC.
+    SLA_THRESHOLD_HOURS = 48 # Ejemplo: 48 horas de SLA.
+
+    tickets_cerrados = Ticket.objects.filter(estado='cerrado', fecha_cierre__isnull=False)
+
+    if start_date:
+        tickets_cerrados = tickets_cerrados.filter(fecha_creacion__gte=start_date)
+    if end_date:
+        tickets_cerrados = tickets_cerrados.filter(fecha_creacion__lte=end_date + timedelta(days=1))
+
+    ticket_durations = tickets_cerrados.annotate(
+        duration=ExpressionWrapper(F('fecha_cierre') - F('fecha_creacion'), output_field=DurationField())
+    ).filter(tecnico__isnull=False)
+
+    # Identificar técnicos con alto promedio de resolución para excluir del cálculo global de MTTR
+    # y para el gráfico de "Tickets Fuera de SLA"
+    tecnico_avg_durations_for_sla = ticket_durations.values('tecnico__nombre').annotate(
+        avg_duration=Avg('duration')
+    ).order_by('tecnico__nombre')
+
+    tecnicos_resolucion_sla = []
+    for item in tecnico_avg_durations_for_sla:
+        if item['avg_duration']:
+            tecnicos_resolucion_sla.append({
+                'nombre': item['tecnico__nombre'],
+                'avg_duration_hours': item['avg_duration'].total_seconds() / 3600
+            })
+    
+    outlier_tecnicos = []
+    outlier_avg_resolution_time_formatted = "No hay datos de resolución de tickets."
+    if tecnicos_resolucion_sla:
+        all_avg_hours_sla = [t['avg_duration_hours'] for t in tecnicos_resolucion_sla]
+        Q1_sla = np.percentile(all_avg_hours_sla, 25)
+        Q3_sla = np.percentile(all_avg_hours_sla, 75)
+        IQR_sla = Q3_sla - Q1_sla
+        upper_bound_sla = Q3_sla + 1.5 * IQR_sla
+
+        outlier_tecnicos_names = [t['nombre'] for t in tecnicos_resolucion_sla if t['avg_duration_hours'] > upper_bound_sla]
+        
+        # Calcular el promedio de resolución solo para los técnicos outliers
+        outlier_tickets = ticket_durations.filter(tecnico__nombre__in=outlier_tecnicos_names)
+        
+        if outlier_tickets.exists():
+            avg_outlier_duration_seconds = outlier_tickets.aggregate(avg_dur=Avg('duration'))['avg_dur'].total_seconds()
+            
+            def format_duration(seconds):
+                days = int(seconds // (24 * 3600))
+                hours = int((seconds % (24 * 3600)) // 3600)
+                minutes = int((seconds % 3600) // 60)
+                return f"{days}d {hours}h {minutes}m"
+            
+            outlier_avg_resolution_time_formatted = format_duration(avg_outlier_duration_seconds)
+        else:
+            outlier_avg_resolution_time_formatted = "No hay tickets de técnicos con alto promedio de resolución en el período."
+    
+
+
+    # Ahora, para el gráfico de tickets fuera de SLA, necesitamos el total de tickets cerrados
+    # y los que exceden el SLA.
+    total_tickets_cerrados = tickets_cerrados.count()
+    tickets_fuera_sla = tickets_cerrados.annotate(
+        duration_seconds=ExpressionWrapper(F('fecha_cierre') - F('fecha_creacion'), output_field=DurationField())
+    ).filter(
+        duration_seconds__gt=timedelta(hours=SLA_THRESHOLD_HOURS)
+    ).count()
+
+    tickets_en_sla = total_tickets_cerrados - tickets_fuera_sla
+
+    labels = ['Tickets Dentro de SLA', 'Tickets Fuera de SLA']
+    sizes = [tickets_en_sla, tickets_fuera_sla]
+    colors = ['lightgreen', 'lightcoral']
+    explode = (0, 0.1)  # explode 1st slice
+
+    if total_tickets_cerrados == 0: # Added check for no closed tickets
+        sla_img = get_blank_plot_with_message("No hay tickets cerrados para evaluar el cumplimiento de SLA en el rango de fechas seleccionado.")
+    else:
+        plt.figure(figsize=(8, 8))
+        plt.pie(sizes, explode=explode, labels=labels, colors=colors, autopct='%1.1f%%', startangle=140)
+        plt.axis('equal')   # Equal aspect ratio ensures that pie is drawn as a circle.
+        plt.title(f'Cumplimiento de SLA (Umbral: {SLA_THRESHOLD_HOURS} Horas)')
+        plt.tight_layout()
+        sla_img = get_plot_as_base64(plt)
+
+    return sla_img, outlier_avg_resolution_time_formatted
+
+
+# NEW: Tiempo Promedio de Resolución de Técnicos con Alto Tiempo de Resolución (Outliers de SLA)
+def tiempo_promedio_resolucion_outliers_report(start_date=None, end_date=None):
+    SLA_THRESHOLD_HOURS = 48  # Reutilizar el mismo umbral SLA
+
+    tickets_cerrados = Ticket.objects.filter(estado='cerrado', fecha_cierre__isnull=False)
+
+    if start_date:
+        tickets_cerrados = tickets_cerrados.filter(fecha_creacion__gte=start_date)
+    if end_date:
+        tickets_cerrados = tickets_cerrados.filter(fecha_creacion__lte=end_date + timedelta(days=1))
+
+    ticket_durations = tickets_cerrados.annotate(
+        duration=ExpressionWrapper(F('fecha_cierre') - F('fecha_creacion'), output_field=DurationField())
+    ).filter(tecnico__isnull=False)
+
+    tecnico_avg_durations = ticket_durations.values('tecnico__nombre').annotate(
+        avg_duration=Avg('duration')
+    ).order_by('tecnico__nombre')
+
+    tecnicos_resolucion = []
+    for item in tecnico_avg_durations:
+        if item['avg_duration']:
+            tecnicos_resolucion.append({
+                'nombre': item['tecnico__nombre'],
+                'avg_duration_hours': item['avg_duration'].total_seconds() / 3600
+            })
+
+    outlier_tecnicos_names = []
+    if tecnicos_resolucion:
+        all_avg_hours = [t['avg_duration_hours'] for t in tecnicos_resolucion]
+        # Check if all_avg_hours is not empty before calculating percentiles
+        if all_avg_hours:
+            Q1 = np.percentile(all_avg_hours, 25)
+            Q3 = np.percentile(all_avg_hours, 75)
+            IQR = Q3 - Q1
+            upper_bound = Q3 + 1.5 * IQR
+            
+            outlier_tecnicos_names = [t['nombre'] for t in tecnicos_resolucion if t['avg_duration_hours'] > upper_bound]
+
+    # Filtrar tickets solo para los técnicos identificados como outliers
+    outlier_tickets_filtered = tickets_cerrados.filter(
+        tecnico__nombre__in=outlier_tecnicos_names
+    ).annotate(
+        month=TruncMonth('fecha_cierre'),
+        duration=ExpressionWrapper(F('fecha_cierre') - F('fecha_creacion'), output_field=DurationField())
+    )
+
+    # Calcular el MTTR por mes solo para los tickets de los técnicos outliers
+    mttr_outliers_por_mes = outlier_tickets_filtered.values('month').annotate(
+        avg_duration_per_month=Avg('duration')
+    ).order_by('month')
+
+    fechas_mttr_outliers = []
+    durations_mttr_outliers = []
+
+    for item in mttr_outliers_por_mes:
+        if item['avg_duration_per_month']:
+            fechas_mttr_outliers.append(item['month'].strftime('%Y-%m'))
+            durations_mttr_outliers.append(item['avg_duration_per_month'].total_seconds() / 3600) # Convert to hours
+
+    mttr_outliers_img = None
+    info_outliers = "No hay datos de tickets cerrados para técnicos con alto promedio de resolución en el período."
+
+    if not durations_mttr_outliers: # Added check for empty data
+        mttr_outliers_img = get_blank_plot_with_message("No hay datos de MTTR para técnicos con alto tiempo de resolución en el rango de fechas seleccionado.")
+    else:
+        plt.figure(figsize=(10, 6))
+        plt.plot(fechas_mttr_outliers, durations_mttr_outliers, marker='o', linestyle='-', color='red')
+        plt.xlabel('Mes')
+        plt.ylabel('Tiempo Promedio de Resolución (Horas)')
+        plt.title('Tendencia del MTTR para Técnicos con Alto Tiempo de Resolución')
+        plt.xticks(rotation=45, ha='right')
+        plt.grid(True)
+        plt.tight_layout()
+        mttr_outliers_img = get_plot_as_base64(plt)
+
+        # Información adicional para el reporte
+        avg_overall_outlier_mttr_seconds = sum(durations_mttr_outliers) / len(durations_mttr_outliers) * 3600
+        
+        def format_duration(seconds):
+            days = int(seconds // (24 * 3600))
+            hours = int((seconds % (24 * 3600)) // 3600)
+            minutes = int((seconds % 3600) // 60)
+            return f"{days}d {hours}h {minutes}m"
+        
+        info_outliers = f"MTTR promedio general para técnicos outliers: {format_duration(avg_overall_outlier_mttr_seconds)}. Técnicos considerados outliers: {', '.join(outlier_tecnicos_names) if outlier_tecnicos_names else 'Ninguno'}"
+
+    return mttr_outliers_img, info_outliers
+
+@login_required
+def generar_reporte_rendimiento_tecnicos_excel(request):
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+
+    start_date = None
+    end_date = None
+
+    if start_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, "Formato de fecha de inicio inválido. Use AAAA-MM-DD.")
+            return redirect('reportes') # Redirige de vuelta a la página de reportes
+
+    if end_date_str:
+        try:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, "Formato de fecha de fin inválido. Use AAAA-MM-DD.")
+            return redirect('reportes') # Redirige de vuelta a la página de reportes
+
+    # Filtrar tickets por rango de fechas si se proporcionan
+    tickets_queryset = Ticket.objects.all()
+    if start_date:
+        tickets_queryset = tickets_queryset.filter(fecha_creacion__gte=start_date)
+    if end_date:
+        tickets_queryset = tickets_queryset.filter(fecha_creacion__lte=end_date + timedelta(days=1)) # Incluir el día final completo
+
+    # Rendimiento de Técnicos (Detallado)
+    tecnicos_data = Usuario.objects.filter(rol='tecnico').annotate(
+        tickets_cerrados=Count('tickets_asignados', filter=Q(tickets_asignados__estado='cerrado', tickets_asignados__in=tickets_queryset)),
+        tickets_abiertos=Count('tickets_asignados', filter=Q(tickets_asignados__estado='abierto', tickets_asignados__in=tickets_queryset)),
+        tickets_en_proceso=Count('tickets_asignados', filter=Q(tickets_asignados__estado='en proceso', tickets_asignados__in=tickets_queryset)),
+        total_tickets_asignados=Count('tickets_asignados', filter=Q(tickets_asignados__in=tickets_queryset)),
+        tiempo_resolucion_avg=Avg(
+            ExpressionWrapper(
+                F('tickets_asignados__fecha_cierre') - F('tickets_asignados__fecha_creacion'),
+                output_field=DurationField()
+            ),
+            filter=Q(tickets_asignados__estado='cerrado', tickets_asignados__in=tickets_queryset)
+        ),
+        calificacion_promedio=Avg('tickets_asignados__evaluacion__calificacion', filter=Q(tickets_asignados__in=tickets_queryset))
+    ).order_by('tiempo_resolucion_avg') # Ordenar por menor tiempo de resolución
+
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = "Rendimiento Técnicos"
+
+    # Encabezados
+    headers = [
+        "Nombre del Técnico", "Tickets Cerrados", "Tickets Abiertos",
+        "Tickets En Proceso", "Total Tickets Asignados",
+        "Tiempo Promedio de Resolución (MTTR)", "Calificación Promedio"
+    ]
+    sheet.append(headers)
+
+    # Estilos para encabezados
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="007bff", end_color="007bff", fill_type="solid")
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    header_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+
+    for col_num, header_text in enumerate(headers, 1):
+        cell = sheet.cell(row=1, column=col_num, value=header_text)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = header_border
+        sheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 25
+
+    # Datos
+    for tecnico in tecnicos_data:
+        mttr = "N/A"
+        if tecnico.tiempo_resolucion_avg:
+            total_seconds = tecnico.tiempo_resolucion_avg.total_seconds()
+            hours, remainder = divmod(total_seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            mttr = f"{int(hours)}h {int(minutes)}m {int(seconds)}s"
+
+        calificacion = f"{tecnico.calificacion_promedio:.2f}" if tecnico.calificacion_promedio is not None else "N/A"
+
+        row_data = [
+            tecnico.nombre,
+            tecnico.tickets_cerrados,
+            tecnico.tickets_abiertos,
+            tecnico.tickets_en_proceso,
+            tecnico.total_tickets_asignados,
+            mttr,
+            calificacion
+        ]
+        sheet.append(row_data)
+
+    # Ajustar el ancho de las columnas automáticamente (opcional, si los datos son muy variables)
+    for col in sheet.columns:
+        max_length = 0
+        column = col[0].column_letter # Get the column name
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        sheet.column_dimensions[column].width = adjusted_width
+
+
+    output = io.BytesIO()
+    workbook.save(output)
+    output.seek(0)
+
+    filename = f"rendimiento_tecnicos_reporte_{start_date_str or 'todos'}_a_{end_date_str or 'todos'}.xlsx"
+    response = HttpResponse(output.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
+def generar_reporte_satisfaccion_cliente_excel(request):
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+
+    start_date = None
+    end_date = None
+
+    if start_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, "Formato de fecha de inicio inválido. Use AAAA-MM-DD.")
+            return redirect('reportes')
+
+    if end_date_str:
+        try:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, "Formato de fecha de fin inválido. Use AAAA-MM-DD.")
+            return redirect('reportes')
+
+    evaluaciones_queryset = EvaluacionTecnico.objects.filter(
+        calificacion__isnull=False,
+        comentario__isnull=False
+    ).select_related('ticket__cliente', 'ticket__tecnico') # Pre-fetch related objects
+
+    if start_date:
+        evaluaciones_queryset = evaluaciones_queryset.filter(fecha_evaluacion__gte=start_date)
+    if end_date:
+        evaluaciones_queryset = evaluaciones_queryset.filter(fecha_evaluacion__lte=end_date + timedelta(days=1))
+
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = "Satisfacción Cliente"
+
+    headers = [
+        "Título del Ticket", "Nombre Cliente", "Calificación",
+        "Comentario", "Nombre del Técnico"
+    ]
+    sheet.append(headers)
+
+    # Estilos para encabezados
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="007bff", end_color="007bff", fill_type="solid")
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    header_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+
+    for col_num, header_text in enumerate(headers, 1):
+        cell = sheet.cell(row=1, column=col_num, value=header_text)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = header_border
+        sheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 25
+
+    for eval_tec in evaluaciones_queryset:
+        cliente_nombre = f"{eval_tec.ticket.cliente.nombres}" if eval_tec.ticket.cliente else "N/A"
+        tecnico_nombre = f"{eval_tec.ticket.tecnico.nombre}" if eval_tec.ticket.tecnico else "N/A"
+        row_data = [
+            eval_tec.ticket.titulo,
+            cliente_nombre,
+            eval_tec.get_calificacion_display(),
+            eval_tec.comentario,
+            tecnico_nombre
+        ]
+        sheet.append(row_data)
+
+    for col in sheet.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        sheet.column_dimensions[column].width = adjusted_width
+
+    output = io.BytesIO()
+    workbook.save(output)
+    output.seek(0)
+
+    filename = f"satisfaccion_cliente_reporte_{start_date_str or 'todos'}_a_{end_date_str or 'todos'}.xlsx"
+    response = HttpResponse(output.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
+def generar_reporte_clientes_mas_tickets_excel(request):
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+
+    start_date = None
+    end_date = None
+
+    if start_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, "Formato de fecha de inicio inválido. Use AAAA-MM-DD.")
+            return redirect('reportes')
+
+    if end_date_str:
+        try:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, "Formato de fecha de fin inválido. Use AAAA-MM-DD.")
+            return redirect('reportes')
+
+    tickets_queryset = Ticket.objects.all()
+    if start_date:
+        tickets_queryset = tickets_queryset.filter(fecha_creacion__gte=start_date)
+    if end_date:
+        tickets_queryset = tickets_queryset.filter(fecha_creacion__lte=end_date + timedelta(days=1))
+
+    clientes_tickets = Cliente.objects.annotate(
+        num_tickets=Count('tickets', filter=Q(tickets__in=tickets_queryset))
+    ).order_by('-num_tickets')
+
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = "Clientes con Más Tickets"
+
+    headers = [
+        "RUC Cliente", "Nombre Cliente", "Teléfono", "Dirección",
+        "Correo", "Anydesk Empresa", "Empresa Asociada", "Número de Tickets"
+    ]
+    sheet.append(headers)
+
+    # Estilos para encabezados
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="007bff", end_color="007bff", fill_type="solid")
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    header_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+
+    for col_num, header_text in enumerate(headers, 1):
+        cell = sheet.cell(row=1, column=col_num, value=header_text)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = header_border
+        sheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 25
+
+
+    for cliente in clientes_tickets:
+        row_data = [
+            cliente.ruc,
+            cliente.nombres,
+            cliente.telefono,
+            cliente.direccion,
+            cliente.correo,
+            cliente.anydesk_empresa,
+            cliente.empresa,
+            cliente.num_tickets
+        ]
+        sheet.append(row_data)
+
+    for col in sheet.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        sheet.column_dimensions[column].width = adjusted_width
+
+    output = io.BytesIO()
+    workbook.save(output)
+    output.seek(0)
+
+    filename = f"clientes_mas_tickets_reporte_{start_date_str or 'todos'}_a_{end_date_str or 'todos'}.xlsx"
+    response = HttpResponse(output.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+# Asegúrate de que tu función reportes_view pueda manejar la selección del tipo de reporte.
+@login_required
+def reportes_view(request):
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+
+    start_date = None
+    end_date = None
+
+    if start_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, "Formato de fecha de inicio inválido. Use AAAA-MM-DD.")
+    
+    if end_date_str:
+        try:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, "Formato de fecha de fin inválido. Use AAAA-MM-DD.")
+
+    # Call the new report functions
+    mttr_img, mttr_info = tiempo_promedio_resolucion_report(start_date, end_date)
+    sla_img, outlier_sla_info = tickets_fuera_de_sla_report(start_date, end_date)
+    
+    # NEW: Call the report for MTTR of outlier technicians
+    mttr_outliers_img, mttr_outliers_info = tiempo_promedio_resolucion_outliers_report(start_date, end_date)
+
+
+    context = {
+        'tickets_por_estado_img': tickets_por_estado_report(start_date, end_date),
+        'departamentos_incidencias_img': departamentos_incidencias_report(start_date, end_date),
+        'tendencia_tickets_por_mes_img': tendencia_tickets_por_mes_report(start_date, end_date),
+        'categorias_incidencias_img': categorias_incidencias_report(start_date, end_date),
+        'calificacion_tickets_img': calificacion_tickets_report(start_date, end_date),
+        'mttr_img': mttr_img,
+        'mttr_info': mttr_info,
+        'sla_img': sla_img,
+        'outlier_sla_info': outlier_sla_info,
+        'mttr_outliers_img': mttr_outliers_img,
+        'mttr_outliers_info': mttr_outliers_info,
+        'start_date_str': start_date_str, # Pasar las fechas para que los filtros persistan
+        'end_date_str': end_date_str,
+    }
+
+    return render(request, 'reportes.html', context)

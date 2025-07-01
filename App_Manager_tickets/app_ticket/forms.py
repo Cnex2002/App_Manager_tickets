@@ -255,3 +255,4 @@ class PerfilUsuarioEditForm(forms.ModelForm):
             'nombre': forms.TextInput(attrs={'class': 'form-control'}),
             'departamento': forms.Select(attrs={'class': 'form-control'}),
         }
+

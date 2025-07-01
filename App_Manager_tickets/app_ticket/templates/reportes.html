@@ -1,401 +1,281 @@
-{# app_ticket/templates/reportes.html #}
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
-    <title>Reportes de Tickets</title>
+    <title>Dashboard de Reportes - Gestión de Tickets</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
-        /* Estilos adicionales para mejorar la visualización de los gráficos */
-        .chart-container {
-            position: relative;
-            height: 40vh; /* Altura responsiva para los gráficos */
-            width: 100%;
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --info-color: #17a2b8;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --light-bg: #f8f9fa;
+            --dark-text: #343a40;
+            --border-color: #e9ecef;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            --font-family: 'Roboto', sans-serif;
         }
-        @media (max-width: 768px) {
-            .chart-container {
-                height: 50vh; /* Ajuste para pantallas más pequeñas */
-            }
+
+        body {
+            font-family: var(--font-family);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: var(--light-bg);
+            color: var(--dark-text);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        h1, h2 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .filters-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #f0f4f8;
+        }
+
+        .filters-section label {
+            font-weight: bold;
+            color: var(--dark-text);
+        }
+
+        .filters-section input[type="date"],
+        .filters-section select,
+        .filters-section button {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .filters-section button {
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .filters-section button:hover {
+            background-color: #0056b3;
+        }
+
+        .report-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 25px;
+        }
+
+        .report-card {
+            background-color: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .report-card h2 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .report-card p {
+            color: var(--secondary-color);
+            font-size: 0.95rem;
+            margin-bottom: 10px;
+            text-align: left; /* Alinea el texto a la izquierda dentro del párrafo */
+            width: 100%; /* Asegura que ocupe todo el ancho disponible */
+        }
+
+        .report-card img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin-top: 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        .messages {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .messages li {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .messages .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .messages .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
     </style>
 </head>
 <body>
-    
-<div class="container mt-4">
-    <a href="javascript:history.back()" class="btn btn-secondary mb-4">Volver</a>
-    <h2 class="mb-4 text-center">Reportes de Tickets</h2>
+    <div class="container">
+        <h1>Dashboard de Reportes</h1>
 
-    {# Mensajes de Django #}
-    {% if messages %}
-        <div class="messages mt-3">
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
 
-    
-{# Filtros de fecha (mantén esta sección) #}
-    <div class="card mb-4">
-        <div class="card-header">
-            <h4>Filtros de Fecha</h4>
-        </div>
-        <div class="card-body">
-            <form method="get" action="{% url 'reportes' %}">
-                <div class="row">
-                    <div class="col-md-5">
-                        <label for="fecha_inicio" class="form-label">Fecha de Inicio:</label>
-                        <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" value="{{ fecha_inicio_str }}">
-                    </div>
-                    <div class="col-md-5">
-                        <label for="fecha_fin" class="form-label">Fecha de Fin:</label>
-                        <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" value="{{ fecha_fin_str }}">
-                    </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">Aplicar Filtro</button>
-                    </div>
-                </div>
+        <div class="filters-section">
+            <form id="filter-form" method="GET" action="{% url 'reportes' %}">
+                <label for="start_date">Desde:</label>
+                <input type="date" id="start_date" name="start_date" value="{{ start_date_str }}">
+
+                <label for="end_date">Hasta:</label>
+                <input type="date" id="end_date" name="end_date" value="{{ end_date_str }}">
+
+                <button type="submit">Aplicar Filtros</button>
             </form>
         </div>
-    </div>
 
-    
-    {# Sección para la selección de reportes en Excel #}
-<div class="card mb-4">
-    <div class="card-header">
-        <h4>Generar Reportes en Excel</h4>
-    </div>
-    <div class="card-body">
-        <form action="{% url 'generar_reporte_excel' %}" method="get">
-            <div class="mb-3">
-                <label for="reporte_tipo" class="form-label">Seleccionar Tipo de Reporte:</label>
-                <select class="form-select" id="reporte_tipo" name="reporte_tipo" required>
-                    <option value="">-- Seleccione un reporte --</option>
-                    <option value="tickets_estado_prioridad">Tickets por Estado y Prioridad</option>
-                    <option value="rendimiento_tickets_categoria">Rendimiento de Tickets por Categoría</option>
-                    <option value="rendimiento_tecnicos_individuales">Rendimiento de Técnicos Individuales</option>
-                    <option value="evaluaciones_clientes">Evaluaciones de Clientes</option>
-                    <option value="rendimiento_departamentos">Rendimiento de Departamentos</option> {# NUEVA OPCIÓN #}
+        <div class="filters-section" style="margin-top: 20px;">
+            <form id="download-report-form" method="GET">
+                <label for="report_type">Descargar Reporte Excel:</label>
+                <select id="report_type" name="report_type">
+                    <option value="">Seleccione un reporte</option>
+                    <option value="rendimiento_tecnicos">Rendimiento de Técnicos (Detallado)</option>
+                    <option value="satisfaccion_cliente">Satisfacción del Cliente (Evaluaciones Recibidas)</option>
+                    <option value="clientes_mas_tickets">Clientes con Más Tickets</option>
                 </select>
-            </div>
-            {# Campos ocultos para pasar las fechas de filtro al generar el reporte Excel #}
-            <input type="hidden" name="fecha_inicio" id="excel_fecha_inicio" value="{{ fecha_inicio_str }}">
-            <input type="hidden" name="fecha_fin" id="excel_fecha_fin" value="{{ fecha_fin_str }}">
-            <button type="submit" class="btn btn-primary">Descargar Reporte</button>
-        </form>
-    </div>
-</div>
-
-
-
-
-    {# Indicadores clave (mantén esta sección) #}
-    <div class="row text-center mb-4">
-        <div class="col-md-4">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Tickets Activos</h5>
-                    <p class="card-text fs-3">{{ total_tickets_activos }}</p>
-                </div>
-            </div>
+                <input type="hidden" id="download_start_date" name="start_date" value="{{ start_date_str }}">
+                <input type="hidden" id="download_end_date" name="end_date" value="{{ end_date_str }}">
+                <button type="submit" onclick="downloadReport()">Descargar Excel</button>
+            </form>
         </div>
-        <div class="col-md-4">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Tiempo Promedio de Resolución (horas)</h5>
-                    <p class="card-text fs-3">{{ tiempo_promedio_resolucion }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Calificación Promedio del Servicio</h5>
-                    <p class="card-text fs-3">{{ calificacion_promedio }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    {# Gráficos (mantén esta sección) #}
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="ticketsPorEstadoChart"></canvas>
-                    </div>
-                </div>
+        <div class="report-grid">
+            <div class="report-card">
+                <h2>1. Tickets por Estado</h2>
+                
+                <img src="data:image/png;base64,{{ tickets_por_estado_img }}" alt="Tickets por Estado">
             </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="ticketsPorPrioridadChart"></canvas>
-                    </div>
-                </div>
+
+            <div class="report-card">
+                <h2>2. Incidencias por Departamento</h2>
+               
+                <img src="data:image/png;base64,{{ departamentos_incidencias_img }}" alt="Incidencias por Departamento">
             </div>
+
+            <div class="report-card">
+                <h2>3. Tendencia de Tickets por Mes</h2>
+               
+                <img src="data:image/png;base64,{{ tendencia_tickets_por_mes_img }}" alt="Tendencia de Tickets por Mes">
+            </div>
+
+            <div class="report-card">
+                <h2>4. Incidencias por Categoría</h2>
+               
+                <img src="data:image/png;base64,{{ categorias_incidencias_img }}" alt="Incidencias por Categoría">
+            </div>
+
+            <div class="report-card">
+                <h2>5. Calificación de Tickets (Satisfacción)</h2>
+               
+                <img src="data:image/png;base64,{{ calificacion_tickets_img }}" alt="Calificación de Tickets">
+            </div>
+
+            <div class="report-card">
+                <h2>6. Tickets Fuera de SLA</h2>
+               
+                <img src="data:image/png;base64,{{ sla_img }}" alt="Tickets Fuera de SLA">
+            </div>
+
+            <div class="report-card">
+                <h2>7. Tiempo Promedio de Resolución (MTTR)</h2>
+               
+                <img src="data:image/png;base64,{{ mttr_img }}" alt="Tiempo Promedio de Resolución por Mes">
+            </div>
+
+            
+
+            <div class="report-card">
+                <h2>8. Tendencia del MTTR para Técnicos con Alto Tiempo de Resolución</h2>
+               
+                <img src="data:image/png;base64,{{ mttr_outliers_img }}" alt="Tendencia del MTTR para Técnicos Outliers">
+            </div>
+            
         </div>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="ticketsPorCategoriaChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="topTecnicosChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <script>
+        function downloadReport() {
+            var reportType = document.getElementById('report_type').value;
+            var startDate = document.getElementById('download_start_date').value;
+            var endDate = document.getElementById('download_end_date').value;
+            var form = document.getElementById('download-report-form');
 
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="departamentosMasIncidenciasChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-</div>
-
-
-<script>
-    const labelsEstados = {{ labels_estados|safe }};
-    const dataEstados = {{ data_estados|safe }};
-    const labelsPrioridad = {{ labels_prioridad|safe }};
-    const dataPrioridad = {{ data_prioridad|safe }};
-    const labelsCategoria = {{ labels_categoria|safe }};
-    const dataCategoria = {{ data_categoria|safe }};
-    const labelsTecnicos = {{ labels_tecnicos|safe }};
-    const dataTecnicos = {{ data_tecnicos|safe }};
-    const labelsDepartamento = {{ labels_departamento|safe }};
-    const dataDepartamento = {{ data_departamento|safe }};
-
-
-    const ctxEstados = document.getElementById('ticketsPorEstadoChart').getContext('2d');
-    const ticketsPorEstadoChart = new Chart(ctxEstados, {
-        type: 'pie',
-        data: {
-            labels: labelsEstados,
-            datasets: [{
-                data: dataEstados,
-                backgroundColor: [
-                    'rgba(255, 99, 132, 0.7)',
-                    'rgba(54, 162, 235, 0.7)',
-                    'rgba(255, 206, 86, 0.7)',
-                    'rgba(75, 192, 192, 0.7)',
-                    'rgba(153, 102, 255, 0.7)'
-                ],
-                borderColor: [
-                    'rgba(255, 99, 132, 1)',
-                    'rgba(54, 162, 235, 1)',
-                    'rgba(255, 206, 86, 1)',
-                    'rgba(75, 192, 192, 1)',
-                    'rgba(153, 102, 255, 1)'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                title: {
-                    display: true,
-                    text: 'Tickets por Estado'
+            if (reportType) {
+                // Set the action URL based on the selected report type
+                if (reportType === 'rendimiento_tecnicos') {
+                    form.action = "{% url 'generar_reporte_rendimiento_tecnicos_excel' %}";
+                } else if (reportType === 'satisfaccion_cliente') {
+                    form.action = "{% url 'generar_reporte_satisfaccion_cliente_excel' %}";
+                } else if (reportType === 'clientes_mas_tickets') {
+                    form.action = "{% url 'generar_reporte_clientes_mas_tickets_excel' %}";
                 }
+                
+                // Submit the form
+                form.submit();
+            } else {
+                alert("Por favor, selecciona un tipo de reporte para descargar.");
             }
         }
-    });
 
-    const ctxPrioridad = document.getElementById('ticketsPorPrioridadChart').getContext('2d');
-    const ticketsPorPrioridadChart = new Chart(ctxPrioridad, {
-        type: 'bar',
-        data: {
-            labels: labelsPrioridad,
-            datasets: [{
-                label: 'Cantidad de Tickets',
-                data: dataPrioridad,
-                backgroundColor: 'rgba(75, 192, 192, 0.7)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                title: {
-                    display: true,
-                    text: 'Tickets por Prioridad'
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-
-    const ctxCategoria = document.getElementById('ticketsPorCategoriaChart').getContext('2d');
-    const ticketsPorCategoriaChart = new Chart(ctxCategoria, {
-        type: 'doughnut',
-        data: {
-            labels: labelsCategoria,
-            datasets: [{
-                data: dataCategoria,
-                backgroundColor: [
-                    'rgba(255, 159, 64, 0.7)',
-                    'rgba(255, 99, 132, 0.7)',
-                    'rgba(54, 162, 235, 0.7)',
-                    'rgba(75, 192, 192, 0.7)',
-                    'rgba(153, 102, 255, 0.7)',
-                    'rgba(201, 203, 207, 0.7)'
-                ],
-                borderColor: [
-                    'rgba(255, 159, 64, 1)',
-                    'rgba(255, 99, 132, 1)',
-                    'rgba(54, 162, 235, 1)',
-                    'rgba(75, 192, 192, 1)',
-                    'rgba(153, 102, 255, 1)',
-                    'rgba(201, 203, 207, 1)'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                title: {
-                    display: true,
-                    text: 'Tickets por Categoría'
-                }
-            }
-        }
-    });
-
-    const ctxTecnicos = document.getElementById('topTecnicosChart').getContext('2d');
-    const topTecnicosChart = new Chart(ctxTecnicos, {
-        type: 'bar',
-        data: {
-            labels: labelsTecnicos,
-            datasets: [{
-                label: 'Tickets Resueltos',
-                data: dataTecnicos,
-                backgroundColor: 'rgba(153, 102, 255, 0.7)',
-                borderColor: 'rgba(153, 102, 255, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            indexAxis: 'y', // Hace el gráfico de barras horizontal
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'right',
-                },
-                title: {
-                    display: true,
-                    text: 'Top 5 Técnicos por Tickets Resueltos'
-                }
-            },
-            scales: {
-                x: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Cantidad de Tickets'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Técnico'
-                    }
-                }
-            }
-        }
-    });
-
-    const ctxDepartamento = document.getElementById('departamentosMasIncidenciasChart').getContext('2d');
-    const departamentosMasIncidenciasChart = new Chart(ctxDepartamento, {
-        type: 'bar', // Tipo de gráfico de barras vertical
-        data: {
-            labels: labelsDepartamento,
-            datasets: [{
-                label: 'Tickets reportados',
-                data: dataDepartamento,
-                backgroundColor: 'rgba(205, 133, 63, 0.7)', // Un color café similar al de la imagen
-                borderColor: 'rgba(205, 133, 63, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false, /* Importante para el control de la altura */
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                title: {
-                    display: true,
-                    text: 'Departamentos con Más Incidencias'
-                }
-            },
-            scales: {
-                x: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Departamento'
-                    }
-                },
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Cantidad de Tickets'
-                    }
-                }
-            }
-        }
-    });
-</script>
-    
+        // Keep the hidden fields updated with the current filter dates
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('start_date').addEventListener('change', function() {
+                document.getElementById('download_start_date').value = this.value;
+            });
+            document.getElementById('end_date').addEventListener('change', function() {
+                document.getElementById('download_end_date').value = this.value;
+            });
+        });
+    </script>
 </body>
 </html>

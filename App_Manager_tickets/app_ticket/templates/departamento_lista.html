@@ -13,6 +13,17 @@
         </a>
     </div>
     <div class="card-body">
+        <div class="mb-4">
+            <form class="d-flex" method="GET" action="{% url 'lista_departamentos' %}"> {# Asegúrate de que esta URL sea la correcta para tu lista de departamentos #}
+                <input class="form-control me-2" type="search" placeholder="Buscar por Nombre, Sucursal u Observaciones" aria-label="Search" name="q" value="{{ request.GET.q }}">
+                <button class="btn btn-outline-primary" type="submit">Buscar</button>
+                {# Botón de Limpiar Filtros #}
+                {% if request.GET.q %} {# Solo muestra el botón si hay un filtro aplicado #}
+                    <a href="{% url 'lista_departamentos' %}" class="btn btn-outline-secondary ms-2">Limpiar Filtros</a>
+                {% endif %}
+            </form>
+        </div>
+
         {% if departamentos %}
             <div class="table-responsive">
                 <table class="table table-hover table-striped border">
@@ -51,14 +62,53 @@
                     </tbody>
                 </table>
             </div>
+
+            {# Paginación #}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if departamentos.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ departamentos.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">&laquo;</span>
+                        </li>
+                    {% endif %}
+
+                    {% for i in departamentos.paginator.page_range %}
+                        {% if departamentos.number == i %}
+                            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                        {% else %}
+                            <li class="page-item"><a class="page-link" href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}">{{ i }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if departamentos.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ departamentos.next_page_number }}{% if query %}&q={{ query }}{% endif %}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">&raquo;</span>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+
         {% else %}
             <div class="alert alert-info" role="alert">
                 <h4 class="alert-heading">No se encontraron departamentos</h4>
-                <p>No hay departamentos registrados en el sistema.</p>
+                <p>No hay departamentos registrados o no se encontraron resultados para su búsqueda.</p>
                 <hr>
                 <p class="mb-0">Puede añadir un nuevo departamento usando el botón "Nuevo Departamento".</p>
             </div>
         {% endif %}
+
     </div>
 </div>
 

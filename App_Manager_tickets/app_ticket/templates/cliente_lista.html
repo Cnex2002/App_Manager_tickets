@@ -26,17 +26,17 @@
 
         {% if clientes %}
             <div class="table-responsive">
-                <table class="table table-hover table-striped border">
-                    <thead>
+                <table class="table table-hover table-striped">
+                    <thead class="table-dark">
                         <tr>
-                            <th>RUC</th>
-                            <th>Nombre</th>
-                            <th>Teléfono</th>
-                            <th>Dirección</th>
-                            <th>Correo</th>
-                            <th>AnyDesk</th>
-                            <th>Empresa</th>
-                            <th class="text-center">Acciones</th>
+                            <th scope="col">RUC</th>
+                            <th scope="col">Nombres</th>
+                            <th scope="col">Teléfono</th>
+                            <th scope="col">Dirección</th>
+                            <th scope="col">Correo</th>
+                            <th scope="col">AnyDesk Empresa</th>
+                            <th scope="col">Empresa</th>
+                            <th scope="col" class="text-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -62,6 +62,44 @@
                     </tbody>
                 </table>
             </div>
+
+            {# Paginación #}
+            <nav aria-label="Page navigation example">
+                <ul class="pagination justify-content-center">
+                    {% if clientes.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ clientes.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">&laquo;</span>
+                        </li>
+                    {% endif %}
+
+                    {% for i in clientes.paginator.page_range %}
+                        {% if clientes.number == i %}
+                            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                        {% else %}
+                            <li class="page-item"><a class="page-link" href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}">{{ i }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if clientes.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ clientes.next_page_number }}{% if query %}&q={{ query }}{% endif %}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">&raquo;</span>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+
         {% else %}
             <div class="alert alert-info" role="alert">
                 <h4 class="alert-heading">No se encontraron clientes</h4>
