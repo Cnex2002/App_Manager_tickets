@@ -93,9 +93,9 @@ urlpatterns = [
     path('tecnico/tickets/', views.tecnico_tickets_asignados, name='tecnico_tickets_asignados'),
 
     path('buscar_cliente/', views.buscar_cliente, name='buscar_cliente'),
-    
+    path('subir_manual/', views.subir_manual, name='subir_manual'),
 
-    
+     path('reporte/problemas-soluciones/', views.exportar_problemas_soluciones_pdf, name='reporte_problemas_soluciones'),
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

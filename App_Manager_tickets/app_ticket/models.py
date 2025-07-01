@@ -1,53 +1,50 @@
 from django.db import models
 from django.contrib.auth.models import User, Group
-
+from django.db.models.deletion import PROTECT, SET_NULL
 
 class Empresa(models.Model):
     nombre = models.CharField(max_length=100, blank=False, null=False)
     ruc = models.CharField(max_length=20, unique=True, blank=False, null=False)
-    direccion = models.TextField(blank=False, null=False, default='Dirección no especificada' )
+    direccion = models.TextField(blank=False, null=False, default='Dirección no especificada')
     estado = models.BooleanField(default=True)
 
     def __str__(self):
         return self.nombre
-    
+
 class Sucursal(models.Model):
     nombre = models.CharField(max_length=100, blank=False, null=False)
-    direccion = models.TextField(blank=False, null=False,  default='Dirección no especificada')
-    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='sucursales')
+    direccion = models.TextField(blank=False, null=False, default='Dirección no especificada')
+    empresa = models.ForeignKey(Empresa, on_delete=PROTECT, related_name='sucursales')
     estado = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.nombre} ({self.empresa.nombre})"
-    
+
 class Departamento(models.Model):
     nombre = models.CharField(max_length=100, blank=False, null=False)
-    sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE, related_name='departamentos')
+    sucursal = models.ForeignKey(Sucursal, on_delete=PROTECT, related_name='departamentos')
     observaciones = models.TextField(blank=True, null=True)
     estado = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.nombre} - {self.sucursal.nombre}"
-    
 
 class Usuario(models.Model):
-    ROL= [
+    ROL = [
         ('admin', 'Administrador'),
         ('tecnico', 'Técnico'),
-        ('atencion', 'Atencion'),
+        ('atencion', 'Atención'),
         ('supervisor', 'Supervisor'),
     ]
 
-    usuarios= models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True)
+    usuarios = models.OneToOneField(User, on_delete=SET_NULL, null=True, blank=True)
     nombre = models.CharField(max_length=100)
-    
     rol = models.CharField(max_length=20, choices=ROL, default='tecnico')
-    departamento = models.ForeignKey('Departamento', on_delete=models.SET_NULL, null=True)
+    departamento = models.ForeignKey('Departamento', on_delete=SET_NULL, null=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.nombre
-    
 
 class Categoria(models.Model):
     nombre = models.CharField(max_length=100, blank=False, null=False)
@@ -55,7 +52,6 @@ class Categoria(models.Model):
     def __str__(self):
         return self.nombre
 
-# SE AGREGA RUC, EMPRESA Y ANYDESK
 class Cliente(models.Model):
     ruc = models.CharField(max_length=100, blank=True, null=True, unique=True)
     nombres = models.CharField(max_length=100)
@@ -67,7 +63,7 @@ class Cliente(models.Model):
 
     def __str__(self):
         return self.nombres
-    
+
 class Ticket(models.Model):
     ESTADO_CHOICES = [
         ('abierto', 'Abierto'),
@@ -85,17 +81,14 @@ class Ticket(models.Model):
     descripcion = models.TextField()
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='abierto')
     prioridad = models.CharField(max_length=10, choices=PRIORIDAD_CHOICES, default='media')
-    categoria = models.ForeignKey('Categoria', on_delete=models.SET_NULL, null=True, related_name='tickets')
+    categoria = models.ForeignKey('Categoria', on_delete=PROTECT, null=True, related_name='tickets')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_cierre = models.DateTimeField(null=True, blank=True)
-    cliente = models.ForeignKey('Cliente', on_delete=models.SET_NULL, null=True, related_name='tickets')
-    tecnico = models.ForeignKey('Usuario', on_delete=models.SET_NULL, null=True, related_name='tickets_asignados')
+    cliente = models.ForeignKey('Cliente', on_delete=SET_NULL, null=True, related_name='tickets')
+    tecnico = models.ForeignKey('Usuario', on_delete=SET_NULL, null=True, related_name='tickets_asignados')
 
     def __str__(self):
         return f"{self.titulo} - {self.estado}"
-    
-
-
 
 CALIFICACION_CHOICES = [
     (1, '1 - Muy Malo'),
@@ -112,9 +105,8 @@ class EvaluacionTecnico(models.Model):
     fecha_evaluacion = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"Evaluación del Ticket #{self.ticket.id} - {self.get_calificacion_display(),}"
-    
-    
+        return f"Evaluación del Ticket #{self.ticket.id} - {self.get_calificacion_display()}"
+
 class SolucionTicket(models.Model):
     ticket = models.ForeignKey('Ticket', on_delete=models.CASCADE, related_name='soluciones')
     fecha_subida = models.DateTimeField(auto_now_add=True)
@@ -130,4 +122,3 @@ class ImagenSolucion(models.Model):
 
     class Meta:
         ordering = ['orden']
-      

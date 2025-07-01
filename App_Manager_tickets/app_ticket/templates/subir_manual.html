@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Lista de Soluciones de Tickets{% endblock title %}
+{% block content %}
+
+
+    <a href="{% url 'lista_tickets' %}" class="btn btn-secondary mb-4">Regresar</a>
+
+    <div class="form-container">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                Subir Manual de Usuario
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data" action="{% url 'subir_manual' %}">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="manual" class="form-label">Selecciona un documento (PDF o DOCX):</label>
+                        <input type="file" class="form-control" id="manual" name="manual" accept=".pdf,.docx" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-success">Subir Manual</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+{% endblock content %}
