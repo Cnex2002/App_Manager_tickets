@@ -20,7 +20,7 @@ from datetime import datetime, timedelta, date # <-- Added date here
 import pytz
 from django.utils import timezone
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import FileResponse, Http404, JsonResponse
 from .embeddings import TicketSolutionSearch
 searcher = TicketSolutionSearch()
 from django.core.files.base import ContentFile
@@ -1960,28 +1960,81 @@ def extraer_texto_pdf(ruta_pdf):
 
 
 
+@login_required
 def subir_manual(request):
-    if request.method == 'POST' and request.FILES.get('manual'):
-        archivo = request.FILES['manual']
-        ext = archivo.name.split('.')[-1].lower()
+    carpeta_manual = os.path.join(settings.BASE_DIR, 'app_ticket', 'manuales')
+    os.makedirs(carpeta_manual, exist_ok=True)
 
-        if ext not in ['pdf', 'docx']:
-            messages.error(request, "Solo se permiten archivos PDF o DOCX.")
-            return redirect(request.META.get('HTTP_REFERER', '/'))
+    empresa_actual = request.user.usuario.departamento.sucursal.empresa  # Asumiendo jerarquía Usuario → Departamento → Sucursal → Empresa
 
-        carpeta_destino = os.path.join(settings.BASE_DIR, 'app_ticket', 'manuales')
-        os.makedirs(carpeta_destino, exist_ok=True)
+    if request.method == 'POST' and request.FILES.getlist('manual'):
+        archivos = request.FILES.getlist('manual')
+        errores = []
+        exitos = []
 
-        ruta_destino = os.path.join(carpeta_destino, archivo.name)
-        
-        with open(ruta_destino, 'wb+') as destino:
-            for chunk in archivo.chunks():
-                destino.write(chunk)
+        for archivo in archivos:
+            ext = archivo.name.split('.')[-1].lower()
+            nombre_base = ".".join(archivo.name.split('.')[:-1])  # sin extensión
 
-        messages.success(request, f"Archivo {archivo.name} subido correctamente.")
-        return redirect('perfil')
+            if ext not in ['pdf', 'docx']:
+                errores.append(f"{archivo.name} - formato no permitido")
+                continue
 
-    return render(request, 'subir_manual.html') 
+            nombre_final = f"{nombre_base}.{ext}"
+            ruta_destino = os.path.join(carpeta_manual, nombre_final)
+            contador = 1
+
+            while os.path.exists(ruta_destino):
+                nombre_final = f"{nombre_base}_{contador}.{ext}"
+                ruta_destino = os.path.join(carpeta_manual, nombre_final)
+                contador += 1
+
+            with open(ruta_destino, 'wb+') as destino:
+                for chunk in archivo.chunks():
+                    destino.write(chunk)
+
+            # Guardar en la BD
+            ManualUsuario.objects.create(
+                empresa=empresa_actual,
+                nombre_archivo=nombre_final,
+                ruta_archivo=ruta_destino
+            )
+
+            exitos.append(nombre_final)
+
+        if exitos:
+            messages.success(request, f"{len(exitos)} archivo(s) subido(s) correctamente.")
+        if errores:
+            messages.error(request, "Algunos archivos no se subieron: " + ", ".join(errores))
+
+        return redirect('subir_manual')
+
+    # Listar los manuales de la empresa actual
+    manuales = ManualUsuario.objects.filter(empresa=empresa_actual)
+
+    return render(request, 'subir_manual.html', {'archivos': manuales})
+
+
+
+def descargar_manual(request, manual_id):
+    try:
+        manual = ManualUsuario.objects.get(id=manual_id)
+        return FileResponse(open(manual.ruta_archivo, 'rb'), as_attachment=True, filename=manual.nombre_archivo)
+    except (ManualUsuario.DoesNotExist, FileNotFoundError):
+        raise Http404("Archivo no encontrado")
+
+
+
+def eliminar_manual(request, manual_id):
+        try:
+            manual = ManualUsuario.objects.get(id=manual_id)
+            if os.path.exists(manual.ruta_archivo):
+                os.remove(manual.ruta_archivo)
+            manual.delete()
+            messages.success(request, f"Archivo '{manual.nombre_archivo}' eliminado correctamente.")
+        except ManualUsuario.DoesNotExist:
+            messages.error(request, "Archivo no encontrado.")
+        return redirect('subir_manual')
 
 
 

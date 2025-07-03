@@ -122,3 +122,13 @@ class ImagenSolucion(models.Model):
 
     class Meta:
         ordering = ['orden']
+
+
+class ManualUsuario(models.Model):
+    empresa = models.ForeignKey(Empresa, on_delete=models.PROTECT, related_name='manuales')
+    nombre_archivo = models.CharField(max_length=255)
+    ruta_archivo = models.TextField()
+    fecha_subida = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.nombre_archivo} - {self.empresa.nombre}"

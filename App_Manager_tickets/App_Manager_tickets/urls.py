@@ -101,6 +101,8 @@ urlpatterns = [
 
     path('buscar_cliente/', views.buscar_cliente, name='buscar_cliente'),
     path('subir_manual/', views.subir_manual, name='subir_manual'),
+    path('manuales/descargar/<int:manual_id>/', views.descargar_manual, name='descargar_manual'),
+    path('manuales/eliminar/<int:manual_id>/', views.eliminar_manual, name='eliminar_manual'),
 
      path('reporte/problemas-soluciones/', views.exportar_problemas_soluciones_pdf, name='reporte_problemas_soluciones'),
 ]
