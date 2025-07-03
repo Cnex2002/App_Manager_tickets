@@ -20,7 +20,7 @@
     {% csrf_token %}
 
     <div class="mb-3">
-        <label for="{{ form.login.id_for_label }}" class="form-label">Correo electrónico</label>
+        <label for="{{ form.login.id_for_label }}" class="form-label">Correo electrónico1</label>
         {# Aseguramos la clase form-control. Necesitarás el filtro |add_class de django-widget-tweaks o similar #}
         {# Si no usas django-widget-tweaks, la clase 'form-control' debe venir del widget en forms.py #}
         <p class="text-muted">{{ form.login }} </p>
