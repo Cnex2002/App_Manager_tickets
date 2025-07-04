@@ -2,76 +2,208 @@
 {% load static %}
 {% load i18n %}
 
-
-
 {% block title %}Sign Up{% endblock title %}
     
 {% block content %}
 
-                        <div class="text-center mb-7"><a class="d-flex flex-center text-decoration-none mt-4 mb-4" href="https://human-centric-hce.s3.amazonaws.com/index.html">
-                              <div class="d-flex align-items-center fw-bolder fs-3 d-inline-block">
-                              </div>
-                            </a>
-                            <h3 class="text-body-highlight">Registro</h3>
-                            
-                          </div>
+<div class="text-center mb-7">
+    <a class="d-flex flex-center text-decoration-none mt-4 mb-4" href="https://human-centric-hce.s3.amazonaws.com/index.html">
+        <div class="d-flex align-items-center fw-bolder fs-3 d-inline-block"></div>
+    </a>
+    <h3 class="text-body-highlight">Registro</h3>
+</div>
 
-                        <form class="needs-validation mt-4" novalidate method="POST" action="{% url 'account_signup' %}">
-                            {% csrf_token %}
-                            {% for message in messages %}
-                            <div class="alert {{ message.tags }} mb-4" role="alert">
-                                <strong>{{ message }}</strong>
-                            </div>
-                            {% endfor %} 
-                            {% if field.help_text %}
-                                <div class="alert alert-danger mb-4" role="alert">
-                                    <strong>{{ field.help_text }}</strong>
-                                </div>
-                            {% endif %}
-                            {% if redirect_field_value %}
-                            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
-                            {% endif %}
-                          
-                            <div class="mb-3">
-                                {{form.email }}
-                            </div>
+{# Mensajes personalizados de error y éxito #}
+{% if form.errors %}
+    {% if form.errors.email %}
+    <div class="alert alert-danger mb-4" role="alert">
+        <strong>El correo ya está registrado.</strong>
+    </div>
+    {% elif form.errors.username %}
+    <div class="alert alert-danger mb-4" role="alert">
+        <strong>El usuario ya está registrado.</strong>
+    </div>
+    {% else %}
+    <div class="alert alert-danger mb-4" role="alert">
+        <strong>Hay errores en el formulario.</strong>
+    </div>
+    {% endif %}
+{% else %}
+    {% for message in messages %}
+    <div class="alert alert-success mb-4" role="alert">
+        <strong>Usuario registrado correctamente.</strong>
+    </div>
+    {% endfor %}
+{% endif %}
 
-                            <div class="mb-3">
-                                {{form.username }}
-                            </div>
+<form class="needs-validation mt-4" novalidate method="POST" action="{% url 'account_signup' %}">
+    {% csrf_token %}
+    {% for message in messages %}
+    {# Puedes eliminar este bloque porque ya mostraste mensajes arriba #}
+    {% endfor %}
+    {% if field.help_text %}
+    <div class="alert alert-danger mb-4" role="alert">
+        <strong>{{ field.help_text }}</strong>
+    </div>
+    {% endif %}
+    {% if redirect_field_value %}
+    <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+    {% endif %}
 
-                            <div class="mb-3">
-                                {{form.password1 }}
-                            </div>
+    <div class="mb-3">
+        {{ form.email.label_tag }}
+        {{ form.email }}
+        <small id="emailHelp" class="form-text" style="display:none;"></small>
+    </div>
 
-                            <div class="mb-2">
-                                {{form.password2 }}
-                            </div>
+    <div class="mb-3">
+        {{ form.username }}
+    </div>
 
-                            <div class="mb-3 row">
-                                <div class="col-12 text-end">
-                                    <button class="btn btn-primary w-md waves-effect waves-light" type="submit">Registrarse</button>
-                                </div>
-                            </div>
-                            
+    <div class="mb-3">
+        {{ form.password1.label_tag }}
+        <div class="input-group">
+            {{ form.password1 }}
+            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('id_password1', this)">
+                <i class="mdi mdi-eye-outline"></i>
+            </button>
+        </div>
+        <small id="password1Help" class="form-text text-danger" style="display:none;">
+            La contraseña debe tener al menos 8 caracteres e incluir letras, números y símbolos.
+        </small>
+    </div>
 
-                            <div class="mt-2 mb-0 row">
-                                <div class="col-12 mt-4">
-                                   
-                                </div>
-                            </div>
+    <div class="mb-3">
+        {{ form.password2.label_tag }}
+        <div class="input-group">
+            {{ form.password2 }}
+            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('id_password2', this)">
+                <i class="mdi mdi-eye-outline"></i>
+            </button>
+        </div>
+        <small id="password2Help" class="form-text text-danger" style="display:none;">
+            Las contraseñas no coinciden.
+        </small>
+    </div>
 
-                        </form>
+    <div class="mb-3 row">
+        <div class="col-12 text-end">
+            <button class="btn btn-primary w-md waves-effect waves-light" type="submit">Registrarse</button>
+        </div>
+    </div>
 
-                    </div>
-              
+    <div class="mt-2 mb-0 row">
+        <div class="col-12 mt-4"></div>
+    </div>
+</form>
 
-            <div class="mt-5 text-center">
-                <p>Ya tienes una cuenta ? <a href="{{ login_url }}" class="fw-medium text-primary"> Inicia sesion </a> </p>
-                
-                
-            </div>
-    
+<div class="mt-5 text-center">
+    <p>Ya tienes una cuenta ? <a href="{{ login_url }}" class="fw-medium text-primary"> Inicia sesion </a> </p>
+</div>
+
 {% endblock content %}
 
+{% block extra_js %}
+<script>
+    function togglePassword(id, button) {
+        const input = document.getElementById(id);
+        const icon = button.querySelector('i');
+    
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.remove("mdi-eye-outline");
+            icon.classList.add("mdi-eye-off-outline");
+        } else {
+            input.type = "password";
+            icon.classList.remove("mdi-eye-off-outline");
+            icon.classList.add("mdi-eye-outline");
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const passwordInput = document.getElementById('id_password1');
+        const passwordConfirmInput = document.getElementById('id_password2');
+        const messagePwd1 = document.getElementById('password1Help');
+        const messagePwd2 = document.getElementById('password2Help');
+        const form = document.querySelector('form.needs-validation');
+
+        // Validar password1 en tiempo real
+        passwordInput.addEventListener('input', function() {
+            const value = passwordInput.value;
+            const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};:'"\\|,.<>\/?]).{8,}$/;
+            if (regex.test(value)) {
+                messagePwd1.style.display = 'none';
+            } else {
+                messagePwd1.style.display = 'block';
+            }
+            checkPasswordsMatch();
+        });
+
+        // Validar coincidencia en tiempo real
+        passwordConfirmInput.addEventListener('input', function() {
+            checkPasswordsMatch();
+        });
+
+        function checkPasswordsMatch() {
+            if (passwordConfirmInput.value === passwordInput.value) {
+                messagePwd2.style.display = 'none';
+                return true;
+            } else {
+                if(passwordConfirmInput.value.length > 0) {
+                    messagePwd2.style.display = 'block';
+                } else {
+                    messagePwd2.style.display = 'none';
+                }
+                return false;
+            }
+        }
+
+        form.addEventListener('submit', function(e) {
+            const pwd1Valid = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};:'"\\|,.<>\/?]).{8,}$/.test(passwordInput.value);
+            const passwordsMatch = passwordConfirmInput.value === passwordInput.value;
+
+            if (!pwd1Valid) {
+                messagePwd1.style.display = 'block';
+            }
+
+            if (!passwordsMatch) {
+                messagePwd2.style.display = 'block';
+            }
+
+            if (!pwd1Valid || !passwordsMatch) {
+                e.preventDefault(); // evitar envío
+            }
+        });
+
+        // NUEVO: ocultar mensaje error si campo email o usuario queda vacío
+        const emailInput = document.getElementById('id_email');
+        const usernameInput = document.getElementById('id_username');
+
+        // Busca mensajes que contengan "correo" o "usuario"
+        const emailError = Array.from(document.querySelectorAll('.alert.alert-danger')).find(
+            el => el.textContent.includes('correo')
+        );
+        const usernameError = Array.from(document.querySelectorAll('.alert.alert-danger')).find(
+            el => el.textContent.includes('usuario')
+        );
+
+        function hideErrorOnEmpty(input, errorEl) {
+            if (!input || !errorEl) return;
+            input.addEventListener('input', () => {
+                if (input.value.trim() === '') {
+                    errorEl.style.display = 'none';
+                }
+            });
+        }
+
+        hideErrorOnEmpty(emailInput, emailError);
+        hideErrorOnEmpty(usernameInput, usernameError);
+    });
+</script>    
+{% endblock extra_js %}
+
             
+{% block extra_css %}
+{# Si necesitas CSS específico para esta página, agrégalo aquí #}
+<link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.5.95/css/materialdesignicons.min.css" rel="stylesheet">
+{% endblock extra_css %}
