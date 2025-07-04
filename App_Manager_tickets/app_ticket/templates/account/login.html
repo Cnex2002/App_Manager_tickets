@@ -25,13 +25,21 @@
         {# Si no usas django-widget-tweaks, la clase 'form-control' debe venir del widget en forms.py #}
         <p class="text-muted">{{ form.login }} </p>
         
-        {% if form.login.errors %}
+        <!-- {% if form.login.errors %}
             <div class="text-danger small mt-1">
                 {% for error in form.login.errors %}
                     {{ error }}
                 {% endfor %}
             </div>
-        {% endif %}
+        {% endif %} -->
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for error in form.non_field_errors %}
+            {{ error }}
+          {% endfor %}
+        </div>
+      {% endif %}
+      
     </div>
 
     <div class="mb-3">
