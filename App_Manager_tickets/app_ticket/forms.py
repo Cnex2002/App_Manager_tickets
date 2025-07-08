@@ -63,6 +63,52 @@ class DepartamentoForm(forms.ModelForm):
 
 
 
+# class TicketForm(forms.ModelForm):
+#     class Meta:
+#         model = Ticket
+#         fields = ['titulo', 'descripcion', 'estado', 'prioridad', 'categoria', 'cliente', 'tecnico']
+#         widgets = {
+#             'titulo': forms.TextInput(attrs={'class': 'form-control'}),
+#             'descripcion': forms.Textarea(attrs={'class': 'form-control'}),
+#             'estado': forms.Select(attrs={'class': 'form-control'}),
+#             'prioridad': forms.Select(attrs={'class': 'form-control'}),
+#             'categoria': forms.Select(attrs={'class': 'form-control'}),
+#             'cliente': forms.Select(attrs={'class': 'form-control'}),
+#             'tecnico': forms.Select(attrs={'class': 'form-control'}),
+#         }
+
+#     def __init__(self, *args, **kwargs):
+#         request = kwargs.pop('request', None)
+#         super().__init__(*args, **kwargs)
+#         self.fields['cliente'].widget = forms.HiddenInput()
+
+#         # Base queryset con conteo de tickets SOLO con estado 'abierto'
+#         tecnicos = Usuario.objects.filter(rol='tecnico').annotate(
+#             ticket_count=Count('tickets_asignados', filter=Q(tickets_asignados__estado='abierto'))
+#         )
+
+#         if request and request.user.is_authenticated:
+#             try:
+#                 usuario_actual = request.user.usuario
+#                 rol_usuario = usuario_actual.rol
+
+#                 if rol_usuario in ['atencion', 'supervisor']:
+#                     if usuario_actual.departamento:
+#                         tecnicos = tecnicos.filter(departamento=usuario_actual.departamento)
+#                     else:
+#                         tecnicos = Usuario.objects.none()
+#             except Usuario.DoesNotExist:
+#                 tecnicos = Usuario.objects.filter(rol='tecnico').annotate(
+#                     ticket_count=Count('tickets_asignados', filter=Q(tickets_asignados__estado='abierto'))
+#                 )
+#         else:
+#             tecnicos = Usuario.objects.filter(rol='tecnico').annotate(
+#                 ticket_count=Count('tickets_asignados', filter=Q(tickets_asignados__estado='abierto'))
+#             )
+
+#         self.fields['tecnico'].queryset = tecnicos
+#         self.fields['tecnico'].label_from_instance = lambda obj: f"{obj.nombre} ({obj.ticket_count} tickets abiertos)"
+
 class TicketForm(forms.ModelForm):
     class Meta:
         model = Ticket
@@ -82,7 +128,7 @@ class TicketForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['cliente'].widget = forms.HiddenInput()
 
-        # Base queryset con conteo de tickets SOLO con estado 'abierto'
+        # Base queryset: técnicos con conteo de tickets abiertos
         tecnicos = Usuario.objects.filter(rol='tecnico').annotate(
             ticket_count=Count('tickets_asignados', filter=Q(tickets_asignados__estado='abierto'))
         )
@@ -106,10 +152,13 @@ class TicketForm(forms.ModelForm):
                 ticket_count=Count('tickets_asignados', filter=Q(tickets_asignados__estado='abierto'))
             )
 
+        # Asignar queryset y etiqueta personalizada
         self.fields['tecnico'].queryset = tecnicos
-        self.fields['tecnico'].label_from_instance = lambda obj: f"{obj.nombre} ({obj.ticket_count} tickets abiertos)"
-
-
+        self.fields['tecnico'].label_from_instance = lambda obj: (
+            f"{obj.departamento.nombre} - {obj.nombre} ({obj.ticket_count} tickets abiertos)"
+            if obj.departamento else
+            f"{obj.nombre} ({obj.ticket_count} tickets abiertos)"
+        )
 
 class EvaluacionTecnicoForm(forms.ModelForm):
     class Meta:
