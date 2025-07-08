@@ -107,6 +107,10 @@
                                     <i class="bi bi-check-circle me-1"></i>Resolver/Cerrar
                                 </a>
                                 {% endif %}
+                                {% comment %} QUIERO QUE ME ENVIA PARA EDITAR {% endcomment %}
+                                <a href="{% url 'ticket_editar' ticket.id %}" class="btn btn-warning btn-sm" title="Editar Ticket">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
                             </td>
                         </tr>
                         {% endfor %}
