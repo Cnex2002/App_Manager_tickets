@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Count, Q
 from .models import *
 from django.contrib.auth.models import User
 
@@ -77,40 +78,36 @@ class TicketForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        # Extraer 'request' de los kwargs antes de llamar al super().__init__
-        request = kwargs.pop('request', None) 
+        request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         self.fields['cliente'].widget = forms.HiddenInput()
-        # Si hay un request y el usuario está autenticado
+
+        # Base queryset con conteo de tickets SOLO con estado 'abierto'
+        tecnicos = Usuario.objects.filter(rol='tecnico').annotate(
+            ticket_count=Count('tickets_asignados', filter=Q(tickets_asignados__estado='abierto'))
+        )
+
         if request and request.user.is_authenticated:
             try:
-                # Intentar obtener el objeto Usuario personalizado
-                usuario_personalizado = request.user.usuario
-                rol_usuario = usuario_personalizado.rol
+                usuario_actual = request.user.usuario
+                rol_usuario = usuario_actual.rol
 
-                # Aplicar lógica de filtrado si el rol es 'atencion' o 'supervisor'
                 if rol_usuario in ['atencion', 'supervisor']:
-                    departamento_usuario = usuario_personalizado.departamento
-                    if departamento_usuario:
-                        # Filtrar técnicos: rol 'tecnico' Y del mismo departamento
-                        self.fields['tecnico'].queryset = Usuario.objects.filter(
-                            rol='tecnico',
-                            departamento=departamento_usuario
-                        )
+                    if usuario_actual.departamento:
+                        tecnicos = tecnicos.filter(departamento=usuario_actual.departamento)
                     else:
-                        # Si el usuario (atención/supervisor) no tiene departamento, no se muestran técnicos
-                        self.fields['tecnico'].queryset = Usuario.objects.none()
-                else:
-                    # Si el rol NO es 'atencion' o 'supervisor', mostrar todos los técnicos
-                    self.fields['tecnico'].queryset = Usuario.objects.filter(rol='tecnico')
+                        tecnicos = Usuario.objects.none()
             except Usuario.DoesNotExist:
-                # Manejar el caso en que request.user.usuario no exista (aunque debería, si el sistema es consistente)
-                # Por seguridad o fallback, mostrar todos los técnicos con rol 'tecnico'
-                self.fields['tecnico'].queryset = Usuario.objects.filter(rol='tecnico')
+                tecnicos = Usuario.objects.filter(rol='tecnico').annotate(
+                    ticket_count=Count('tickets_asignados', filter=Q(tickets_asignados__estado='abierto'))
+                )
         else:
-            # Si no hay usuario autenticado (ej. formulario en una vista pública, lo cual no es el caso aquí
-            # porque la vista es @login_required, pero es buena práctica), mostrar todos los técnicos.
-            self.fields['tecnico'].queryset = Usuario.objects.filter(rol='tecnico')
+            tecnicos = Usuario.objects.filter(rol='tecnico').annotate(
+                ticket_count=Count('tickets_asignados', filter=Q(tickets_asignados__estado='abierto'))
+            )
+
+        self.fields['tecnico'].queryset = tecnicos
+        self.fields['tecnico'].label_from_instance = lambda obj: f"{obj.nombre} ({obj.ticket_count} tickets abiertos)"
 
 
 
@@ -219,12 +216,10 @@ class UsuarioForm2(forms.ModelForm):
 class UserEditForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser']
+        fields = ['username', 'email', 'is_active', 'is_staff', 'is_superuser']
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),  
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_staff': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_superuser': forms.CheckboxInput(attrs={'class': 'form-check-input'}),

@@ -50,8 +50,17 @@
 <body class="container py-5">
     <a href="{% url 'lista_tickets' %}" class="btn btn-secondary mb-4">Regresar</a>
     <h2>Agregar solución para Ticket #{{ ticket.id }}</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
     <div class="card mb-4">
-        <div class="card mb-4">
         <div class="card-header bg-primary text-white">
             Información del Ticket
         </div>
@@ -65,35 +74,37 @@
             <p class="card-text"><strong>Fecha de creación:</strong> {{ ticket.fecha_creacion }}</p>
         </div>
     </div>
-    </div>
-    
-    <form method="POST" enctype="multipart/form-data" class="post-form">
+
+    <form method="POST" enctype="multipart/form-data" class="post-form" id="solucionForm">
         {% csrf_token %}
         
         <div class="mb-3">
             {{ formulario.comentario.label_tag }}
             {{ formulario.comentario }}
+            <div class="form-text text-danger d-none" id="comentario-error">Este campo es obligatorio.</div>
         </div>
-        
+
         <div class="mb-3">
             {{ formulario.imagenes.label_tag }}
             {{ formulario.imagenes }}
-            <small class="form-text text-muted">Puedes seleccionar hasta 4 imágenes o pegarlas abajo.</small>
+            <small class="form-text text-muted">Puedes subir hasta 4 imágenes (formatos permitidos: JPG, PNG, GIF) o pegarlas abajo.</small>
+            <div class="form-text text-danger d-none" id="imagen-error">Debes subir al menos una imagen.</div>
         </div>
-        
+
         <div class="paste-area" id="paste-area">
             <p>Haz clic aquí y pega imágenes (Ctrl+V) desde tu portapapeles</p>
         </div>
-        
+
         <div class="image-preview-container" id="image-preview-container">
-            <!-- Aquí se mostrarán las vistas previas de las imágenes -->
+            <!-- Vistas previas -->
         </div>
-        
+
+        <!-- Inputs ocultos para imágenes pegadas -->
         <input type="hidden" name="pasted_image_1" id="pasted-image-1">
         <input type="hidden" name="pasted_image_2" id="pasted-image-2">
         <input type="hidden" name="pasted_image_3" id="pasted-image-3">
         <input type="hidden" name="pasted_image_4" id="pasted-image-4">
-        
+
         <button type="submit" class="btn btn-primary">Guardar</button>
     </form>
 
@@ -104,30 +115,27 @@
             const fileInput = document.getElementById('file-input');
             let imageCount = 0;
             const maxImages = 4;
-            
-            // Manejar pegado de imágenes
-            pasteArea.addEventListener('click', function() {
+
+            pasteArea.addEventListener('click', function () {
                 this.focus();
             });
-            
+
             pasteArea.addEventListener('paste', function(e) {
                 const items = (e.clipboardData || window.clipboardData).items;
-                
+
                 for (let i = 0; i < items.length; i++) {
                     if (items[i].type.indexOf('image') === -1) continue;
                     if (imageCount >= maxImages) {
                         alert(`Solo puedes agregar hasta ${maxImages} imágenes.`);
                         break;
                     }
-                    
+
                     const blob = items[i].getAsFile();
                     const reader = new FileReader();
-                    
+
                     reader.onload = function(event) {
                         imageCount++;
                         const imageId = `pasted-image-${imageCount}`;
-                        
-                        // Crear vista previa
                         const previewDiv = document.createElement('div');
                         previewDiv.className = 'image-preview';
                         previewDiv.innerHTML = `
@@ -135,51 +143,78 @@
                             <button type="button" class="remove-btn" data-id="${imageId}">×</button>
                         `;
                         previewContainer.appendChild(previewDiv);
-                        
-                        // Guardar imagen como base64 en el input hidden
                         document.getElementById(imageId).value = event.target.result;
                     };
-                    
+
                     reader.readAsDataURL(blob);
                 }
             });
-            
-            // Manejar selección de archivos
+
             fileInput.addEventListener('change', function() {
                 const files = this.files;
                 const totalFiles = imageCount + files.length;
-                
+
                 if (totalFiles > maxImages) {
                     alert(`Solo puedes agregar hasta ${maxImages} imágenes en total.`);
                     this.value = '';
                     return;
                 }
-                
+
                 for (let i = 0; i < files.length; i++) {
                     if (imageCount >= maxImages) break;
                     if (!files[i].type.startsWith('image/')) continue;
-                    
+
                     const reader = new FileReader();
                     reader.onload = function(event) {
                         imageCount++;
                         const previewDiv = document.createElement('div');
                         previewDiv.className = 'image-preview';
-                        previewDiv.innerHTML = `
-                            <img src="${event.target.result}" alt="Imagen subida">
-                        `;
+                        previewDiv.innerHTML = `<img src="${event.target.result}" alt="Imagen subida">`;
                         previewContainer.appendChild(previewDiv);
                     };
                     reader.readAsDataURL(files[i]);
                 }
             });
-            
-            // Manejar eliminación de imágenes
+
             previewContainer.addEventListener('click', function(e) {
                 if (e.target.classList.contains('remove-btn')) {
                     const imageId = e.target.getAttribute('data-id');
                     document.getElementById(imageId).value = '';
                     e.target.parentElement.remove();
                     imageCount--;
+                }
+            });
+
+            // Validación del formulario
+            document.getElementById('solucionForm').addEventListener('submit', function (e) {
+                const comentario = document.getElementById('id_comentario');
+                const imagenInputs = [
+                    document.getElementById('file-input'),
+                    document.getElementById('pasted-image-1'),
+                    document.getElementById('pasted-image-2'),
+                    document.getElementById('pasted-image-3'),
+                    document.getElementById('pasted-image-4')
+                ];
+
+                let valid = true;
+
+                if (!comentario.value.trim()) {
+                    document.getElementById('comentario-error').classList.remove('d-none');
+                    valid = false;
+                } else {
+                    document.getElementById('comentario-error').classList.add('d-none');
+                }
+
+                const hayImagen = imagenInputs.some(input => input && input.value);
+                if (!hayImagen) {
+                    document.getElementById('imagen-error').classList.remove('d-none');
+                    valid = false;
+                } else {
+                    document.getElementById('imagen-error').classList.add('d-none');
+                }
+
+                if (!valid) {
+                    e.preventDefault();
                 }
             });
         });

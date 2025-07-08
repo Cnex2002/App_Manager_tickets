@@ -896,8 +896,10 @@ def solucionticket_nueva(request, id):
             ticket.estado = 'cerrado'
             ticket.fecha_cierre = timezone.now()
             ticket.save()
-
+            
+            messages.success(request, "La solución fue guardada exitosamente.")
             return redirect('lista_soluciontickets')
+            
     else:
         formulario = SolucionTicketForm()
 
