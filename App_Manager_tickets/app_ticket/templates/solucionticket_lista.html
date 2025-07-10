@@ -221,70 +221,105 @@
                 </div>
                 {% endfor %}
 
-                <div class="modal fade" id="detalleModal{{ solucion.pk }}" tabindex="-1" aria-labelledby="detalleModalLabel{{ solucion.pk }}" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                        <div class="modal-content">
-                            <div class="modal-header bg-primary text-white">
-                                <h5 class="modal-title" id="detalleModalLabel{{ solucion.pk }}">Detalles de Solución para Ticket #{{ solucion.ticket.id }}</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="card mb-3">
-                                    <div class="card-header bg-success text-white">
-                                        <h6 class="card-title mb-0">Información del Ticket Asociado</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <p><strong>ID del Ticket:</strong> {{ solucion.ticket.id }}</p>
-                                        <p><strong>Título del Ticket:</strong> {{ solucion.ticket.titulo }}</p>
-                                        <p><strong>Descripción del Ticket:</strong> {{ solucion.ticket.descripcion|default:"No hay descripción." }}</p>
-                                        <p><strong>Categoría:</strong> {{ solucion.ticket.categoria.nombre }}</p>
-                                        <p><strong>Cliente:</strong> {{ solucion.ticket.cliente.nombres }} (RUC: {{ solucion.ticket.cliente.ruc }})</p>
-                                        <p><strong>Empresa Cliente:</strong> {{ solucion.ticket.cliente.empresa.nombre }}</p>
-                                        <p><strong>Sucursal Cliente:</strong> {{ solucion.ticket.cliente.departamento.sucursal.nombre }}</p>
-                                        <p><strong>Departamento Cliente:</strong> {{ solucion.ticket.cliente.departamento.nombre }}</p>
-                                        <p><strong>Estado del Ticket:</strong> <span class="badge bg-{% if solucion.ticket.estado == 'abierto' %}danger{% elif solucion.ticket.estado == 'en_proceso' %}warning{% elif solucion.ticket.estado == 'resuelto' %}success{% else %}secondary{% endif %}">{{ solucion.ticket.get_estado_display }}</span></p>
-                                        <p><strong>Fecha de Creación del Ticket:</strong> {{ solucion.ticket.fecha_creacion|date:"d/m/Y H:i" }}</p>
-                                        {% if solucion.ticket.fecha_cierre %}
-                                            <p><strong>Fecha de Cierre del Ticket:</strong> {{ solucion.ticket.fecha_cierre|date:"d/m/Y H:i" }}</p>
-                                        {% endif %}
-                                        {% if solucion.ticket.tecnico %}
-                                            <p><strong>Técnico Asignado:</strong> {{ solucion.ticket.tecnico.nombre }}</p>
-                                        {% else %}
-                                            <p><strong>Técnico Asignado:</strong> N/A</p>
-                                        {% endif %}
-                                    </div>
-                                </div>
-
-                                <div class="card">
-                                    <div class="card-header bg-info text-white">
-                                        <h6 class="card-title mb-0">Detalles de la Solución</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <p><strong>Fecha de Subida de la Solución:</strong> {{ solucion.fecha_subida|date:"d/m/Y H:i" }}</p>
-                                        <p><strong>Comentario de la Solución:</strong></p>
-                                        <div class="alert alert-light border">
-                                            {{ solucion.comentario|default:"No se proporcionó un comentario para esta solución." }}
-                                        </div>
-
-                                        {% if solucion.imagenes.all %}
-                                            <h6 class="mt-3">Imágenes de la Solución:</h6>
-                                            <div class="image-gallery-detail">
-                                                {% for imagen in solucion.imagenes.all %}
-                                                    <img src="{{ imagen.imagen.url }}" alt="Imagen de solución" class="img-fluid rounded shadow-sm" data-bs-toggle="modal" data-bs-target="#imageModal{{ imagen.id }}">
-                                                {% endfor %}
-                                            </div>
-                                        {% else %}
-                                            <div class="alert alert-info mt-3">No hay imágenes adjuntas a esta solución.</div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                            </div>
-                        </div>
+               <div class="modal fade" id="detalleModal{{ solucion.pk }}" tabindex="-1" aria-labelledby="detalleModalLabel{{ solucion.pk }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="detalleModalLabel{{ solucion.pk }}">Detalles de Solución para Ticket #{{ solucion.ticket.id }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Información del Ticket -->
+                <div class="card mb-3">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="card-title mb-0">Información del Ticket Asociado</h6>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>ID del Ticket:</strong> {{ solucion.ticket.id }}</p>
+                        <p><strong>Título del Ticket:</strong> {{ solucion.ticket.titulo }}</p>
+                        <p><strong>Descripción del Ticket:</strong> {{ solucion.ticket.descripcion|default:"No hay descripción." }}</p>
+                        <p><strong>Categoría:</strong> {{ solucion.ticket.categoria.nombre }}</p>
+                        <p><strong>Cliente:</strong> {{ solucion.ticket.cliente.nombres }} (RUC: {{ solucion.ticket.cliente.ruc }})</p>
+                        <p><strong>Empresa Cliente:</strong> {{ solucion.ticket.cliente.empresa }}</p>
+                        <p><strong>Estado del Ticket:</strong> 
+                            <span class="badge bg-{% if solucion.ticket.estado == 'abierto' %}danger{% elif solucion.ticket.estado == 'en proceso' %}warning{% elif solucion.ticket.estado == 'cerrado' %}success{% else %}secondary{% endif %}">
+                                {{ solucion.ticket.get_estado_display }}
+                            </span>
+                        </p>
+                        <p><strong>Fecha de Creación del Ticket:</strong> {{ solucion.ticket.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                        {% if solucion.ticket.fecha_cierre %}
+                            <p><strong>Fecha de Cierre del Ticket:</strong> {{ solucion.ticket.fecha_cierre|date:"d/m/Y H:i" }}</p>
+                        {% endif %}
+                        {% if solucion.ticket.tecnico %}
+                            <p><strong>Técnico Asignado:</strong> {{ solucion.ticket.tecnico.nombre }}</p>
+                        {% else %}
+                            <p><strong>Técnico Asignado:</strong> N/A</p>
+                        {% endif %}
                     </div>
                 </div>
+
+                <!-- Información de la Solución -->
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="card-title mb-0">Detalles de la Solución</h6>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Fecha de Subida de la Solución:</strong> {{ solucion.fecha_subida|date:"d/m/Y H:i" }}</p>
+                        <p><strong>Comentario de la Solución:</strong></p>
+                        <div class="alert alert-light border">
+                            {{ solucion.comentario|default:"No se proporcionó un comentario para esta solución." }}
+                        </div>
+
+                        {% if solucion.imagenes.all %}
+                            <h6 class="mt-3">Imágenes de la Solución:</h6>
+                            <div class="image-gallery-detail">
+                                {% for imagen in solucion.imagenes.all %}
+                                    <img src="{{ imagen.imagen.url }}" alt="Imagen de solución" class="img-fluid rounded shadow-sm" data-bs-toggle="modal" data-bs-target="#imageModal{{ imagen.id }}">
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info mt-3">No hay imágenes adjuntas a esta solución.</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Evaluación del Técnico -->
+               <div class="card mt-3">
+    <div class="card-header bg-warning text-dark">
+        <h6 class="card-title mb-0">Evaluación del Técnico</h6>
+    </div>
+    <div class="card-body">
+        {% if solucion.ticket.evaluacion and solucion.ticket.evaluacion.calificacion %}
+            <p><strong>Calificación:</strong></p>
+            <div class="text-warning fs-4">
+                {% for i in estrellas %}
+                    {% if i <= solucion.ticket.evaluacion.calificacion %}
+                        <i class="bi bi-star-fill"></i>
+                    {% else %}
+                        <i class="bi bi-star"></i>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% if solucion.ticket.evaluacion.comentario %}
+                <p class="mt-2"><strong>Comentario:</strong> {{ solucion.ticket.evaluacion.comentario }}</p>
+            {% endif %}
+            {% if solucion.ticket.evaluacion.fecha_evaluacion %}
+                <small class="text-muted">Fecha de evaluación: {{ solucion.ticket.evaluacion.fecha_evaluacion|date:"d/m/Y H:i" }}</small>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-secondary">Este ticket aún no ha sido evaluado.</div>
+        {% endif %}
+    </div>
+</div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
             {% endfor %}
         </div>
 

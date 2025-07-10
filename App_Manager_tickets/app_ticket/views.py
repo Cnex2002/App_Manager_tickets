@@ -33,7 +33,7 @@ from django.contrib import messages
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django.core.mail import send_mail
-from django.db.models import Q
+from django.db.models import Q,Prefetch
 # ERORES PYTHON
 from django.db.models import ProtectedError
 from django.contrib import messages
@@ -472,7 +472,12 @@ def lista_tickets(request):
 
 
 def lista_soluciontickets(request):
-    soluciones = SolucionTicket.objects.all().order_by('-fecha_subida')
+    soluciones = SolucionTicket.objects.select_related(
+        'ticket__tecnico', 'ticket__cliente', 'ticket__categoria'
+    ).prefetch_related(
+        'imagenes',
+        Prefetch('ticket__evaluacion', queryset=EvaluacionTecnico.objects.all(), to_attr='evaluacion_tecnico')
+    ).order_by('-fecha_subida')
 
     query = request.GET.get('q')
     fecha_desde = request.GET.get('fecha_desde')
@@ -486,7 +491,6 @@ def lista_soluciontickets(request):
 
     if fecha_desde:
         try:
-            # Asegurarse de que la fecha sea interpretada correctamente
             fecha_desde_dt = datetime.strptime(fecha_desde, '%Y-%m-%d').replace(tzinfo=pytz.timezone(settings.TIME_ZONE))
             soluciones = soluciones.filter(fecha_subida__gte=fecha_desde_dt)
         except ValueError:
@@ -494,31 +498,29 @@ def lista_soluciontickets(request):
     
     if fecha_hasta:
         try:
-            # Sumar un día y restar un segundo para incluir todo el día de 'fecha_hasta'
             fecha_hasta_dt = datetime.strptime(fecha_hasta, '%Y-%m-%d').replace(tzinfo=pytz.timezone(settings.TIME_ZONE)) + timedelta(days=1, microseconds=-1)
             soluciones = soluciones.filter(fecha_subida__lte=fecha_hasta_dt)
         except ValueError:
             messages.error(request, "Formato de fecha 'Hasta' inválido. Use AAAA-MM-DD.")
 
-    # Paginación
-    paginator = Paginator(soluciones, 5)  # Mostrar 5 soluciones por página
+    paginator = Paginator(soluciones, 5)
     page = request.GET.get('page')
     try:
         soluciones_paginadas = paginator.page(page)
     except PageNotAnInteger:
-        # Si la página no es un entero, entregar la primera página.
         soluciones_paginadas = paginator.page(1)
     except EmptyPage:
-        # Si la página está fuera de rango (ej. 9999), entregar la última página de resultados.
         soluciones_paginadas = paginator.page(paginator.num_pages)
 
     context = {
-        'soluciones': soluciones_paginadas,  # Usar las soluciones paginadas
+        'soluciones': soluciones_paginadas,
         'titulo': 'Lista de Soluciones de Tickets',
         'query': query,
         'fecha_desde': fecha_desde,
         'fecha_hasta': fecha_hasta,
+        'estrellas': range(1, 6),  # Añadir esta línea
     }
+
     return render(request, 'solucionticket_lista.html', context)
 
 
@@ -2057,3 +2059,19 @@ def exportar_problemas_soluciones_pdf(request):
     if pisa_status.err:
         return HttpResponse('Error al generar el PDF', status=500)
     return response
+
+def tickets_por_tecnico(request):
+    tecnico_id = request.GET.get('tecnico_id')
+    
+    if not tecnico_id:
+        return JsonResponse([], safe=False)
+
+    tickets = Ticket.objects.filter(tecnico_id=tecnico_id, estado='abierto')\
+        .select_related('categoria', 'cliente')\
+        .values(
+            'id', 'titulo', 'descripcion', 'prioridad', 'estado', 'fecha_creacion',
+            'categoria__nombre',
+            'cliente__nombres', 'cliente__ruc', 'cliente__telefono', 'cliente__correo'
+        )
+
+    return JsonResponse(list(tickets), safe=False)

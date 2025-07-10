@@ -104,7 +104,8 @@ urlpatterns = [
     path('manuales/descargar/<int:manual_id>/', views.descargar_manual, name='descargar_manual'),
     path('manuales/eliminar/<int:manual_id>/', views.eliminar_manual, name='eliminar_manual'),
 
-     path('reporte/problemas-soluciones/', views.exportar_problemas_soluciones_pdf, name='reporte_problemas_soluciones'),
+    path('reporte/problemas-soluciones/', views.exportar_problemas_soluciones_pdf, name='reporte_problemas_soluciones'),
+    path('api/tickets_por_tecnico/', views.tickets_por_tecnico, name='tickets_por_tecnico'),
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

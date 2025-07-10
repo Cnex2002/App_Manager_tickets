@@ -120,7 +120,7 @@ class TicketForm(forms.ModelForm):
             'prioridad': forms.Select(attrs={'class': 'form-control'}),
             'categoria': forms.Select(attrs={'class': 'form-control'}),
             'cliente': forms.Select(attrs={'class': 'form-control'}),
-            'tecnico': forms.Select(attrs={'class': 'form-control'}),
+            'tecnico': forms.Select(attrs={'class': 'form-control', 'id': 'id_tecnico'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -128,7 +128,6 @@ class TicketForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['cliente'].widget = forms.HiddenInput()
 
-        # Base queryset: técnicos con conteo de tickets abiertos
         tecnicos = Usuario.objects.filter(rol='tecnico').annotate(
             ticket_count=Count('tickets_asignados', filter=Q(tickets_asignados__estado='abierto'))
         )
@@ -152,14 +151,13 @@ class TicketForm(forms.ModelForm):
                 ticket_count=Count('tickets_asignados', filter=Q(tickets_asignados__estado='abierto'))
             )
 
-        # Asignar queryset y etiqueta personalizada
         self.fields['tecnico'].queryset = tecnicos
         self.fields['tecnico'].label_from_instance = lambda obj: (
             f"{obj.departamento.nombre} - {obj.nombre} ({obj.ticket_count} tickets abiertos)"
             if obj.departamento else
             f"{obj.nombre} ({obj.ticket_count} tickets abiertos)"
         )
-
+        
 class EvaluacionTecnicoForm(forms.ModelForm):
     class Meta:
         model = EvaluacionTecnico
