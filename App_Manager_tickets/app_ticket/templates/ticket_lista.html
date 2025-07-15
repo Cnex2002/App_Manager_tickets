@@ -53,6 +53,7 @@
                             <td>{% if t.tecnico %}{{ t.tecnico.nombre }}{% else %}Sin Asignar{% endif %}</td>
                             <td class="text-center">
                                 <a href="{% url 'ticket_editar' t.id %}" class="btn btn-primary btn-sm me-1" title="Editar Ticket">
+                                    
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 {% if t.estado != 'cerrado' %}

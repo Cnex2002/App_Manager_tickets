@@ -689,7 +689,7 @@ def ticket_editar(request, id):
             objeto.save()
              # Redirigir según el origen
             if origen == 'departamento':
-                return redirect('ver_tickets_departamento')
+                return redirect('tecnico_tickets_asignados')
             else:
                 return redirect('lista_tickets') 
     else:
@@ -697,7 +697,8 @@ def ticket_editar(request, id):
         formulario = TicketForm(instance=ticket, request=request)
 
     contexto = {
-        'formulario': formulario
+        'formulario': formulario,
+        'origen': origen
     }
     return render(request, 'ticket_nuevo1.html', contexto)
 

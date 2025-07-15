@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <td><span class="badge bg-${ticket.prioridad === "alta" ? "danger" : ticket.prioridad === "media" ? "warning text-dark" : "success"}">${ticket.prioridad.toUpperCase()}</span></td>
                                 <td>${ticket.categoria__nombre || 'Sin categoría'}</td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-info" onclick='verDetalles(${JSON.stringify(ticket)})'>
+                                    <button type="button" class="btn btn-sm btn-outline-info" onclick='verDetalles(${JSON.stringify(ticket)})'>
                                         Ver
                                     </button>
                                 </td>

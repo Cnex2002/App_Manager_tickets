@@ -8,16 +8,13 @@
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <h1 class="h4 card-title mb-0">Lista de Empresas</h1>
-        <a href="{% url 'empresa_nuevo' %}" class="btn btn-success">
-            <i class="bi bi-plus-circle me-2"></i>Nueva Empresa
-        </a>
+        {% if not empresas %}
+            <a href="{% url 'empresa_nuevo' %}" class="btn btn-success">
+                <i class="bi bi-plus-circle me-2"></i>Nueva Empresa
+            </a>
+        {% endif %}
     </div>
     <div class="card-body">
-        {# La línea "persona: {{user.usuario.rol}}" es solo para depuración, la eliminaré en un entorno de producción #}
-        {# Si necesitas mostrar el rol del usuario en la interfaz, considera un lugar más apropiado y con mejor diseño #}
-        {% comment %}
-        <p class="text-muted">Rol actual: {{ user.usuario.rol }}</p>
-        {% endcomment %}
 
         {% if empresas %}
             <div class="table-responsive">
@@ -67,5 +64,6 @@
         {% endif %}
     </div>
 </div>
+
 
 {% endblock content %}

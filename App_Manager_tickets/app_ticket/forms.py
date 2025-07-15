@@ -171,9 +171,23 @@ class EvaluacionTecnicoForm(forms.ModelForm):
             'comentario': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'fecha_evaluacion': forms.DateTimeInput(
                 attrs={'class': 'form-control', 'type': 'datetime-local'},
-                format='%Y-%m-%dT%H:%M'  # <-- Agrega esta línea
+                format='%Y-%m-%dT%H:%M'
             ),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Base queryset: tickets cerrados sin evaluación
+        queryset = Ticket.objects.filter(estado='cerrado').exclude(evaluacion__isnull=False)
+
+        # Si estamos editando y ya hay un ticket asignado
+        if self.instance and self.instance.pk and self.instance.ticket:
+            # Incluye el ticket ya evaluado en el queryset
+            queryset = Ticket.objects.filter(pk=self.instance.ticket.pk) | queryset
+
+        self.fields['ticket'].queryset = queryset
+
 
 class MultipleFileInput(forms.ClearableFileInput):
     allow_multiple_selected = True
