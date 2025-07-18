@@ -79,10 +79,33 @@ urlpatterns = [
     path('dashboard/', views.ticket_editar, name='dashboard'),
     #si la url esta vacia que me lleve al login 
     path('', views.perfil, name='perfil'),
-     path('reportes/', views.reportes_view, name='reportes'),
-     path('generar_reporte_rendimiento_tecnicos_excel/', views.generar_reporte_rendimiento_tecnicos_excel, name='generar_reporte_rendimiento_tecnicos_excel'),
-    path('generar_reporte_satisfaccion_cliente_excel/', views.generar_reporte_satisfaccion_cliente_excel, name='generar_reporte_satisfaccion_cliente_excel'),
-    path('generar_reporte_clientes_mas_tickets_excel/', views.generar_reporte_clientes_mas_tickets_excel, name='generar_reporte_clientes_mas_tickets_excel'),
+      path('reportes/', views.reportes_view, name='reportes'),
+      path('buscar_departamentos/', views.buscar_departamentos, name='buscar_departamentos'),
+
+   
+    path('grafico_evolucion_mensual_tickets/', views.grafico_evolucion_mensual_tickets, name='grafico_evolucion_mensual_tickets'), # Nueva URL
+     # Nuevas URLs para los reportes
+    path('grafico_tickets_por_estado/', views.grafico_tickets_por_estado, name='grafico_tickets_por_estado'),
+    path('grafico_tickets_por_categoria/', views.grafico_tickets_por_categoria, name='grafico_tickets_por_categoria'),
+    path('grafico_tickets_por_departamento/', views.grafico_tickets_por_departamento, name='grafico_tickets_por_departamento'),
+    path('grafico_calificaciones_servicio/', views.grafico_calificaciones_servicio, name='grafico_calificaciones_servicio'),
+   
+   
+   
+   #reportes de tecnicos
+   path('reportes_tecnico/', views.reportes_tecnico, name='reportes_tecnico'),
+    path('grafico_tickets_por_estado_tecnico/', views.grafico_tickets_por_estado_tecnico, name='grafico_tickets_por_estado_tecnico'),
+     path('grafico_tickets_por_prioridad_tecnico/', views.grafico_tickets_por_prioridad_tecnico, name='grafico_tickets_por_prioridad_tecnico'),
+      path('grafico_productividad_tecnico/', views.grafico_productividad_tecnico, name='grafico_productividad_tecnico'), 
+    path('grafico_calificaciones_recibidas_tecnico/', views.grafico_calificaciones_recibidas_tecnico, name='grafico_calificaciones_recibidas_tecnico'),
+    
+    path('exportar_tickets_asignados_excel/', views.exportar_tickets_asignados_excel, name='exportar_tickets_asignados_excel'),
+    path('exportar_evaluaciones_recibidas_excel/', views.exportar_evaluaciones_recibidas_excel, name='exportar_evaluaciones_recibidas_excel'),
+    path('exportar_estadisticas_prioridad_excel/', views.exportar_estadisticas_prioridad_excel, name='exportar_estadisticas_prioridad_excel'),
+     path('exportar_clientes_mas_tickets_excel/', views.exportar_clientes_mas_tickets_excel, name='exportar_clientes_mas_tickets_excel'),
+      path('exportar_satisfaccion_cliente_excel/', views.exportar_satisfaccion_cliente_excel, name='exportar_satisfaccion_cliente_excel'), # NUEVA LÍNEA
+      path('exportar_rendimiento_tecnicos_excel/', views.exportar_rendimiento_tecnicos_excel, name='exportar_rendimiento_tecnicos_excel'),
+
 
    
 
