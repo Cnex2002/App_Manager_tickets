@@ -14,13 +14,15 @@ from .forms import *
 from django.contrib.auth.decorators import login_required, user_passes_test
 
 
-from django.db.models import Count, Avg, F, ExpressionWrapper, DurationField
+
+from django.db.models import Count, Q, Avg, F, ExpressionWrapper, DurationField, Sum, Case, When, Value 
 from django.db.models.functions import TruncMonth
-from datetime import datetime, timedelta, date # <-- Added date here
+from datetime import datetime, timedelta, date # 
+import calendar
 import pytz
 from django.utils import timezone
 from django.shortcuts import render
-from django.http import FileResponse, Http404, JsonResponse
+from django.http import JsonResponse
 from .embeddings import TicketSolutionSearch
 searcher = TicketSolutionSearch()
 from django.core.files.base import ContentFile
@@ -32,8 +34,9 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
+from django.db.models import Prefetch
 from django.core.mail import send_mail
-from django.db.models import Q,Prefetch
+from django.db.models import Q
 # ERORES PYTHON
 from django.db.models import ProtectedError
 from django.contrib import messages
@@ -41,15 +44,21 @@ from django.contrib import messages
 # Importar Matplotlib
 import matplotlib.pyplot as plt
 import io
+import urllib.parse
+import matplotlib.dates as mdates
+import base64
 import urllib
 import numpy as np
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.utils.dateparse import parse_date
+from django.db.models.functions import TruncDay  # Añade esta importación
 
 #Importar funciones leer pdfs y descargar
 from django.template.loader import get_template
 from django.http import HttpResponse
 from xhtml2pdf import pisa
 import os
+from openpyxl import Workbook
 
 # Configurar el backend de Matplotlib para no usar una GUI
 plt.switch_backend('Agg')
@@ -1178,784 +1187,6 @@ def buscar_cliente(request):
 
 
 
-
-
-# Helper function to generate and encode plots
-def get_plot_as_base64(plt):
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
-    image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
-    plt.close() # Close the plot to free up memory
-    return image_base64
-
-# Function to generate a blank image with a message
-def get_blank_plot_with_message(message="No hay datos disponibles para generar el gráfico."):
-    plt.figure(figsize=(10, 6))
-    plt.text(0.5, 0.5, message, horizontalalignment='center', verticalalignment='center', fontsize=12, color='gray')
-    plt.axis('off') # Hide axes
-    plt.title("Gráfico no disponible")
-    return get_plot_as_base64(plt)
-
-
-# 1. Tickets por Estado (Circular / Anillo)
-def tickets_por_estado_report(start_date=None, end_date=None):
-    queryset = Ticket.objects.all()
-    if start_date:
-        queryset = queryset.filter(fecha_creacion__gte=start_date)
-    if end_date:
-        queryset = queryset.filter(fecha_creacion__lte=end_date)
-    
-    estados = queryset.values('estado').annotate(count=Count('id'))
-    labels = [e['estado'].capitalize() for e in estados]
-    sizes = [e['count'] for e in estados]
-    colors = ['#FF9999', '#66B2FF', '#99FF99'] # Light colors for better readability
-
-    if not sizes: # Handle case where no tickets are found
-        return get_blank_plot_with_message("No hay tickets en el rango de fechas seleccionado.")
-
-    fig1, ax1 = plt.subplots()
-    ax1.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=colors, wedgeprops={'edgecolor': 'black'})
-    ax1.axis('equal')   # Equal aspect ratio ensures that pie is drawn as a circle.
-    ax1.set_title('Tickets por Estado')
-    return get_plot_as_base64(plt)
-
-# 2. Departamentos con Más Incidencias (Barras Verticales)
-def departamentos_incidencias_report(start_date=None, end_date=None):
-    queryset = Ticket.objects.all()
-    if start_date:
-        queryset = queryset.filter(fecha_creacion__gte=start_date)
-    if end_date:
-        queryset = queryset.filter(fecha_creacion__lte=end_date)
-
-    # Use F() expression to access fields across relationships
-    departamentos = queryset.values(
-        departamento_nombre=F('tecnico__departamento__nombre')
-    ).annotate(count=Count('id')).order_by('-count')
-
-    labels = [d['departamento_nombre'] if d['departamento_nombre'] else 'Sin Departamento' for d in departamentos]
-    counts = [d['count'] for d in departamentos]
-
-    if not counts: # Handle case where no data is found
-        return get_blank_plot_with_message("No hay datos de incidencias por departamento en el rango de fechas seleccionado.")
-
-    plt.figure(figsize=(10, 6))
-    plt.bar(labels, counts, color='skyblue')
-    plt.xlabel('Departamentos')
-    plt.ylabel('Número de Incidencias')
-    plt.title('Departamentos con Más Incidencias')
-    plt.xticks(rotation=45, ha='right')
-    plt.tight_layout()
-    return get_plot_as_base64(plt)
-
-# 3. Tendencia de Tickets por Mes (Gráfico de serie Temporal)
-def tendencia_tickets_por_mes_report(start_date=None, end_date=None):
-    queryset = Ticket.objects.all()
-    if start_date:
-        queryset = queryset.filter(fecha_creacion__gte=start_date)
-    if end_date:
-        queryset = queryset.filter(fecha_creacion__lte=end_date)
-
-    # Annotate with month and year for grouping
-    tickets_por_mes = queryset.annotate(
-        month=TruncMonth('fecha_creacion')
-    ).values('month').annotate(count=Count('id')).order_by('month')
-
-    months = [t['month'].strftime('%Y-%m') for t in tickets_por_mes]
-    counts = [t['count'] for t in tickets_por_mes]
-
-    if not months: # Handle case where no data is found
-        return get_blank_plot_with_message("No hay datos de tendencia de tickets por mes en el rango de fechas seleccionado.")
-
-    plt.figure(figsize=(12, 6))
-    plt.plot(months, counts, marker='o', linestyle='-')
-    plt.xlabel('Mes y Año')
-    plt.ylabel('Número de Tickets')
-    plt.title('Tendencia de Tickets por Mes')
-    plt.grid(True)
-    plt.xticks(rotation=45, ha='right')
-    plt.tight_layout()
-    return get_plot_as_base64(plt)
-
-# 4. Categorías con mas incidencias (Barras Verticales)
-def categorias_incidencias_report(start_date=None, end_date=None):
-    queryset = Ticket.objects.all()
-    if start_date:
-        queryset = queryset.filter(fecha_creacion__gte=start_date)
-    if end_date:
-        queryset = queryset.filter(fecha_creacion__lte=end_date)
-
-    categorias = queryset.values('categoria__nombre').annotate(count=Count('id')).order_by('-count')
-    labels = [c['categoria__nombre'] if c['categoria__nombre'] else 'Sin Categoría' for c in categorias]
-    counts = [c['count'] for c in categorias]
-
-    if not counts: # Handle case where no data is found
-        return get_blank_plot_with_message("No hay datos de incidencias por categoría en el rango de fechas seleccionado.")
-
-    plt.figure(figsize=(10, 6))
-    plt.bar(labels, counts, color='lightcoral')
-    plt.xlabel('Categorías')
-    plt.ylabel('Número de Incidencias')
-    plt.title('Categorías con Más Incidencias')
-    plt.xticks(rotation=45, ha='right')
-    plt.tight_layout()
-    return get_plot_as_base64(plt)
-
-# 5. Calificación de tickets (histograma)
-def calificacion_tickets_report(start_date=None, end_date=None):
-    queryset = EvaluacionTecnico.objects.all()
-    if start_date:
-        queryset = queryset.filter(ticket__fecha_creacion__gte=start_date)
-    if end_date:
-        queryset = queryset.filter(ticket__fecha_creacion__lte=end_date)
-
-    calificaciones = queryset.values_list('calificacion', flat=True).exclude(calificacion__isnull=True)
-    
-    if not calificaciones:
-        return get_blank_plot_with_message("No hay datos de calificaciones en el rango de fechas seleccionado.")
-
-    # Map numerical ratings to their string representations
-    calificacion_map = dict(CALIFICACION_CHOICES)
-    display_calificaciones = [calificacion_map.get(c, 'Desconocido') for c in calificaciones]
-
-    # Count occurrences of each rating
-    from collections import Counter
-    rating_counts = Counter(display_calificaciones)
-    
-    # Order the labels according to CALIFICACION_CHOICES
-    # Only include labels for ratings that actually exist in the data
-    existing_ratings = sorted(list(set(c for c in calificaciones if c is not None)))
-    ordered_labels = [calificacion_map[i] for i in existing_ratings]
-    ordered_counts = [rating_counts[calificacion_map[label_key]] for label_key in existing_ratings]
-
-    plt.figure(figsize=(8, 5))
-    plt.bar(ordered_labels, ordered_counts, color='lightgreen')
-    plt.xlabel('Calificación')
-    plt.ylabel('Número de Evaluaciones')
-    plt.title('Distribución de Calificaciones de Tickets')
-    plt.tight_layout()
-    return get_plot_as_base64(plt)
-
-def tiempo_promedio_resolucion_report(start_date=None, end_date=None):
-    # Calcular el tiempo de resolución para cada ticket cerrado
-    tickets_cerrados = Ticket.objects.filter(estado='cerrado', fecha_cierre__isnull=False)
-
-    if start_date:
-        tickets_cerrados = tickets_cerrados.filter(fecha_creacion__gte=start_date)
-    if end_date:
-        tickets_cerrados = tickets_cerrados.filter(fecha_creacion__lte=end_date + timedelta(days=1))
-
-    ticket_durations = tickets_cerrados.annotate(
-        duration=ExpressionWrapper(F('fecha_cierre') - F('fecha_creacion'), output_field=DurationField())
-    ).filter(tecnico__isnull=False)
-
-    # Agrupar por técnico y calcular el promedio de resolución individual
-    tecnico_avg_durations = ticket_durations.values('tecnico__nombre').annotate(
-        avg_duration=Avg('duration')
-    ).order_by('tecnico__nombre')
-
-    # Convertir timedelta a horas/días para fácil comparación y filtrar outliers
-    tecnicos_resolucion = []
-    for item in tecnico_avg_durations:
-        if item['avg_duration']:
-            # Convertir a horas para la detección de outliers (o el valor que consideres alto)
-            duration_in_hours = item['avg_duration'].total_seconds() / 3600
-            tecnicos_resolucion.append({
-                'nombre': item['tecnico__nombre'],
-                'avg_duration_seconds': item['avg_duration'].total_seconds(),
-                'avg_duration_hours': duration_in_hours
-            })
-
-    # Calcular la mediana de los tiempos promedio de los técnicos para identificar outliers
-    # Usaremos el IQR para una detección robusta de outliers
-    avg_resolution_time_formatted = "No hay tickets cerrados para calcular el MTTR."
-    if tecnicos_resolucion:
-        all_avg_hours = [t['avg_duration_hours'] for t in tecnicos_resolucion]
-        Q1 = np.percentile(all_avg_hours, 25)
-        Q3 = np.percentile(all_avg_hours, 75)
-        IQR = Q3 - Q1
-        upper_bound = Q3 + 1.5 * IQR
-
-        # Filtrar técnicos con alto promedio de resolución (outliers)
-        filtered_tecnicos_resolucion = [
-            t for t in tecnicos_resolucion if t['avg_duration_hours'] <= upper_bound
-        ]
-
-        if filtered_tecnicos_resolucion:
-            # Calcular el promedio de resolución general sin los outliers
-            total_avg_seconds_filtered = sum(t['avg_duration_seconds'] for t in filtered_tecnicos_resolucion) / len(filtered_tecnicos_resolucion)
-            
-            # Convertir a formato legible (días, horas, minutos)
-            def format_duration(seconds):
-                days = int(seconds // (24 * 3600))
-                hours = int((seconds % (24 * 3600)) // 3600)
-                minutes = int((seconds % 3600) // 60)
-                return f"{days}d {hours}h {minutes}m"
-
-            avg_resolution_time_formatted = format_duration(total_avg_seconds_filtered)
-        else:
-            avg_resolution_time_formatted = "No hay datos suficientes para calcular el MTTR sin outliers."
-    
-
-    # Recalculamos el MTTR por mes, ya que el MTTR general ya ha sido limpiado de outliers.
-    # Esta parte se enfoca en la tendencia, no en la eliminación de outliers individuales por técnico.
-    
-    # Calcular el tiempo de resolución por mes (sin filtrar técnicos específicos aquí)
-    mttr_por_mes = tickets_cerrados.annotate(
-        month=TruncMonth('fecha_cierre'),
-        duration=ExpressionWrapper(F('fecha_cierre') - F('fecha_creacion'), output_field=DurationField())
-    ).values('month').annotate(
-        avg_duration_per_month=Avg('duration')
-    ).order_by('month')
-
-    fechas_mttr = []
-    durations_mttr = []
-
-    for item in mttr_por_mes:
-        if item['avg_duration_per_month']:
-            fechas_mttr.append(item['month'].strftime('%Y-%m'))
-            durations_mttr.append(item['avg_duration_per_month'].total_seconds() / 3600) # Convert to hours
-
-    if not durations_mttr: # Added check for empty data
-        mttr_img = get_blank_plot_with_message("No hay datos de MTTR por mes en el rango de fechas seleccionado.")
-    else:
-        plt.figure(figsize=(10, 6))
-        plt.plot(fechas_mttr, durations_mttr, marker='o', linestyle='-', color='orange')
-        plt.xlabel('Mes')
-        plt.ylabel('Tiempo Promedio de Resolución (Horas)')
-        plt.title('Tendencia del Tiempo Promedio de Resolución (MTTR) por Mes')
-        plt.xticks(rotation=45, ha='right')
-        plt.grid(True)
-        plt.tight_layout()
-        mttr_img = get_plot_as_base64(plt)
-
-    return mttr_img, avg_resolution_time_formatted
-
-
-def tickets_fuera_de_sla_report(start_date=None, end_date=None):
-    # Aquí se asume un SLA de ejemplo, por ejemplo, 48 horas (2 días) para tickets.
-    # DEBES DEFINIR TUS PROPIOS TIEMPOS DE SLA SEGÚN LA PRIORIDAD, CATEGORÍA, ETC.
-    SLA_THRESHOLD_HOURS = 48 # Ejemplo: 48 horas de SLA.
-
-    tickets_cerrados = Ticket.objects.filter(estado='cerrado', fecha_cierre__isnull=False)
-
-    if start_date:
-        tickets_cerrados = tickets_cerrados.filter(fecha_creacion__gte=start_date)
-    if end_date:
-        tickets_cerrados = tickets_cerrados.filter(fecha_creacion__lte=end_date + timedelta(days=1))
-
-    ticket_durations = tickets_cerrados.annotate(
-        duration=ExpressionWrapper(F('fecha_cierre') - F('fecha_creacion'), output_field=DurationField())
-    ).filter(tecnico__isnull=False)
-
-    # Identificar técnicos con alto promedio de resolución para excluir del cálculo global de MTTR
-    # y para el gráfico de "Tickets Fuera de SLA"
-    tecnico_avg_durations_for_sla = ticket_durations.values('tecnico__nombre').annotate(
-        avg_duration=Avg('duration')
-    ).order_by('tecnico__nombre')
-
-    tecnicos_resolucion_sla = []
-    for item in tecnico_avg_durations_for_sla:
-        if item['avg_duration']:
-            tecnicos_resolucion_sla.append({
-                'nombre': item['tecnico__nombre'],
-                'avg_duration_hours': item['avg_duration'].total_seconds() / 3600
-            })
-    
-    outlier_tecnicos = []
-    outlier_avg_resolution_time_formatted = "No hay datos de resolución de tickets."
-    if tecnicos_resolucion_sla:
-        all_avg_hours_sla = [t['avg_duration_hours'] for t in tecnicos_resolucion_sla]
-        Q1_sla = np.percentile(all_avg_hours_sla, 25)
-        Q3_sla = np.percentile(all_avg_hours_sla, 75)
-        IQR_sla = Q3_sla - Q1_sla
-        upper_bound_sla = Q3_sla + 1.5 * IQR_sla
-
-        outlier_tecnicos_names = [t['nombre'] for t in tecnicos_resolucion_sla if t['avg_duration_hours'] > upper_bound_sla]
-        
-        # Calcular el promedio de resolución solo para los técnicos outliers
-        outlier_tickets = ticket_durations.filter(tecnico__nombre__in=outlier_tecnicos_names)
-        
-        if outlier_tickets.exists():
-            avg_outlier_duration_seconds = outlier_tickets.aggregate(avg_dur=Avg('duration'))['avg_dur'].total_seconds()
-            
-            def format_duration(seconds):
-                days = int(seconds // (24 * 3600))
-                hours = int((seconds % (24 * 3600)) // 3600)
-                minutes = int((seconds % 3600) // 60)
-                return f"{days}d {hours}h {minutes}m"
-            
-            outlier_avg_resolution_time_formatted = format_duration(avg_outlier_duration_seconds)
-        else:
-            outlier_avg_resolution_time_formatted = "No hay tickets de técnicos con alto promedio de resolución en el período."
-    
-
-
-    # Ahora, para el gráfico de tickets fuera de SLA, necesitamos el total de tickets cerrados
-    # y los que exceden el SLA.
-    total_tickets_cerrados = tickets_cerrados.count()
-    tickets_fuera_sla = tickets_cerrados.annotate(
-        duration_seconds=ExpressionWrapper(F('fecha_cierre') - F('fecha_creacion'), output_field=DurationField())
-    ).filter(
-        duration_seconds__gt=timedelta(hours=SLA_THRESHOLD_HOURS)
-    ).count()
-
-    tickets_en_sla = total_tickets_cerrados - tickets_fuera_sla
-
-    labels = ['Tickets Dentro de SLA', 'Tickets Fuera de SLA']
-    sizes = [tickets_en_sla, tickets_fuera_sla]
-    colors = ['lightgreen', 'lightcoral']
-    explode = (0, 0.1)  # explode 1st slice
-
-    if total_tickets_cerrados == 0: # Added check for no closed tickets
-        sla_img = get_blank_plot_with_message("No hay tickets cerrados para evaluar el cumplimiento de SLA en el rango de fechas seleccionado.")
-    else:
-        plt.figure(figsize=(8, 8))
-        plt.pie(sizes, explode=explode, labels=labels, colors=colors, autopct='%1.1f%%', startangle=140)
-        plt.axis('equal')   # Equal aspect ratio ensures that pie is drawn as a circle.
-        plt.title(f'Cumplimiento de SLA (Umbral: {SLA_THRESHOLD_HOURS} Horas)')
-        plt.tight_layout()
-        sla_img = get_plot_as_base64(plt)
-
-    return sla_img, outlier_avg_resolution_time_formatted
-
-
-# NEW: Tiempo Promedio de Resolución de Técnicos con Alto Tiempo de Resolución (Outliers de SLA)
-def tiempo_promedio_resolucion_outliers_report(start_date=None, end_date=None):
-    SLA_THRESHOLD_HOURS = 48  # Reutilizar el mismo umbral SLA
-
-    tickets_cerrados = Ticket.objects.filter(estado='cerrado', fecha_cierre__isnull=False)
-
-    if start_date:
-        tickets_cerrados = tickets_cerrados.filter(fecha_creacion__gte=start_date)
-    if end_date:
-        tickets_cerrados = tickets_cerrados.filter(fecha_creacion__lte=end_date + timedelta(days=1))
-
-    ticket_durations = tickets_cerrados.annotate(
-        duration=ExpressionWrapper(F('fecha_cierre') - F('fecha_creacion'), output_field=DurationField())
-    ).filter(tecnico__isnull=False)
-
-    tecnico_avg_durations = ticket_durations.values('tecnico__nombre').annotate(
-        avg_duration=Avg('duration')
-    ).order_by('tecnico__nombre')
-
-    tecnicos_resolucion = []
-    for item in tecnico_avg_durations:
-        if item['avg_duration']:
-            tecnicos_resolucion.append({
-                'nombre': item['tecnico__nombre'],
-                'avg_duration_hours': item['avg_duration'].total_seconds() / 3600
-            })
-
-    outlier_tecnicos_names = []
-    if tecnicos_resolucion:
-        all_avg_hours = [t['avg_duration_hours'] for t in tecnicos_resolucion]
-        # Check if all_avg_hours is not empty before calculating percentiles
-        if all_avg_hours:
-            Q1 = np.percentile(all_avg_hours, 25)
-            Q3 = np.percentile(all_avg_hours, 75)
-            IQR = Q3 - Q1
-            upper_bound = Q3 + 1.5 * IQR
-            
-            outlier_tecnicos_names = [t['nombre'] for t in tecnicos_resolucion if t['avg_duration_hours'] > upper_bound]
-
-    # Filtrar tickets solo para los técnicos identificados como outliers
-    outlier_tickets_filtered = tickets_cerrados.filter(
-        tecnico__nombre__in=outlier_tecnicos_names
-    ).annotate(
-        month=TruncMonth('fecha_cierre'),
-        duration=ExpressionWrapper(F('fecha_cierre') - F('fecha_creacion'), output_field=DurationField())
-    )
-
-    # Calcular el MTTR por mes solo para los tickets de los técnicos outliers
-    mttr_outliers_por_mes = outlier_tickets_filtered.values('month').annotate(
-        avg_duration_per_month=Avg('duration')
-    ).order_by('month')
-
-    fechas_mttr_outliers = []
-    durations_mttr_outliers = []
-
-    for item in mttr_outliers_por_mes:
-        if item['avg_duration_per_month']:
-            fechas_mttr_outliers.append(item['month'].strftime('%Y-%m'))
-            durations_mttr_outliers.append(item['avg_duration_per_month'].total_seconds() / 3600) # Convert to hours
-
-    mttr_outliers_img = None
-    info_outliers = "No hay datos de tickets cerrados para técnicos con alto promedio de resolución en el período."
-
-    if not durations_mttr_outliers: # Added check for empty data
-        mttr_outliers_img = get_blank_plot_with_message("No hay datos de MTTR para técnicos con alto tiempo de resolución en el rango de fechas seleccionado.")
-    else:
-        plt.figure(figsize=(10, 6))
-        plt.plot(fechas_mttr_outliers, durations_mttr_outliers, marker='o', linestyle='-', color='red')
-        plt.xlabel('Mes')
-        plt.ylabel('Tiempo Promedio de Resolución (Horas)')
-        plt.title('Tendencia del MTTR para Técnicos con Alto Tiempo de Resolución')
-        plt.xticks(rotation=45, ha='right')
-        plt.grid(True)
-        plt.tight_layout()
-        mttr_outliers_img = get_plot_as_base64(plt)
-
-        # Información adicional para el reporte
-        avg_overall_outlier_mttr_seconds = sum(durations_mttr_outliers) / len(durations_mttr_outliers) * 3600
-        
-        def format_duration(seconds):
-            days = int(seconds // (24 * 3600))
-            hours = int((seconds % (24 * 3600)) // 3600)
-            minutes = int((seconds % 3600) // 60)
-            return f"{days}d {hours}h {minutes}m"
-        
-        info_outliers = f"MTTR promedio general para técnicos outliers: {format_duration(avg_overall_outlier_mttr_seconds)}. Técnicos considerados outliers: {', '.join(outlier_tecnicos_names) if outlier_tecnicos_names else 'Ninguno'}"
-
-    return mttr_outliers_img, info_outliers
-
-@login_required
-def generar_reporte_rendimiento_tecnicos_excel(request):
-    start_date_str = request.GET.get('start_date')
-    end_date_str = request.GET.get('end_date')
-
-    start_date = None
-    end_date = None
-
-    if start_date_str:
-        try:
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            messages.error(request, "Formato de fecha de inicio inválido. Use AAAA-MM-DD.")
-            return redirect('reportes') # Redirige de vuelta a la página de reportes
-
-    if end_date_str:
-        try:
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            messages.error(request, "Formato de fecha de fin inválido. Use AAAA-MM-DD.")
-            return redirect('reportes') # Redirige de vuelta a la página de reportes
-
-    # Filtrar tickets por rango de fechas si se proporcionan
-    tickets_queryset = Ticket.objects.all()
-    if start_date:
-        tickets_queryset = tickets_queryset.filter(fecha_creacion__gte=start_date)
-    if end_date:
-        tickets_queryset = tickets_queryset.filter(fecha_creacion__lte=end_date + timedelta(days=1)) # Incluir el día final completo
-
-    # Rendimiento de Técnicos (Detallado)
-    tecnicos_data = Usuario.objects.filter(rol='tecnico').annotate(
-        tickets_cerrados=Count('tickets_asignados', filter=Q(tickets_asignados__estado='cerrado', tickets_asignados__in=tickets_queryset)),
-        tickets_abiertos=Count('tickets_asignados', filter=Q(tickets_asignados__estado='abierto', tickets_asignados__in=tickets_queryset)),
-        tickets_en_proceso=Count('tickets_asignados', filter=Q(tickets_asignados__estado='en proceso', tickets_asignados__in=tickets_queryset)),
-        total_tickets_asignados=Count('tickets_asignados', filter=Q(tickets_asignados__in=tickets_queryset)),
-        tiempo_resolucion_avg=Avg(
-            ExpressionWrapper(
-                F('tickets_asignados__fecha_cierre') - F('tickets_asignados__fecha_creacion'),
-                output_field=DurationField()
-            ),
-            filter=Q(tickets_asignados__estado='cerrado', tickets_asignados__in=tickets_queryset)
-        ),
-        calificacion_promedio=Avg('tickets_asignados__evaluacion__calificacion', filter=Q(tickets_asignados__in=tickets_queryset))
-    ).order_by('tiempo_resolucion_avg') # Ordenar por menor tiempo de resolución
-
-    workbook = openpyxl.Workbook()
-    sheet = workbook.active
-    sheet.title = "Rendimiento Técnicos"
-
-    # Encabezados
-    headers = [
-        "Nombre del Técnico", "Tickets Cerrados", "Tickets Abiertos",
-        "Tickets En Proceso", "Total Tickets Asignados",
-        "Tiempo Promedio de Resolución (MTTR)", "Calificación Promedio"
-    ]
-    sheet.append(headers)
-
-    # Estilos para encabezados
-    header_font = Font(bold=True, color="FFFFFF")
-    header_fill = PatternFill(start_color="007bff", end_color="007bff", fill_type="solid")
-    header_alignment = Alignment(horizontal="center", vertical="center")
-    header_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-
-    for col_num, header_text in enumerate(headers, 1):
-        cell = sheet.cell(row=1, column=col_num, value=header_text)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = header_alignment
-        cell.border = header_border
-        sheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 25
-
-    # Datos
-    for tecnico in tecnicos_data:
-        mttr = "N/A"
-        if tecnico.tiempo_resolucion_avg:
-            total_seconds = tecnico.tiempo_resolucion_avg.total_seconds()
-            hours, remainder = divmod(total_seconds, 3600)
-            minutes, seconds = divmod(remainder, 60)
-            mttr = f"{int(hours)}h {int(minutes)}m {int(seconds)}s"
-
-        calificacion = f"{tecnico.calificacion_promedio:.2f}" if tecnico.calificacion_promedio is not None else "N/A"
-
-        row_data = [
-            tecnico.nombre,
-            tecnico.tickets_cerrados,
-            tecnico.tickets_abiertos,
-            tecnico.tickets_en_proceso,
-            tecnico.total_tickets_asignados,
-            mttr,
-            calificacion
-        ]
-        sheet.append(row_data)
-
-    # Ajustar el ancho de las columnas automáticamente (opcional, si los datos son muy variables)
-    for col in sheet.columns:
-        max_length = 0
-        column = col[0].column_letter # Get the column name
-        for cell in col:
-            try:
-                if len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except:
-                pass
-        adjusted_width = (max_length + 2)
-        sheet.column_dimensions[column].width = adjusted_width
-
-
-    output = io.BytesIO()
-    workbook.save(output)
-    output.seek(0)
-
-    filename = f"rendimiento_tecnicos_reporte_{start_date_str or 'todos'}_a_{end_date_str or 'todos'}.xlsx"
-    response = HttpResponse(output.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    return response
-
-
-@login_required
-def generar_reporte_satisfaccion_cliente_excel(request):
-    start_date_str = request.GET.get('start_date')
-    end_date_str = request.GET.get('end_date')
-
-    start_date = None
-    end_date = None
-
-    if start_date_str:
-        try:
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            messages.error(request, "Formato de fecha de inicio inválido. Use AAAA-MM-DD.")
-            return redirect('reportes')
-
-    if end_date_str:
-        try:
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            messages.error(request, "Formato de fecha de fin inválido. Use AAAA-MM-DD.")
-            return redirect('reportes')
-
-    evaluaciones_queryset = EvaluacionTecnico.objects.filter(
-        calificacion__isnull=False,
-        comentario__isnull=False
-    ).select_related('ticket__cliente', 'ticket__tecnico') # Pre-fetch related objects
-
-    if start_date:
-        evaluaciones_queryset = evaluaciones_queryset.filter(fecha_evaluacion__gte=start_date)
-    if end_date:
-        evaluaciones_queryset = evaluaciones_queryset.filter(fecha_evaluacion__lte=end_date + timedelta(days=1))
-
-    workbook = openpyxl.Workbook()
-    sheet = workbook.active
-    sheet.title = "Satisfacción Cliente"
-
-    headers = [
-        "Título del Ticket", "Nombre Cliente", "Calificación",
-        "Comentario", "Nombre del Técnico"
-    ]
-    sheet.append(headers)
-
-    # Estilos para encabezados
-    header_font = Font(bold=True, color="FFFFFF")
-    header_fill = PatternFill(start_color="007bff", end_color="007bff", fill_type="solid")
-    header_alignment = Alignment(horizontal="center", vertical="center")
-    header_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-
-    for col_num, header_text in enumerate(headers, 1):
-        cell = sheet.cell(row=1, column=col_num, value=header_text)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = header_alignment
-        cell.border = header_border
-        sheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 25
-
-    for eval_tec in evaluaciones_queryset:
-        cliente_nombre = f"{eval_tec.ticket.cliente.nombres}" if eval_tec.ticket.cliente else "N/A"
-        tecnico_nombre = f"{eval_tec.ticket.tecnico.nombre}" if eval_tec.ticket.tecnico else "N/A"
-        row_data = [
-            eval_tec.ticket.titulo,
-            cliente_nombre,
-            eval_tec.get_calificacion_display(),
-            eval_tec.comentario,
-            tecnico_nombre
-        ]
-        sheet.append(row_data)
-
-    for col in sheet.columns:
-        max_length = 0
-        column = col[0].column_letter
-        for cell in col:
-            try:
-                if len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except:
-                pass
-        adjusted_width = (max_length + 2)
-        sheet.column_dimensions[column].width = adjusted_width
-
-    output = io.BytesIO()
-    workbook.save(output)
-    output.seek(0)
-
-    filename = f"satisfaccion_cliente_reporte_{start_date_str or 'todos'}_a_{end_date_str or 'todos'}.xlsx"
-    response = HttpResponse(output.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    return response
-
-
-@login_required
-def generar_reporte_clientes_mas_tickets_excel(request):
-    start_date_str = request.GET.get('start_date')
-    end_date_str = request.GET.get('end_date')
-
-    start_date = None
-    end_date = None
-
-    if start_date_str:
-        try:
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            messages.error(request, "Formato de fecha de inicio inválido. Use AAAA-MM-DD.")
-            return redirect('reportes')
-
-    if end_date_str:
-        try:
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            messages.error(request, "Formato de fecha de fin inválido. Use AAAA-MM-DD.")
-            return redirect('reportes')
-
-    tickets_queryset = Ticket.objects.all()
-    if start_date:
-        tickets_queryset = tickets_queryset.filter(fecha_creacion__gte=start_date)
-    if end_date:
-        tickets_queryset = tickets_queryset.filter(fecha_creacion__lte=end_date + timedelta(days=1))
-
-    clientes_tickets = Cliente.objects.annotate(
-        num_tickets=Count('tickets', filter=Q(tickets__in=tickets_queryset))
-    ).order_by('-num_tickets')
-
-    workbook = openpyxl.Workbook()
-    sheet = workbook.active
-    sheet.title = "Clientes con Más Tickets"
-
-    headers = [
-        "RUC Cliente", "Nombre Cliente", "Teléfono", "Dirección",
-        "Correo", "Anydesk Empresa", "Empresa Asociada", "Número de Tickets"
-    ]
-    sheet.append(headers)
-
-    # Estilos para encabezados
-    header_font = Font(bold=True, color="FFFFFF")
-    header_fill = PatternFill(start_color="007bff", end_color="007bff", fill_type="solid")
-    header_alignment = Alignment(horizontal="center", vertical="center")
-    header_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-
-    for col_num, header_text in enumerate(headers, 1):
-        cell = sheet.cell(row=1, column=col_num, value=header_text)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = header_alignment
-        cell.border = header_border
-        sheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 25
-
-
-    for cliente in clientes_tickets:
-        row_data = [
-            cliente.ruc,
-            cliente.nombres,
-            cliente.telefono,
-            cliente.direccion,
-            cliente.correo,
-            cliente.anydesk_empresa,
-            cliente.empresa,
-            cliente.num_tickets
-        ]
-        sheet.append(row_data)
-
-    for col in sheet.columns:
-        max_length = 0
-        column = col[0].column_letter
-        for cell in col:
-            try:
-                if len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except:
-                pass
-        adjusted_width = (max_length + 2)
-        sheet.column_dimensions[column].width = adjusted_width
-
-    output = io.BytesIO()
-    workbook.save(output)
-    output.seek(0)
-
-    filename = f"clientes_mas_tickets_reporte_{start_date_str or 'todos'}_a_{end_date_str or 'todos'}.xlsx"
-    response = HttpResponse(output.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    return response
-
-
-# Asegúrate de que tu función reportes_view pueda manejar la selección del tipo de reporte.
-@login_required
-def reportes_view(request):
-    start_date_str = request.GET.get('start_date')
-    end_date_str = request.GET.get('end_date')
-
-    start_date = None
-    end_date = None
-
-    if start_date_str:
-        try:
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            messages.error(request, "Formato de fecha de inicio inválido. Use AAAA-MM-DD.")
-    
-    if end_date_str:
-        try:
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            messages.error(request, "Formato de fecha de fin inválido. Use AAAA-MM-DD.")
-
-    # Call the new report functions
-    mttr_img, mttr_info = tiempo_promedio_resolucion_report(start_date, end_date)
-    sla_img, outlier_sla_info = tickets_fuera_de_sla_report(start_date, end_date)
-    
-    # NEW: Call the report for MTTR of outlier technicians
-    mttr_outliers_img, mttr_outliers_info = tiempo_promedio_resolucion_outliers_report(start_date, end_date)
-
-
-    context = {
-        'tickets_por_estado_img': tickets_por_estado_report(start_date, end_date),
-        'departamentos_incidencias_img': departamentos_incidencias_report(start_date, end_date),
-        'tendencia_tickets_por_mes_img': tendencia_tickets_por_mes_report(start_date, end_date),
-        'categorias_incidencias_img': categorias_incidencias_report(start_date, end_date),
-        'calificacion_tickets_img': calificacion_tickets_report(start_date, end_date),
-        'mttr_img': mttr_img,
-        'mttr_info': mttr_info,
-        'sla_img': sla_img,
-        'outlier_sla_info': outlier_sla_info,
-        'mttr_outliers_img': mttr_outliers_img,
-        'mttr_outliers_info': mttr_outliers_info,
-        'start_date_str': start_date_str, # Pasar las fechas para que los filtros persistan
-        'end_date_str': end_date_str,
-    }
-
-    return render(request, 'reportes.html', context)
-
-
 def extraer_texto_pdf(ruta_pdf):
     texto_completo = ""
     with fitz.open(ruta_pdf) as doc:
@@ -2076,3 +1307,1379 @@ def tickets_por_tecnico(request):
         )
 
     return JsonResponse(list(tickets), safe=False)
+
+
+def get_plot_as_base64(plt):
+    # Configurar tamaño consistente para todos los gráficos
+    plt.figure(figsize=(10, 6))
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', dpi=100)
+    buf.seek(0)
+    image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+    plt.close()
+    return image_base64
+
+# Function to generate a blank image with a message
+def get_blank_plot_with_message(message="No hay datos disponibles para generar el gráfico."):
+    plt.figure(figsize=(10, 6))
+    plt.text(0.5, 0.5, message, horizontalalignment='center', verticalalignment='center', fontsize=12, color='gray')
+    plt.axis('off') # Hide axes
+    plt.title("Gráfico no disponible")
+    return get_plot_as_base64(plt)
+
+
+
+def reportes_view(request):
+    sucursales = Sucursal.objects.all()
+    # Inicialmente, no filtramos por departamento aquí, ya que se carga dinámicamente
+    departamentos = Departamento.objects.none()
+
+    # Recuperar los filtros aplicados previamente para mantener la selección
+    fecha_inicio_seleccionada = request.GET.get('fecha_inicio')
+    fecha_fin_seleccionada = request.GET.get('fecha_fin')
+    sucursal_seleccionada = request.GET.get('sucursal')
+    departamento_seleccionado = request.GET.get('departamento')
+
+    # Si hay una sucursal seleccionada, cargar los departamentos de esa sucursal
+    if sucursal_seleccionada:
+        departamentos = Departamento.objects.filter(sucursal__id=sucursal_seleccionada)
+
+    context = {
+        'sucursales': sucursales,
+        'departamentos': departamentos, # Esto se usará para la carga inicial, luego JS lo actualiza
+        'fecha_inicio_seleccionada': fecha_inicio_seleccionada,
+        'fecha_fin_seleccionada': fecha_fin_seleccionada,
+        'sucursal_seleccionada': sucursal_seleccionada,
+        'departamento_seleccionado': departamento_seleccionado,
+    }
+    return render(request, 'reportes.html', context)
+
+
+
+
+
+
+def grafico_evolucion_mensual_tickets(request):
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    fecha_fin_str = request.GET.get('fecha_fin')
+    sucursal_id = request.GET.get('sucursal')
+    departamento_id = request.GET.get('departamento')
+
+    tickets = Ticket.objects.all()
+
+    if fecha_inicio_str:
+        fecha_inicio = parse_date(fecha_inicio_str)
+        if fecha_inicio:
+            tickets = tickets.filter(fecha_creacion__gte=fecha_inicio)
+
+    if fecha_fin_str:
+        fecha_fin = parse_date(fecha_fin_str)
+        if fecha_fin:
+            tickets = tickets.filter(fecha_creacion__lte=fecha_fin)
+
+    if sucursal_id and sucursal_id != '':
+        tickets = tickets.filter(tecnico__departamento__sucursal__id=sucursal_id)
+
+    if departamento_id and departamento_id != '':
+        tickets = tickets.filter(tecnico__departamento__id=departamento_id)
+
+    # Agrupar por mes y contar tickets creados
+    tickets_por_mes = tickets.annotate(month=TruncMonth('fecha_creacion')).values('month').annotate(count=Count('id')).order_by('month')
+
+    meses = [item['month'].strftime('%Y-%m') for item in tickets_por_mes]
+    cantidades = [item['count'] for item in tickets_por_mes]
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(meses, cantidades, marker='o', linestyle='-', color='b')
+    plt.title('Evolución Mensual de Tickets Creados')
+    plt.xlabel('Mes y Año')
+    plt.ylabel('Cantidad de Tickets')
+    plt.grid(True)
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png')
+    plt.close()
+    grafico_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+    return JsonResponse({'grafico': grafico_base64})
+
+
+
+@login_required
+def buscar_departamentos(request):
+    sucursal_id = request.GET.get('sucursal_id')
+    departamentos_data = []
+    if sucursal_id:
+        # Asegúrate de que los departamentos sean activos
+        departamentos = Departamento.objects.filter(sucursal_id=sucursal_id, estado=True).order_by('nombre')
+        for depto in departamentos:
+            departamentos_data.append({'id': depto.id, 'nombre': depto.nombre})
+    return JsonResponse({'departamentos': departamentos_data})
+
+
+
+
+
+def _generar_grafico_base64(plt_figure):
+    """Función auxiliar para convertir un gráfico de Matplotlib a Base64."""
+    buffer = io.BytesIO()
+    plt_figure.savefig(buffer, format='png')
+    plt.close(plt_figure) # Cierra la figura para liberar memoria
+    return base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+
+def _aplicar_filtros_tickets(request, tickets_queryset):
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    fecha_fin_str = request.GET.get('fecha_fin')
+    sucursal_id = request.GET.get('sucursal')
+    departamento_id = request.GET.get('departamento')
+
+    if fecha_inicio_str:
+        parsed_date_inicio = parse_date(fecha_inicio_str)
+        if parsed_date_inicio:
+            # Convertir la fecha de inicio a un datetime consciente de la zona horaria al inicio del día
+            start_of_day = timezone.make_aware(
+                datetime.combine(parsed_date_inicio, datetime.min.time()),
+                timezone.get_current_timezone() # Usa la zona horaria configurada en settings.py
+            )
+            tickets_queryset = tickets_queryset.filter(fecha_creacion__gte=start_of_day)
+
+    if fecha_fin_str:
+        parsed_date_fin = parse_date(fecha_fin_str)
+        if parsed_date_fin:
+            # Convertir la fecha de fin a un datetime consciente de la zona horaria al final del día
+            end_of_day = timezone.make_aware(
+                datetime.combine(parsed_date_fin, datetime.max.time()),
+                timezone.get_current_timezone()
+            )
+            tickets_queryset = tickets_queryset.filter(fecha_creacion__lte=end_of_day)
+
+    if sucursal_id and sucursal_id != '':
+        tickets_queryset = tickets_queryset.filter(tecnico__departamento__sucursal__id=sucursal_id)
+
+    if departamento_id and departamento_id != '':
+        tickets_queryset = tickets_queryset.filter(tecnico__departamento__id=departamento_id)
+        
+    return tickets_queryset
+
+def grafico_tickets_por_estado(request):
+    tickets = Ticket.objects.all()
+    tickets = _aplicar_filtros_tickets(request, tickets)
+
+    estado_counts = tickets.values('estado').annotate(count=Count('id')).order_by('estado')
+
+    estados = [item['estado'] for item in estado_counts]
+    cantidades = [item['count'] for item in estado_counts]
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.bar(estados, cantidades, color=['skyblue', 'lightcoral', 'lightgreen', 'orange'])
+    ax.set_title('Tickets por Estado')
+    ax.set_xlabel('Estado')
+    ax.set_ylabel('Cantidad de Tickets')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+
+    grafico_base64 = _generar_grafico_base64(fig)
+    return JsonResponse({'grafico': grafico_base64})
+
+
+def grafico_tickets_por_categoria(request):
+    tickets = Ticket.objects.all()
+    tickets = _aplicar_filtros_tickets(request, tickets)
+
+    categoria_counts = tickets.values('categoria__nombre').annotate(count=Count('id')).order_by('categoria__nombre')
+
+    categorias = [item['categoria__nombre'] for item in categoria_counts if item['categoria__nombre']]
+    cantidades = [item['count'] for item in categoria_counts if item['categoria__nombre']]
+    
+    if not categorias: # Manejar caso sin datos
+        return JsonResponse({'grafico': None, 'message': 'No hay datos para el gráfico de Tickets por Categoría con los filtros aplicados.'})
+
+    # Función para formatear las etiquetas con porcentaje y conteo
+    def make_autopct(values):
+        def my_autopct(pct):
+            total = sum(values)
+            val = int(round(pct*total/100.0))
+            return f'{pct:.1f}%\n({val:d})'
+        return my_autopct
+
+    fig, ax = plt.subplots(figsize=(10, 7))
+    ax.pie(cantidades, 
+           labels=categorias, 
+           autopct=make_autopct(cantidades), 
+           startangle=90, 
+           colors=plt.cm.Paired.colors)
+    ax.axis('equal') # Equal aspect ratio ensures that pie is drawn as a circle.
+    ax.set_title('Tickets por Categoría')
+    plt.tight_layout()
+
+    grafico_base64 = _generar_grafico_base64(fig)
+    return JsonResponse({'grafico': grafico_base64})
+
+
+def grafico_tickets_por_departamento(request):
+    tickets = Ticket.objects.all()
+    tickets = _aplicar_filtros_tickets(request, tickets)
+
+    # Filtrar solo tickets que tienen un técnico asignado y un departamento asociado
+    departamento_counts = tickets.filter(tecnico__departamento__isnull=False) \
+                                 .values('tecnico__departamento__nombre') \
+                                 .annotate(count=Count('id')) \
+                                 .order_by('tecnico__departamento__nombre')
+
+    departamentos = [item['tecnico__departamento__nombre'] for item in departamento_counts if item['tecnico__departamento__nombre']]
+    cantidades = [item['count'] for item in departamento_counts if item['tecnico__departamento__nombre']]
+
+    if not departamentos: # Manejar caso sin datos
+        return JsonResponse({'grafico': None, 'message': 'No hay datos para el gráfico de Tickets por Departamento con los filtros aplicados.'})
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.bar(departamentos, cantidades, color='teal')
+    ax.set_title('Tickets por Departamento')
+    ax.set_xlabel('Departamento')
+    ax.set_ylabel('Cantidad de Tickets')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+
+    grafico_base64 = _generar_grafico_base64(fig)
+    return JsonResponse({'grafico': grafico_base64})
+
+def grafico_calificaciones_servicio(request):
+    evaluaciones = EvaluacionTecnico.objects.all()
+
+    # Aplicamos los filtros a los tickets asociados a las evaluaciones
+    tickets_filtrados = Ticket.objects.all()
+    tickets_filtrados = _aplicar_filtros_tickets(request, tickets_filtrados)
+    ticket_ids_filtrados = tickets_filtrados.values_list('id', flat=True)
+
+    # Filtramos las evaluaciones que corresponden a esos tickets
+    evaluaciones = evaluaciones.filter(ticket__id__in=ticket_ids_filtrados)
+    
+    # Agrupamos por calificación para el gráfico de barras
+    datos_calificaciones = evaluaciones.values('calificacion').annotate(
+        total=Count('id')
+    ).order_by('calificacion')
+
+    if not datos_calificaciones:
+        return JsonResponse({'grafico': None, 'message': 'No hay datos para el gráfico de Calificaciones de Servicio con los filtros aplicados.'})
+
+    # Mapeo de valores numéricos a etiquetas de calificación
+    calificacion_map = dict(CALIFICACION_CHOICES)
+    
+    # Preparar datos para el gráfico de barras horizontales
+    calificaciones = []
+    cantidades = []
+    colores = []
+    
+    # Definir colores basados en la calificación (mejor calificación = verde, peor = rojo)
+    color_map = {
+        1: '#ff4d4d',  # Rojo para mala calificación
+        2: '#ff9999',  # Rosa claro
+        3: '#ffcc99',  # Naranja claro
+        4: '#99ccff',  # Azul claro
+        5: '#66cc99'   # Verde para buena calificación
+    }
+    
+    for item in datos_calificaciones:
+        calificacion = item['calificacion']
+        calificaciones.append(calificacion_map.get(calificacion, f'Desconocido ({calificacion})'))
+        cantidades.append(item['total'])
+        colores.append(color_map.get(calificacion, '#999999'))  # Gris por defecto
+
+    # Crear el gráfico de barras horizontales
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Crear las barras horizontales
+    bars = ax.barh(
+        calificaciones, 
+        cantidades,
+        color=colores,
+        height=0.6  # Controla el grosor de las barras
+    )
+    
+    # Añadir etiquetas con los valores
+    for bar in bars:
+        width = bar.get_width()
+        ax.text(
+            width + 0.5,  # Posición x (un poco más allá del final de la barra)
+            bar.get_y() + bar.get_height()/2,  # Posición y (centrada verticalmente)
+            f'{int(width)}',  # Texto (valor)
+            va='center',  # Alineación vertical
+            ha='left',    # Alineación horizontal
+            fontsize=10
+        )
+
+    # Formatear el gráfico
+    ax.set_title('Distribución de Calificaciones de Servicio')
+    ax.set_xlabel('Cantidad de Evaluaciones')
+    ax.set_ylabel('Calificación')
+    ax.grid(True, linestyle='--', alpha=0.6, axis='x')  # Solo líneas de grid horizontales
+    
+    # Ajustar márgenes y layout
+    plt.tight_layout()
+
+    grafico_base64 = _generar_grafico_base64(fig)
+    return JsonResponse({'grafico': grafico_base64})
+
+def extraer_texto_pdf(ruta_pdf):
+    texto_completo = ""
+    with fitz.open(ruta_pdf) as doc:
+        for pagina in doc:
+            texto_completo += pagina.get_text()
+    return texto_completo
+
+@login_required
+def reportes_tecnico(request):
+    tecnico_actual = request.user.usuario # Asumiendo que el User de Django tiene un OneToOneField a tu modelo Usuario
+
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    fecha_fin_str = request.GET.get('fecha_fin')
+
+    tickets = Ticket.objects.filter(tecnico=tecnico_actual)
+
+    if fecha_inicio_str:
+        try:
+            fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+            tickets = tickets.filter(fecha_creacion__gte=fecha_inicio)
+        except ValueError:
+            messages.error(request, "Formato de fecha de inicio inválido. Use YYYY-MM-DD.")
+    
+    if fecha_fin_str:
+        try:
+            fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+            tickets = tickets.filter(fecha_creacion__lte=fecha_fin)
+        except ValueError:
+            messages.error(request, "Formato de fecha de fin inválido. Use YYYY-MM-DD.")
+
+    context = {
+        'fecha_inicio': fecha_inicio_str,
+        'fecha_fin': fecha_fin_str,
+    }
+    
+    return render(request, 'reportes_tecnico.html', context)
+
+
+@login_required
+def grafico_tickets_por_estado_tecnico(request):
+    tecnico_actual = request.user.usuario # Asumiendo que el User de Django tiene un OneToOneField a tu modelo Usuario
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    fecha_fin_str = request.GET.get('fecha_fin')
+
+    tickets = Ticket.objects.filter(tecnico=tecnico_actual)
+
+    if fecha_inicio_str:
+        try:
+            fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+            tickets = tickets.filter(fecha_creacion__gte=fecha_inicio)
+        except ValueError:
+            pass # Ya se manejó en reportes_tecnico, o se puede agregar un mensaje específico aquí si se desea
+    
+    if fecha_fin_str:
+        try:
+            fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+            tickets = tickets.filter(fecha_creacion__lte=fecha_fin)
+        except ValueError:
+            pass # Idem
+
+    # Agrupar por estado y contar
+    tickets_por_estado = tickets.values('estado').annotate(count=Count('id')).order_by('estado')
+
+    estados = [item['estado'] for item in tickets_por_estado]
+    cantidades = [item['count'] for item in tickets_por_estado]
+
+    # Mapear estados a nombres más legibles si es necesario (ej. 'AB' -> 'Abierto')
+    mapeo_estados = dict(Ticket.ESTADO_CHOICES) # Asumiendo que tienes ESTADO_CHOICES en tu modelo Ticket
+    nombres_estados = [mapeo_estados.get(estado, estado) for estado in estados]
+
+    # Generar gráfico de dona
+    fig, ax = plt.subplots(figsize=(8, 8))
+    
+    # Colores para los estados
+    colores = {
+        'abierto': "#A07049",  # Light Peach
+        'en proceso': '#AEC6CF', # Light Blue-Gray
+        'cerrado': "#236B23",  # Pastel Green
+        # Agrega más colores si tienes más estados
+    }
+    
+    # Asignar colores basados en los estados presentes
+    colores_grafico = [colores.get(estado, '#CCCCCC') for estado in estados] # Color por defecto si no está en el mapeo
+
+    def func(pct, allvals):
+        absolute = int(pct/100.*sum(allvals))
+        return f"{pct:.1f}%\n({absolute})" # Formato: Porcentaje%\n(Cantidad)
+
+    # Crear el gráfico de dona
+    wedges, texts, autotexts = ax.pie(
+        cantidades, 
+        labels=nombres_estados, 
+        autopct=lambda pct: func(pct, cantidades), # Usamos nuestra función personalizada
+        startangle=90, 
+        pctdistance=0.85, # Distancia de los porcentajes del centro
+        colors=colores_grafico,
+        wedgeprops=dict(width=0.3) # Para hacer la dona (donut)
+    )
+
+    # Ajustar el texto de los porcentajes
+    for autotext in autotexts:
+        autotext.set_color('white') 
+        autotext.set_fontsize(10)
+        autotext.set_weight('bold')
+
+    # Ajustar el texto de las etiquetas (estados)
+    for text in texts:
+        text.set_fontsize(10)
+        text.set_color('black') 
+        text.set_weight('bold')
+
+    ax.set_title('Tickets por Estado', fontsize=14, fontweight='bold', pad=20)
+    ax.axis('equal')  # Asegura que el gráfico sea un círculo.
+
+    # Guardar el gráfico en un buffer de memoria
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', transparent=True)
+    buf.seek(0)
+    string = base64.b64encode(buf.read())
+    uri = urllib.parse.quote(string)
+    plt.close(fig) # Cierra la figura para liberar memoria
+
+    return JsonResponse({'image': uri})
+
+
+@login_required
+def grafico_tickets_por_prioridad_tecnico(request):
+    tecnico_actual = request.user.usuario
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    fecha_fin_str = request.GET.get('fecha_fin')
+
+    tickets = Ticket.objects.filter(tecnico=tecnico_actual)
+
+    if fecha_inicio_str:
+        try:
+            fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+            tickets = tickets.filter(fecha_creacion__gte=fecha_inicio)
+        except ValueError:
+            pass
+    
+    if fecha_fin_str:
+        try:
+            fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date() + timedelta(days=1) - timedelta(seconds=1)
+            tickets = tickets.filter(fecha_creacion__lte=fecha_fin)
+        except ValueError:
+            pass
+
+    # Agrupar solo por prioridad y contar
+    tickets_por_prioridad = tickets.values('prioridad').annotate(count=Count('id')).order_by('prioridad')
+
+    # Definir el orden deseado de las prioridades para el gráfico
+    orden_prioridad = ['baja', 'media', 'alta']
+    
+    # Inicializar las cantidades para todas las prioridades en el orden definido
+    prioridades = []
+    cantidades = []
+    
+    # Crear un diccionario temporal para un acceso rápido
+    temp_data = {item['prioridad']: item['count'] for item in tickets_por_prioridad}
+
+    for p in orden_prioridad:
+        prioridades.append(p)
+        cantidades.append(temp_data.get(p, 0)) # Usar .get para manejar prioridades sin tickets
+
+    # Mapear prioridades a nombres más legibles
+    mapeo_prioridades = dict(Ticket.PRIORIDAD_CHOICES)
+    nombres_prioridades = [mapeo_prioridades.get(p, p.title()) for p in prioridades]
+
+    # Generar gráfico de barras simple
+    fig, ax = plt.subplots(figsize=(10, 7))
+
+    bar_width = 0.6
+    indices = range(len(prioridades))
+
+    # Colores para las barras (puedes ajustar estos)
+    colores_barras = {
+        'baja': '#ADD8E6',  # Light Blue
+        'media': '#FFD700', # Gold
+        'alta': '#FF6347',  # Tomato
+    }
+    
+    # Asignar colores a las barras según su prioridad
+    colores_grafico = [colores_barras.get(p, '#CCCCCC') for p in prioridades]
+
+    bars = ax.bar(indices, cantidades, bar_width, color=colores_grafico)
+
+    # Añadir los números sobre las barras
+    for bar in bars:
+        height = bar.get_height()
+        if height > 0: # Solo si la barra tiene un valor
+            ax.text(bar.get_x() + bar.get_width() / 2, height + 0.5, f'{int(height)}',
+                    ha='center', va='bottom', fontsize=10, color='gray') # Ajusta el +0.5 para el espacio
+
+    ax.set_xlabel('Prioridad', fontsize=12)
+    ax.set_ylabel('Cantidad de Tickets', fontsize=12)
+    ax.set_title('Tickets por Prioridad', fontsize=14, fontweight='bold', pad=20)
+    ax.set_xticks(indices)
+    ax.set_xticklabels(nombres_prioridades, rotation=0, ha='center', fontsize=10)
+    ax.yaxis.grid(True, linestyle='--', alpha=0.7) # Cuadrícula en el eje Y
+
+    plt.tight_layout()
+
+    # Guardar el gráfico en un buffer de memoria
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', transparent=True)
+    buf.seek(0)
+    string = base64.b64encode(buf.read())
+    uri = urllib.parse.quote(string)
+    plt.close(fig) # Cierra la figura para liberar memoria
+
+    return JsonResponse({'image': uri})
+
+
+@login_required
+def grafico_productividad_tecnico(request):
+    tecnico_actual = request.user.usuario
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    fecha_fin_str = request.GET.get('fecha_fin')
+
+    tickets_resueltos = Ticket.objects.filter(
+        tecnico=tecnico_actual,
+        estado='cerrado', # Solo tickets cerrados
+        fecha_cierre__isnull=False # Asegurarse de que tengan una fecha de cierre
+    )
+
+    if fecha_inicio_str:
+        try:
+            fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+            tickets_resueltos = tickets_resueltos.filter(fecha_cierre__gte=fecha_inicio)
+        except ValueError:
+            pass
+    
+    if fecha_fin_str:
+        try:
+            fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date() + timedelta(days=1) - timedelta(seconds=1)
+            tickets_resueltos = tickets_resueltos.filter(fecha_cierre__lte=fecha_fin)
+        except ValueError:
+            pass
+    
+    # Determinar la granularidad del eje X: mensual o diaria
+    # Si el rango es de 60 días o menos, se muestra por día, sino por mes
+    if fecha_inicio_str and fecha_fin_str:
+        start_date = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(request.GET.get('fecha_fin'), '%Y-%m-%d').date() # Usamos la fecha original para el cálculo de días
+        delta = end_date - start_date
+        if delta.days <= 60: # Menos de dos meses, mostrar por día
+            trunc_func = TruncDay('fecha_cierre')
+            date_format = '%Y-%m-%d' # Formato para días
+            xlabel = 'Fecha de Cierre (Día)'
+        else: # Más de dos meses, mostrar por mes
+            trunc_func = TruncMonth('fecha_cierre')
+            date_format = '%Y-%m' # Formato para meses
+            xlabel = 'Fecha de Cierre (Mes)'
+    else: # Sin filtros de fecha, por defecto mostrar por mes
+        trunc_func = TruncMonth('fecha_cierre')
+        date_format = '%Y-%m'
+        xlabel = 'Fecha de Cierre (Mes)'
+
+
+    # Agrupar por el período truncado y contar
+    productividad_por_periodo = tickets_resueltos.annotate(
+        periodo=trunc_func
+    ).values('periodo').annotate(
+        count=Count('id')
+    ).order_by('periodo')
+
+    fechas = [item['periodo'] for item in productividad_por_periodo]
+    cantidades = [item['count'] for item in productividad_por_periodo]
+
+    # Convertir las fechas a formato Matplotlib (si son objetos datetime)
+    fechas_mpl = mdates.date2num(fechas)
+
+    fig, ax = plt.subplots(figsize=(12, 6)) # Un poco más ancho para la línea
+
+    ax.plot(fechas_mpl, cantidades, marker='o', linestyle='-', color='#007bff', linewidth=2) # Línea azul
+
+    # Formatear el eje X
+    if trunc_func == TruncDay('fecha_cierre'):
+        ax.xaxis.set_major_locator(mdates.DayLocator(interval=5)) # Mostrar cada 5 días
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
+    else:
+        ax.xaxis.set_major_locator(mdates.MonthLocator())
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+    
+    plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha='right') # Rotar etiquetas para mejor lectura
+
+    ax.set_xlabel(xlabel, fontsize=12)
+    ax.set_ylabel('Tickets Resueltos', fontsize=12)
+    ax.set_title('Productividad: Tickets Resueltos por Período', fontsize=14, fontweight='bold', pad=20)
+    ax.grid(True, linestyle='--', alpha=0.7)
+
+    # Asegurarse de que el eje Y empiece en 0 y sea un número entero
+    ax.set_ylim(bottom=0)
+    ax.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
+
+
+    plt.tight_layout()
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', transparent=True)
+    buf.seek(0)
+    string = base64.b64encode(buf.read())
+    uri = urllib.parse.quote(string)
+    plt.close(fig)
+
+    return JsonResponse({'image': uri})
+
+
+@login_required
+def grafico_calificaciones_recibidas_tecnico(request):
+    tecnico_actual = request.user.usuario
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    fecha_fin_str = request.GET.get('fecha_fin')
+
+    evaluaciones = EvaluacionTecnico.objects.filter(
+        ticket__tecnico=tecnico_actual,
+        calificacion__isnull=False
+    )
+
+    if fecha_inicio_str:
+        try:
+            fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+            evaluaciones = evaluaciones.filter(fecha_evaluacion__gte=fecha_inicio)
+        except ValueError:
+            pass
+    
+    if fecha_fin_str:
+        try:
+            fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date() + timedelta(days=1) - timedelta(seconds=1)
+            evaluaciones = evaluaciones.filter(fecha_evaluacion__lte=fecha_fin)
+        except ValueError:
+            pass
+
+    calificaciones_count = evaluaciones.values('calificacion').annotate(count=Count('id')).order_by('calificacion')
+
+    calificaciones_posibles = [1, 2, 3, 4, 5]
+    cantidades = [0] * len(calificaciones_posibles)
+    
+    for item in calificaciones_count:
+        try:
+            index = calificaciones_posibles.index(item['calificacion'])
+            cantidades[index] = item['count']
+        except ValueError:
+            pass
+
+    # --- MODIFICACIÓN AQUÍ: Ya no se usa EvaluacionTecnico.CALIFICACION_CHOICES ---
+    mapeo_calificaciones = dict(CALIFICACION_CHOICES) # Usamos la constante CALIFICACION_CHOICES directamente
+    # --- FIN DE MODIFICACIÓN ---
+
+    nombres_calificaciones = [f"{cal} ({mapeo_calificaciones.get(cal, str(cal))})" for cal in calificaciones_posibles]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    y_pos = range(len(calificaciones_posibles))
+
+    colores_barras = {
+        1: '#FF6347',
+        2: '#FFD700',
+        3: '#AEC6CF',
+        4: '#90EE90',
+        5: '#20B2AA',
+    }
+    
+    colores_grafico = [colores_barras.get(cal, '#CCCCCC') for cal in calificaciones_posibles]
+
+    bars = ax.barh(y_pos, cantidades, color=colores_grafico)
+
+    for i, bar in enumerate(bars):
+        width = bar.get_width()
+        if width > 0:
+            ax.text(width + 0.5, bar.get_y() + bar.get_height()/2, f'{int(width)}',
+                    ha='left', va='center', fontsize=10, color='gray')
+
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(nombres_calificaciones, fontsize=10)
+    ax.set_xlabel('Cantidad de Evaluaciones', fontsize=12)
+    ax.set_ylabel('Calificación', fontsize=12)
+    ax.set_title('Distribución de Calificaciones Recibidas', fontsize=14, fontweight='bold', pad=20)
+    ax.xaxis.grid(True, linestyle='--', alpha=0.7)
+    
+    ax.set_xlim(left=0)
+    ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
+
+    plt.tight_layout()
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', transparent=True)
+    buf.seek(0)
+    string = base64.b64encode(buf.read())
+    uri = urllib.parse.quote(string)
+    plt.close(fig)
+
+    return JsonResponse({'image': uri})
+
+
+def exportar_tickets_asignados_excel(request):
+    tecnico_actual = request.user.usuario
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    fecha_fin_str = request.GET.get('fecha_fin')
+
+    tickets = Ticket.objects.filter(tecnico=tecnico_actual).select_related(
+        'categoria', 'cliente'
+    ).order_by('-fecha_creacion')
+
+    if fecha_inicio_str:
+        try:
+            fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+            tickets = tickets.filter(fecha_creacion__gte=fecha_inicio)
+        except ValueError:
+            pass
+    
+    if fecha_fin_str:
+        try:
+            fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date() + timedelta(days=1) - timedelta(seconds=1)
+            tickets = tickets.filter(fecha_creacion__lte=fecha_fin)
+        except ValueError:
+            pass
+
+    # Crear el libro de Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Tickets Asignados"
+
+    # Estilos
+    header_fill = PatternFill(start_color="2E86AB", end_color="2E86AB", fill_type="solid")
+    header_font = Font(color="FFFFFF", bold=True)
+    header_alignment = Alignment(horizontal="center")
+    thin_border = Border(left=Side(style='thin'), 
+                         right=Side(style='thin'), 
+                         top=Side(style='thin'), 
+                         bottom=Side(style='thin'))
+
+    # Encabezados
+    headers = [
+        "ID del ticket",
+        "Título",
+        "Estado",
+        "Prioridad",
+        "Categoría",
+        "Fecha de creación",
+        "Fecha de cierre",
+        "Tiempo de resolución",
+        "Nombre del cliente"
+    ]
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+        cell.border = thin_border
+
+    # Datos
+    for row_num, ticket in enumerate(tickets, 2):
+        tiempo_resolucion = ""
+        if ticket.fecha_cierre:
+            tiempo_resolucion = str(ticket.fecha_cierre - ticket.fecha_creacion)
+            # Eliminar la parte de microsegundos para mejor legibilidad
+            tiempo_resolucion = tiempo_resolucion.split('.')[0]
+
+        ws.cell(row=row_num, column=1, value=ticket.id).border = thin_border
+        ws.cell(row=row_num, column=2, value=ticket.titulo).border = thin_border
+        ws.cell(row=row_num, column=3, value=ticket.get_estado_display()).border = thin_border
+        ws.cell(row=row_num, column=4, value=ticket.get_prioridad_display()).border = thin_border
+        ws.cell(row=row_num, column=5, value=ticket.categoria.nombre if ticket.categoria else "").border = thin_border
+        ws.cell(row=row_num, column=6, value=ticket.fecha_creacion.strftime('%Y-%m-%d %H:%M:%S')).border = thin_border
+        ws.cell(row=row_num, column=7, value=ticket.fecha_cierre.strftime('%Y-%m-%d %H:%M:%S') if ticket.fecha_cierre else "").border = thin_border
+        ws.cell(row=row_num, column=8, value=tiempo_resolucion).border = thin_border
+        ws.cell(row=row_num, column=9, value=ticket.cliente.nombres if ticket.cliente else "").border = thin_border
+
+    # Ajustar el ancho de las columnas
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2) * 1.2
+        ws.column_dimensions[column].width = adjusted_width
+
+    # Preparar la respuesta
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=tickets_asignados.xlsx'
+    wb.save(response)
+
+    return response
+
+def exportar_evaluaciones_recibidas_excel(request):
+    tecnico_actual = request.user.usuario
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    fecha_fin_str = request.GET.get('fecha_fin')
+
+    evaluaciones = EvaluacionTecnico.objects.filter(
+        ticket__tecnico=tecnico_actual
+    ).select_related('ticket').order_by('-fecha_evaluacion')
+
+    if fecha_inicio_str:
+        try:
+            fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+            evaluaciones = evaluaciones.filter(fecha_evaluacion__gte=fecha_inicio)
+        except ValueError:
+            pass
+    
+    if fecha_fin_str:
+        try:
+            fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date() + timedelta(days=1) - timedelta(seconds=1)
+            evaluaciones = evaluaciones.filter(fecha_evaluacion__lte=fecha_fin)
+        except ValueError:
+            pass
+
+    # Crear el libro de Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Evaluaciones Recibidas"
+
+    # Estilos
+    header_fill = PatternFill(start_color="3BBA9C", end_color="3BBA9C", fill_type="solid")
+    header_font = Font(color="FFFFFF", bold=True)
+    header_alignment = Alignment(horizontal="center")
+    thin_border = Border(left=Side(style='thin'), 
+                         right=Side(style='thin'), 
+                         top=Side(style='thin'), 
+                         bottom=Side(style='thin'))
+
+    # Encabezados
+    headers = [
+        "ID del ticket",
+        "Título del ticket",
+        "Fecha de cierre",
+        "Calificación",
+        "Comentario del cliente"
+    ]
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+        cell.border = thin_border
+
+    # Datos
+    for row_num, evaluacion in enumerate(evaluaciones, 2):
+        ticket = evaluacion.ticket
+        
+        ws.cell(row=row_num, column=1, value=ticket.id).border = thin_border
+        ws.cell(row=row_num, column=2, value=ticket.titulo).border = thin_border
+        ws.cell(row=row_num, column=3, value=ticket.fecha_cierre.strftime('%Y-%m-%d %H:%M:%S') if ticket.fecha_cierre else "").border = thin_border
+        ws.cell(row=row_num, column=4, value=evaluacion.get_calificacion_display()).border = thin_border
+        ws.cell(row=row_num, column=5, value=evaluacion.comentario or "").border = thin_border
+
+    # Ajustar el ancho de las columnas
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2) * 1.2
+        ws.column_dimensions[column].width = adjusted_width
+
+    # Preparar la respuesta
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=evaluaciones_recibidas.xlsx'
+    wb.save(response)
+
+    return response
+
+def exportar_estadisticas_prioridad_excel(request):
+    tecnico_actual = request.user.usuario
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    fecha_fin_str = request.GET.get('fecha_fin')
+
+    # Definir SLA en horas
+    SLA = {
+        'alta': 4,    # 4 horas para alta prioridad
+        'media': 24,   # 24 horas para media prioridad
+        'baja': 72     # 72 horas (3 días) para baja prioridad
+    }
+
+    # Obtener todos los tickets del técnico
+    tickets = Ticket.objects.filter(tecnico=tecnico_actual)
+    
+    if fecha_inicio_str:
+        try:
+            fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+            tickets = tickets.filter(fecha_creacion__gte=fecha_inicio)
+        except ValueError:
+            pass
+    
+    if fecha_fin_str:
+        try:
+            fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date() + timedelta(days=1) - timedelta(seconds=1)
+            tickets = tickets.filter(fecha_creacion__lte=fecha_fin)
+        except ValueError:
+            pass
+
+    # Crear estructura para las estadísticas
+    estadisticas = []
+    for prioridad in ['alta', 'media', 'baja']:
+        tickets_prioridad = tickets.filter(prioridad=prioridad)
+        total = tickets_prioridad.count()
+        abiertos = tickets_prioridad.filter(estado='abierto').count()
+        cerrados = tickets_prioridad.filter(estado='cerrado').count()
+        
+        # Calcular tickets dentro/fuera SLA y tiempos
+        dentro_sla = 0
+        fuera_sla = 0
+        tiempo_dentro_sla = timedelta()
+        tiempo_fuera_sla = timedelta()
+        
+        for ticket in tickets_prioridad.filter(estado='cerrado', fecha_cierre__isnull=False):
+            tiempo_resolucion = ticket.fecha_cierre - ticket.fecha_creacion
+            horas_resolucion = tiempo_resolucion.total_seconds() / 3600
+            
+            if horas_resolucion <= SLA[prioridad]:
+                dentro_sla += 1
+                tiempo_dentro_sla += tiempo_resolucion
+            else:
+                fuera_sla += 1
+                tiempo_fuera_sla += tiempo_resolucion
+        
+        # Calcular promedios
+        avg_dentro_sla = str(tiempo_dentro_sla / dentro_sla).split('.')[0] if dentro_sla > 0 else "N/A"
+        avg_fuera_sla = str(tiempo_fuera_sla / fuera_sla).split('.')[0] if fuera_sla > 0 else "N/A"
+        
+        estadisticas.append({
+            'prioridad': prioridad,
+            'total': total,
+            'abiertos': abiertos,
+            'cerrados': cerrados,
+            'dentro_sla': dentro_sla,
+            'fuera_sla': fuera_sla,
+            'avg_dentro_sla': avg_dentro_sla,
+            'avg_fuera_sla': avg_fuera_sla
+        })
+
+    # Crear el libro de Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Estadísticas por Prioridad"
+
+    # Estilos
+    header_fill = PatternFill(start_color="F18F01", end_color="F18F01", fill_type="solid")  # Naranja
+    header_font = Font(color="FFFFFF", bold=True)
+    header_alignment = Alignment(horizontal="center")
+    thin_border = Border(left=Side(style='thin'), 
+                         right=Side(style='thin'), 
+                         top=Side(style='thin'), 
+                         bottom=Side(style='thin'))
+
+    # Encabezados
+    headers = [
+        "Tipo de prioridad",
+        "Total de tickets asignados",
+        "Número Tickets abiertos",
+        "Número Tickets resueltos (cerrados)",
+        "Número de tickets resueltos dentro del SLA",
+        "Número de tickets resueltos fuera del SLA",
+        "Tiempo promedio de resolución dentro del SLA",
+        "Tiempo promedio de resolución fuera del SLA"
+    ]
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+        cell.border = thin_border
+
+    # Datos
+    for row_num, stats in enumerate(estadisticas, 2):
+        ws.cell(row=row_num, column=1, value=stats['prioridad'].capitalize()).border = thin_border
+        ws.cell(row=row_num, column=2, value=stats['total']).border = thin_border
+        ws.cell(row=row_num, column=3, value=stats['abiertos']).border = thin_border
+        ws.cell(row=row_num, column=4, value=stats['cerrados']).border = thin_border
+        ws.cell(row=row_num, column=5, value=stats['dentro_sla']).border = thin_border
+        ws.cell(row=row_num, column=6, value=stats['fuera_sla']).border = thin_border
+        ws.cell(row=row_num, column=7, value=stats['avg_dentro_sla']).border = thin_border
+        ws.cell(row=row_num, column=8, value=stats['avg_fuera_sla']).border = thin_border
+
+    # Ajustar el ancho de las columnas
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2) * 1.2
+        ws.column_dimensions[column].width = adjusted_width
+
+    # Preparar la respuesta
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=estadisticas_prioridad.xlsx'
+    wb.save(response)
+
+    return response
+
+
+# Vista para exportar el reporte de Clientes con Más Tickets
+def exportar_clientes_mas_tickets_excel(request):
+    # Obtener los parámetros de filtro de la solicitud
+    # sucursal_id y departamento_id serán ignorados para este reporte, pero los leemos por consistencia si fuera necesario
+    sucursal_id = request.GET.get('sucursal') 
+    departamento_id = request.GET.get('departamento') 
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    fecha_fin_str = request.GET.get('fecha_fin')
+
+    # Iniciar la consulta con todos los clientes y contar sus tickets
+    # CORRECCIÓN: Usar 'tickets' en lugar de 'tickets_cliente'
+    clientes_con_tickets = Cliente.objects.annotate(
+        total_tickets=Count('tickets')
+    ).order_by('-total_tickets')
+
+    # Aplicar filtros de fecha si existen
+    if fecha_inicio_str:
+        fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+        # CORRECCIÓN: Usar 'tickets__fecha_creacion__gte'
+        clientes_con_tickets = clientes_con_tickets.filter(tickets__fecha_creacion__gte=fecha_inicio)
+    if fecha_fin_str:
+        fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+        # CORRECCIÓN: Usar 'tickets__fecha_creacion__lte'
+        clientes_con_tickets = clientes_con_tickets.filter(tickets__fecha_creacion__lte=fecha_fin)
+
+    # Filtrar solo clientes que tienen al menos un ticket después de aplicar los filtros de fecha
+    # Asegúrate de que el Count se aplique después de los filtros para que 'total_tickets' refleje los tickets filtrados
+    clientes_con_tickets = clientes_con_tickets.filter(total_tickets__gt=0).distinct()
+
+    # Crear un nuevo libro de Excel y una hoja
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Clientes con Más Tickets"
+
+    # Estilos
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+    border_style = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+    center_aligned_text = Alignment(horizontal="center")
+
+    # Encabezados
+    headers = ["ID Cliente", "Nombre Cliente", "Email Cliente", "Teléfono Cliente", "Total de Tickets"]
+    ws.append(headers)
+
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center_aligned_text
+        cell.border = border_style
+        ws.column_dimensions[chr(64 + col_num)].width = 20
+
+    # Llenar datos
+    row_num = 2
+    for cliente in clientes_con_tickets:
+        ws.cell(row=row_num, column=1, value=cliente.id).border = border_style
+        ws.cell(row=row_num, column=2, value=cliente.nombres).border = border_style 
+        ws.cell(row=row_num, column=3, value=cliente.correo).border = border_style
+        ws.cell(row=row_num, column=4, value=cliente.telefono).border = border_style
+        ws.cell(row=row_num, column=5, value=cliente.total_tickets).alignment = center_aligned_text
+        ws.cell(row=row_num, column=5).border = border_style
+        row_num += 1
+
+    # Preparar la respuesta HTTP para la descarga
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="reporte_clientes_mas_tickets.xlsx"'
+    wb.save(response)
+    return response
+
+# NUEVA FUNCIÓN PARA EL REPORTE DE SATISFACCIÓN DEL CLIENTE
+def exportar_satisfaccion_cliente_excel(request):
+    sucursal_id = request.GET.get('sucursal')
+    departamento_id = request.GET.get('departamento')
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    fecha_fin_str = request.GET.get('fecha_fin')
+
+    # Iniciar la consulta de EvaluacionTecnico y pre-cargar relaciones para eficiencia
+    evaluaciones = EvaluacionTecnico.objects.select_related(
+        'ticket', 
+        'ticket__cliente', 
+        'ticket__tecnico', 
+        'ticket__tecnico__departamento', # Para filtrar por departamento del técnico
+        'ticket__tecnico__departamento__sucursal', # Para filtrar por sucursal del técnico
+        'ticket__categoria'
+    ).order_by('ticket__fecha_cierre', 'fecha_evaluacion') # Ordenar para una mejor presentación
+
+    # Aplicar filtros
+    if sucursal_id:
+        evaluaciones = evaluaciones.filter(ticket__tecnico__departamento__sucursal__id=sucursal_id)
+    if departamento_id:
+        evaluaciones = evaluaciones.filter(ticket__tecnico__departamento__id=departamento_id)
+    
+    if fecha_inicio_str:
+        fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+        # Filtramos por la fecha de evaluación, si está disponible, de lo contrario por la fecha de cierre del ticket
+        evaluaciones = evaluaciones.filter(
+            Q(fecha_evaluacion__gte=fecha_inicio) | Q(ticket__fecha_cierre__gte=fecha_inicio, fecha_evaluacion__isnull=True)
+        )
+    if fecha_fin_str:
+        fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+        # Filtramos por la fecha de evaluación, si está disponible, de lo contrario por la fecha de cierre del ticket
+        evaluaciones = evaluaciones.filter(
+            Q(fecha_evaluacion__lte=fecha_fin) | Q(ticket__fecha_cierre__lte=fecha_fin, fecha_evaluacion__isnull=True)
+        )
+
+    # Crear un nuevo libro de Excel y una hoja
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Satisfacción del Cliente"
+
+    # Estilos (reutilizamos los mismos estilos de cabecera)
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+    border_style = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+    center_aligned_text = Alignment(horizontal="center")
+    wrap_text_alignment = Alignment(wrap_text=True, vertical="top")
+
+
+    # Encabezados del reporte de satisfacción
+    headers = [
+        "ID Ticket", "Título del Ticket", "Fecha de Cierre", "Cliente", 
+        "Técnico Asignado", "Prioridad del Ticket", "Categoría del Ticket", 
+        "Calificación", "Comentario", "Fecha de Evaluación"
+    ]
+    ws.append(headers)
+
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center_aligned_text
+        cell.border = border_style
+        ws.column_dimensions[chr(64 + col_num)].width = 25 # Ajusta el ancho de las columnas
+
+    # Llenar datos
+    row_num = 2
+    for eval_obj in evaluaciones:
+        ticket = eval_obj.ticket
+        cliente_nombre = ticket.cliente.nombres if ticket.cliente else "N/A"
+        tecnico_nombre = ticket.tecnico.nombre if ticket.tecnico else "N/A"
+        categoria_nombre = ticket.categoria.nombre if ticket.categoria else "N/A"
+        calificacion_display = eval_obj.get_calificacion_display() if eval_obj.calificacion else "N/A"
+        
+        # Formatear fechas para el Excel
+        fecha_cierre_fmt = ticket.fecha_cierre.strftime('%Y-%m-%d %H:%M') if ticket.fecha_cierre else ""
+        fecha_evaluacion_fmt = eval_obj.fecha_evaluacion.strftime('%Y-%m-%d %H:%M') if eval_obj.fecha_evaluacion else ""
+
+        row_data = [
+            ticket.id,
+            ticket.titulo,
+            fecha_cierre_fmt,
+            cliente_nombre,
+            tecnico_nombre,
+            ticket.get_prioridad_display(), # Usa get_prioridad_display() para el texto completo
+            categoria_nombre,
+            calificacion_display,
+            eval_obj.comentario if eval_obj.comentario else "", # Asegurarse de que no sea None
+            fecha_evaluacion_fmt
+        ]
+        
+        for col_idx, value in enumerate(row_data, 1):
+            cell = ws.cell(row=row_num, column=col_idx, value=value)
+            cell.border = border_style
+            if col_idx == headers.index("Comentario") + 1: # Si es la columna de comentario, permite el ajuste de texto
+                cell.alignment = wrap_text_alignment
+            else:
+                cell.alignment = Alignment(horizontal="left", vertical="top") # Alineación predeterminada a la izquierda
+
+        row_num += 1
+
+    # Preparar la respuesta HTTP para la descarga
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="reporte_satisfaccion_cliente.xlsx"'
+    wb.save(response)
+    return response
+
+def exportar_rendimiento_tecnicos_excel(request):
+    # Definir los SLA en horas según lo especificado
+    SLA = {
+        'alta': 4,    # 4 horas para alta prioridad
+        'media': 24,   # 24 horas para media prioridad
+        'baja': 72     # 72 horas para baja prioridad
+    }
+
+    # Obtener parámetros de filtro
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    fecha_fin_str = request.GET.get('fecha_fin')
+    sucursal_id = request.GET.get('sucursal')
+    departamento_id = request.GET.get('departamento')
+
+    # Base query para tickets que usaremos para los filtros
+    tickets_base = Ticket.objects.all()
+
+    # Aplicar filtros de fecha
+    if fecha_inicio_str:
+        fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+        tickets_base = tickets_base.filter(fecha_creacion__gte=fecha_inicio)
+    
+    if fecha_fin_str:
+        fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+        tickets_base = tickets_base.filter(fecha_creacion__lte=fecha_fin)
+
+    # Aplicar filtro de sucursal (a través de departamento->sucursal del técnico)
+    if sucursal_id:
+        tickets_base = tickets_base.filter(tecnico__departamento__sucursal_id=sucursal_id)
+
+    # Aplicar filtro de departamento (del técnico)
+    if departamento_id:
+        tickets_base = tickets_base.filter(tecnico__departamento_id=departamento_id)
+
+    # Obtener todos los técnicos únicos que aparecen en los tickets filtrados
+    tecnicos_ids = tickets_base.values_list('tecnico', flat=True).distinct()
+    tecnicos = Usuario.objects.filter(id__in=tecnicos_ids).select_related('departamento')
+
+    # Crear el libro de Excel
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Rendimiento de Técnicos"
+
+    # Estilos
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+    border_style = Border(left=Side(style='thin'), right=Side(style='thin'), 
+                         top=Side(style='thin'), bottom=Side(style='thin'))
+    center_aligned_text = Alignment(horizontal="center")
+    number_format = '0.00'
+
+    # Encabezados
+    headers = [
+        "Nombre del técnico",
+        "Departamento",
+        "Sucursal",
+        "Total tickets asignados",
+        "Tickets abiertos",
+        "Tickets resueltos",
+        "% Tickets dentro SLA (Global)",
+        "% Tickets dentro SLA (Alta)",
+        "% Tickets dentro SLA (Media)",
+        "% Tickets dentro SLA (Baja)",
+        "Tiempo promedio resolución (Alta)",
+        "Tiempo promedio resolución (Media)",
+        "Tiempo promedio resolución (Baja)",
+        "Calificación promedio"
+    ]
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center_aligned_text
+        cell.border = border_style
+
+    # Llenar datos
+    row_num = 2
+    for tecnico in tecnicos:
+        # Obtener tickets filtrados para este técnico
+        tickets = tickets_base.filter(tecnico=tecnico)
+        total_tickets = tickets.count()
+        
+        # Tickets abiertos y cerrados
+        tickets_abiertos = tickets.filter(estado='abierto').count()
+        tickets_cerrados = tickets.filter(estado='cerrado').count()
+        
+        # Calcular SLA por prioridad
+        sla_data = {
+            'alta': {'dentro': 0, 'fuera': 0, 'tiempos': []},
+            'media': {'dentro': 0, 'fuera': 0, 'tiempos': []},
+            'baja': {'dentro': 0, 'fuera': 0, 'tiempos': []}
+        }
+        
+        for ticket in tickets.filter(estado='cerrado', fecha_cierre__isnull=False):
+            tiempo_resolucion = ticket.fecha_cierre - ticket.fecha_creacion
+            horas_resolucion = tiempo_resolucion.total_seconds() / 3600
+            
+            if ticket.prioridad in sla_data:
+                if horas_resolucion <= SLA[ticket.prioridad]:
+                    sla_data[ticket.prioridad]['dentro'] += 1
+                else:
+                    sla_data[ticket.prioridad]['fuera'] += 1
+                sla_data[ticket.prioridad]['tiempos'].append(tiempo_resolucion)
+        
+        # Calcular porcentajes SLA
+        total_dentro_sla = sum(data['dentro'] for data in sla_data.values())
+        total_fuera_sla = sum(data['fuera'] for data in sla_data.values())
+        
+        porcentaje_dentro_global = (total_dentro_sla / tickets_cerrados * 100) if tickets_cerrados > 0 else 0
+        porcentaje_dentro_alta = (sla_data['alta']['dentro'] / (sla_data['alta']['dentro'] + sla_data['alta']['fuera']) * 100) if (sla_data['alta']['dentro'] + sla_data['alta']['fuera']) > 0 else 0
+        porcentaje_dentro_media = (sla_data['media']['dentro'] / (sla_data['media']['dentro'] + sla_data['media']['fuera']) * 100) if (sla_data['media']['dentro'] + sla_data['media']['fuera']) > 0 else 0
+        porcentaje_dentro_baja = (sla_data['baja']['dentro'] / (sla_data['baja']['dentro'] + sla_data['baja']['fuera']) * 100) if (sla_data['baja']['dentro'] + sla_data['baja']['fuera']) > 0 else 0
+        
+        # Calcular tiempos promedio por prioridad
+        def avg_time(tiempos):
+            if not tiempos:
+                return "N/A"
+            avg_seconds = sum(t.total_seconds() for t in tiempos) / len(tiempos)
+            avg_timedelta = timedelta(seconds=avg_seconds)
+            days, seconds = avg_timedelta.days, avg_timedelta.seconds
+            hours = seconds // 3600
+            minutes = (seconds % 3600) // 60
+            return f"{hours}h {minutes}m"
+        
+        tiempo_promedio_alta = avg_time(sla_data['alta']['tiempos'])
+        tiempo_promedio_media = avg_time(sla_data['media']['tiempos'])
+        tiempo_promedio_baja = avg_time(sla_data['baja']['tiempos'])
+        
+        # Calcular calificación promedio
+        evaluaciones = EvaluacionTecnico.objects.filter(
+            ticket__in=tickets.filter(estado='cerrado'),
+            calificacion__isnull=False
+        )
+        calificacion_promedio = evaluaciones.aggregate(avg=Avg('calificacion'))['avg'] or 0
+
+        # Escribir datos en Excel
+        ws.cell(row=row_num, column=1, value=tecnico.nombre).border = border_style
+        ws.cell(row=row_num, column=2, value=tecnico.departamento.nombre if tecnico.departamento else "N/A").border = border_style
+        ws.cell(row=row_num, column=3, value=tecnico.departamento.sucursal.nombre if tecnico.departamento and tecnico.departamento.sucursal else "N/A").border = border_style
+        ws.cell(row=row_num, column=4, value=total_tickets).border = border_style
+        ws.cell(row=row_num, column=5, value=tickets_abiertos).border = border_style
+        ws.cell(row=row_num, column=6, value=tickets_cerrados).border = border_style
+        ws.cell(row=row_num, column=7, value=porcentaje_dentro_global).border = border_style
+        ws.cell(row=row_num, column=8, value=porcentaje_dentro_alta).border = border_style
+        ws.cell(row=row_num, column=9, value=porcentaje_dentro_media).border = border_style
+        ws.cell(row=row_num, column=10, value=porcentaje_dentro_baja).border = border_style
+        ws.cell(row=row_num, column=11, value=tiempo_promedio_alta).border = border_style
+        ws.cell(row=row_num, column=12, value=tiempo_promedio_media).border = border_style
+        ws.cell(row=row_num, column=13, value=tiempo_promedio_baja).border = border_style
+        ws.cell(row=row_num, column=14, value=calificacion_promedio).border = border_style
+        
+        # Formatear celdas numéricas
+        for col in [7, 8, 9, 10, 14]:  # Columnas con porcentajes y calificación
+            ws.cell(row=row_num, column=col).number_format = number_format
+        
+        row_num += 1
+
+    # Ajustar el ancho de las columnas
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        ws.column_dimensions[column].width = adjusted_width
+
+    # Preparar la respuesta
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=rendimiento_tecnicos.xlsx'
+    wb.save(response)
+
+    return response
