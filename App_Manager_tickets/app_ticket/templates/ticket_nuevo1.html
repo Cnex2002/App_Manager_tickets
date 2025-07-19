@@ -288,39 +288,35 @@ document.getElementById('formNuevoCliente').addEventListener('submit', function 
     })
     .then(res => res.json())
     .then(data => {
-        const mensajeDiv = document.getElementById('mensaje-cliente');
-        const erroresDiv = document.getElementById('errores-cliente');
         erroresDiv.innerHTML = '';
-        mensajeDiv.style.display = 'none';
-        mensajeDiv.textContent = '';
 
         if (data.success) {
-            // Agregar cliente al select
+            // 1) Agregar cliente al select y seleccionarlo
             const select = document.getElementById('id_cliente');
             const option = document.createElement('option');
             option.value = data.id;
-            option.text = data.nombre;
-            option.selected = true;
+            option.text  = data.nombre;
             select.appendChild(option);
+            select.value = data.id;
 
-            // Mostrar mensaje de éxito
-            mensajeDiv.textContent = "Cliente guardado correctamente";
-            mensajeDiv.style.display = 'block';
+            // 2) Actualizar el bloque de “Cliente seleccionado” en el formulario principal
+            document.getElementById('resultado_clientes').innerHTML =
+                `<div class="alert alert-success">
+                    Cliente seleccionado: <strong>${data.nombre}</strong>
+                </div>`;
 
-            // Limpiar errores
-            erroresDiv.innerHTML = '';
-
-            // Opcional: cerrar modal después de 2 segundos
-            setTimeout(() => {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevoCliente'));
-                modal.hide();
-                form.reset();
-                mensajeDiv.style.display = 'none';
-            }, 2000);
+            // 3) Cerrar el modal y resetear el formulario
+            const modal = bootstrap.Modal.getInstance(
+                document.getElementById('modalNuevoCliente')
+            );
+            modal.hide();
+            form.reset();
         } else {
+            // Mostrar errores devueltos por Django
             if (data.errores) {
                 for (let campo in data.errores) {
-                    erroresDiv.innerHTML += `<div><strong>${campo}:</strong> ${data.errores[campo]}</div>`;
+                    erroresDiv.innerHTML +=
+                        `<div><strong>${campo}:</strong> ${data.errores[campo]}</div>`;
                 }
             } else {
                 erroresDiv.textContent = "Error al guardar cliente.";
@@ -332,5 +328,6 @@ document.getElementById('formNuevoCliente').addEventListener('submit', function 
     });
 });
 </script>
+
 
 {% endblock content %}
