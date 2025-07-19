@@ -1,21 +1,21 @@
 {# app_ticket/templates/categoria_lista.html #}
 
 {% extends "base.html" %}
-{% block title %}Categorías{% endblock title %}
+{% block title %}Áreas{% endblock title %}
 
 {% block content %}
 
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <h1 class="h4 card-title mb-0">Lista de Categorías</h1>
+        <h1 class="h4 card-title mb-0">Lista de Áreas</h1>
         <a href="{% url 'categoria_nuevo' %}" class="btn btn-success">
-            <i class="bi bi-plus-circle me-2"></i>Nueva Categoría
+            <i class="bi bi-plus-circle me-2"></i>Nueva Área
         </a>
     </div>
     <div class="card-body">
         <div class="mb-4">
             <form class="d-flex" method="GET" action="{% url 'lista_categorias' %}"> {# Asegúrate de que esta URL sea la correcta para tu lista de categorías #}
-                <input class="form-control me-2" type="search" placeholder="Buscar por Nombre de Categoría" aria-label="Search" name="q" value="{{ request.GET.q }}">
+                <input class="form-control me-2" type="search" placeholder="Buscar por Nombre de Área" aria-label="Search" name="q" value="{{ request.GET.q }}">
                 <button class="btn btn-outline-primary" type="submit">Buscar</button>
                 {# Botón de Limpiar Filtros #}
                 {% if request.GET.q %} {# Solo muestra el botón si hay un filtro aplicado #}
