@@ -22,7 +22,7 @@ import calendar
 import pytz
 from django.utils import timezone
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import FileResponse, Http404, JsonResponse
 from .embeddings import TicketSolutionSearch
 searcher = TicketSolutionSearch()
 from django.core.files.base import ContentFile
