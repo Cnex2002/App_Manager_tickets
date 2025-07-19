@@ -251,7 +251,8 @@ def ticket_nuevo(request):
             return redirect('lista_tickets')
     else:
         form = TicketForm()
-    return render(request, 'ticket_nuevo1.html', {'formulario': form})
+    return render(request, 'ticket_nuevo1.html', {'formulario': form,'cliente_form': clienteForm(),
+    'origen': "nuevo"})
 
 
 
@@ -2694,3 +2695,20 @@ def exportar_rendimiento_tecnicos_excel(request):
     wb.save(response)
 
     return response
+
+
+
+def crear_cliente_ajax(request):
+    if request.method == 'POST':
+        form = clienteForm(request.POST)
+        if form.is_valid():
+            cliente = form.save()
+            return JsonResponse({
+                'success': True,
+                'id': cliente.id,
+                'nombre': cliente.nombres
+            })
+        else:
+            errores = {field: error[0] for field, error in form.errors.items()}
+            return JsonResponse({'success': False, 'errores': errores})
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})

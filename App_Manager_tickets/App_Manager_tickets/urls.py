@@ -129,6 +129,9 @@ urlpatterns = [
 
     path('reporte/problemas-soluciones/', views.exportar_problemas_soluciones_pdf, name='reporte_problemas_soluciones'),
     path('api/tickets_por_tecnico/', views.tickets_por_tecnico, name='tickets_por_tecnico'),
+    
+    path('crear_cliente_ajax/', views.crear_cliente_ajax, name='crear_cliente_ajax'),
+
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

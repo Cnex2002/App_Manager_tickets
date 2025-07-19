@@ -2,223 +2,335 @@
 {% block title %}<h1>Nuevo Ticket{% endblock title %}
 
 {% block content %}
-<h2>{% if formulario.instance.id %}Editar{% else %}Crear{% endif %} Ticket</h2>
+<h2 class="mb-4">{% if formulario.instance.id %}Editar{% else %}Crear{% endif %} Ticket</h2>
 
-<form method="POST" class="post-form" id="ticketForm">
+<form method="POST" class="post-form">
     {% csrf_token %}
     <input type="hidden" name="origen" value="{{ origen }}">
 
-    <div class="mb-3">
-        <label for="id_titulo" class="form-label"><strong>Título</strong></label>
-        {{ formulario.titulo }}
-    </div>
-
-    <div class="mb-3">
-        <label for="id_descripcion" class="form-label"><strong>Descripción</strong></label>
-        {{ formulario.descripcion }}
-    </div>
-
-    <div class="mb-3">
-        <label for="id_estado" class="form-label"><strong>Estado</strong></label>
-        {{ formulario.estado }}
-    </div>
-
-    <div class="mb-3">
-        <label for="id_prioridad" class="form-label"><strong>Prioridad</strong></label>
-        {{ formulario.prioridad }}
-    </div>
-
-    <div class="mb-3">
-        <label for="id_categoria" class="form-label"><strong>Categoría</strong></label>
-        {{ formulario.categoria }}
-    </div>
-
-    <div class="mb-3">
-        <label for="buscar_cliente">Buscar Cliente:</label>
-        <input type="text" id="buscar_cliente" class="form-control" placeholder="Buscar por nombre, RUC, teléfono, correo o Anydesk">
-        <button type="button" class="btn btn-info mt-2" onclick="buscarCliente()">Buscar</button>
-    </div>
-
-    <div id="resultado_clientes" class="mt-3">
-        {% if formulario.instance.id and formulario.instance.cliente %}
-        <div class="alert alert-info">
-            Cliente actual: <strong>{{ formulario.instance.cliente.nombres }}</strong>
-            {% if formulario.instance.cliente.ruc %} - {{ formulario.instance.cliente.ruc }}{% endif %}
-            {% if formulario.instance.cliente.telefono %} - {{ formulario.instance.cliente.telefono }}{% endif %}
-            {% if formulario.instance.cliente.correo %} - {{ formulario.instance.cliente.correo }}{% endif %}
+    <!-- === CLIENTE SECCIÓN === -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <strong>Información del Cliente</strong>
         </div>
-        {% endif %}
+        <div class="card-body">
+
+            <div class="mb-3">
+        <label for="buscar_cliente" class="form-label">Buscar Cliente:</label>
+        <div class="input-group">
+            <input type="text" id="buscar_cliente" class="form-control" placeholder="Buscar por nombre, RUC, teléfono, correo o Anydesk">
+            <button type="button" class="btn btn-outline-info" onclick="buscarCliente()">Buscar</button>
+            <!-- NUEVO BOTÓN -->
+            <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#modalNuevoCliente">
+                + Agregar Cliente
+            </button>
+        </div>
     </div>
 
-    <div class="mb-3">
-        <label for="id_cliente"><strong>Cliente seleccionado:</strong></label>
-        {{ formulario.cliente }}
+            <div class="mb-3">
+                <label for="id_cliente"><strong>Cliente seleccionado:</strong></label>
+                {{ formulario.cliente }}
+            </div>
+            <!-- Resultado cliente -->
+            <div id="resultado_clientes" class="mb-3">
+                {% if formulario.instance.id and formulario.instance.cliente %}
+                <div class="alert alert-info">
+                    Cliente actual: <strong>{{ formulario.instance.cliente.nombres }}</strong>
+                    {% if formulario.instance.cliente.ruc %} - {{ formulario.instance.cliente.ruc }}{% endif %}
+                    {% if formulario.instance.cliente.telefono %} - {{ formulario.instance.cliente.telefono }}{% endif %}
+                    {% if formulario.instance.cliente.correo %} - {{ formulario.instance.cliente.correo }}{% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            
+        </div>
     </div>
 
-    <div class="mb-3">
-        <label for="id_tecnico" class="form-label"><strong>Técnico asignado</strong></label>
-        {{ formulario.tecnico }}
+    <!-- === ÁREA Y TÉCNICO === -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-success text-white">
+            <strong>Área y Técnico</strong>
+        </div>
+        <div class="card-body">
+
+            <!-- Área (antes Categoría) -->
+            <div class="mb-3">
+                <label for="id_categoria" class="form-label"><strong>Área</strong></label>
+                {{ formulario.categoria }}
+            </div>
+
+            <!-- Técnico asignado -->
+            <div class="mb-3">
+                <label for="id_tecnico" class="form-label"><strong>Técnico Asignado</strong></label>
+                {{ formulario.tecnico }}
+            </div>
+
+            <!-- Tickets del técnico -->
+            <div id="tickets-tecnico" class="mt-3"></div>
+        </div>
     </div>
 
-    <div id="tickets-tecnico" class="mt-4"></div>
+    <!-- === DETALLES DEL TICKET === -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-warning text-dark">
+            <strong>Detalles del Ticket</strong>
+        </div>
+        <div class="card-body">
 
-    <button type="submit" class="btn btn-primary mt-3" onclick="showLoader()">Guardar</button>
-   
+            <div class="mb-3">
+                <label for="id_prioridad" class="form-label"><strong>Prioridad</strong></label>
+                {{ formulario.prioridad }}
+            </div>
+
+            <div class="mb-3">
+                <label for="id_estado" class="form-label"><strong>Estado</strong></label>
+                {{ formulario.estado }}
+            </div>
+
+            <div class="mb-3">
+                <label for="id_titulo" class="form-label"><strong>Título</strong></label>
+                {{ formulario.titulo }}
+            </div>
+
+            <div class="mb-3">
+                <label for="id_descripcion" class="form-label"><strong>Descripción</strong></label>
+                {{ formulario.descripcion }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón Guardar -->
+    <div class="text-end">
+        <button type="submit" class="btn btn-primary">Guardar Ticket</button>
+    </div>
 </form>
 
+<!-- Modal -->
 <div class="modal fade" id="modalDetalles" tabindex="-1" aria-labelledby="modalDetallesLabel" aria-hidden="true">
-    <div class="modal-dialog modal-sm modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalDetallesLabel">Detalles del Ticket</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body" id="contenido-modal">
-                </div>
+  <div class="modal-dialog modal-sm modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalDetallesLabel">Detalles del Ticket</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body" id="contenido-modal">
+        <!-- Detalles dinámicos -->
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Modal para agregar cliente -->
+<div class="modal fade" id="modalNuevoCliente" tabindex="-1" aria-labelledby="modalNuevoClienteLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <form id="formNuevoCliente">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Agregar Nuevo Cliente</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
-    </div>
-</div>
+        <div class="modal-body" id="form-cliente-body" style="max-height: 65vh; overflow-y: auto;">
+            {{ cliente_form.as_p }}
+            <div id="errores-cliente" class="text-danger mt-2"></div>
+            <div id="mensaje-cliente" class="text-success mb-2" style="display:none;"></div>
+        </div>
 
-<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Cargando...</span>
+        <div class="modal-footer">
+
+          <button type="submit" class="btn btn-success">Guardar</button>
+        </div>
+      </form>
     </div>
+  </div>
 </div>
-<div id="loadingOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999;"></div>
 
 <script>
-    function showLoader() {
-        document.getElementById('loadingSpinner').style.display = 'block';
-        document.getElementById('loadingOverlay').style.display = 'block';
-    }
+document.addEventListener('DOMContentLoaded', function () {
+    const tecnicoSelect = document.getElementById("id_tecnico");
+    const contenedor = document.getElementById("tickets-tecnico");
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const tecnicoSelect = document.getElementById("id_tecnico");
-        const contenedor = document.getElementById("tickets-tecnico");
+    tecnicoSelect.addEventListener("change", function () {
+        const tecnicoId = tecnicoSelect.value;
+        contenedor.innerHTML = "";
 
-        tecnicoSelect.addEventListener("change", function () {
-            const tecnicoId = tecnicoSelect.value;
-            contenedor.innerHTML = "";
+        if (!tecnicoId) return;
 
-            if (!tecnicoId) return;
-
-            fetch(`/api/tickets_por_tecnico/?tecnico_id=${tecnicoId}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.length === 0) {
-                        contenedor.innerHTML = "<p class='text-muted'>Este técnico no tiene tickets abiertos asignados.</p>";
-                        return;
-                    }
-
-                    let tabla = `<h6 class="mb-2 text-muted">Tickets abiertos asignados</h6>
-                                 <table class="table table-sm table-bordered table-hover">
-                                     <thead class="table-light">
-                                         <tr>
-                                             <th>#</th>
-                                             <th>Título</th>
-                                             <th>Prioridad</th>
-                                             <th>Categoría</th>
-                                             <th>Acción</th>
-                                         </tr>
-                                     </thead>
-                                     <tbody>`;
-
-                    data.forEach((ticket, i) => {
-                        let color = "table-success";
-                        if (ticket.prioridad === "media") color = "table-warning";
-                        if (ticket.prioridad === "alta") color = "table-danger";
-
-                        tabla += `<tr class="${color}">
-                                     <td>${i + 1}</td>
-                                     <td>${ticket.titulo}</td>
-                                     <td><span class="badge bg-${ticket.prioridad === "alta" ? "danger" : ticket.prioridad === "media" ? "warning text-dark" : "success"}">${ticket.prioridad.toUpperCase()}</span></td>
-                                     <td>${ticket.categoria__nombre || 'Sin categoría'}</td>
-                                     <td>
-                                         <button type="button" class="btn btn-sm btn-outline-info" onclick='verDetalles(${JSON.stringify(ticket)})'>
-                                             Ver
-                                         </button>
-                                     </td>
-                                 </tr>`;
-                    });
-
-                    tabla += `</tbody></table>`;
-                    contenedor.innerHTML = tabla;
-                })
-                .catch(() => {
-                    contenedor.innerHTML = "<div class='alert alert-danger'>Error al cargar los tickets.</div>";
-                });
-        });
-
-        // Ocultar el loader si la página se recarga por alguna razón (ej. validación fallida del formulario)
-        document.getElementById('loadingSpinner').style.display = 'none';
-        document.getElementById('loadingOverlay').style.display = 'none';
-    });
-
-    function verDetalles(ticket) {
-        const modalBody = document.getElementById("contenido-modal");
-        modalBody.innerHTML = `
-            <div class="border rounded p-2 mb-2">
-                <h6><i class="bi bi-ticket-detailed"></i> Detalles del Ticket</h6>
-                <p><strong>Título:</strong> ${ticket.titulo}</p>
-                <p><strong>Descripción:</strong><br>${ticket.descripcion}</p>
-                <p><strong>Prioridad:</strong>
-                    <span class="badge bg-${ticket.prioridad === "alta" ? "danger" : ticket.prioridad === "media" ? "warning text-dark" : "success"}">
-                        ${ticket.prioridad.toUpperCase()}
-                    </span>
-                </p>
-                <p><strong>Categoría:</strong> ${ticket.categoria__nombre || 'Sin categoría'}</p>
-            </div>
-            <div class="border rounded p-2 mb-2">
-                <h6><i class="bi bi-person-badge"></i> Cliente</h6>
-                <p><strong>Nombre:</strong> ${ticket.cliente__nombres || '-'}</p>
-                <p><strong>Correo:</strong> ${ticket.cliente__correo || '-'}</p>
-                <p><strong>Teléfono:</strong> ${ticket.cliente__telefono || '-'}</p>
-            </div>
-            <div class="border rounded p-2">
-                <h6><i class="bi bi-clock-history"></i> Información</h6>
-                <p><strong>Fecha de creación:</strong> ${new Date(ticket.fecha_creacion).toLocaleString()}</p>
-            </div>
-        `;
-        const modal = new bootstrap.Modal(document.getElementById('modalDetalles'));
-        modal.show();
-    }
-
-
-    function buscarCliente() {
-        const query = document.getElementById("buscar_cliente").value;
-        const resultadoDiv = document.getElementById("resultado_clientes");
-        resultadoDiv.innerHTML = "Buscando...";
-
-        fetch(`/buscar_cliente/?q=${encodeURIComponent(query)}`)
-            .then(response => response.json())
+        fetch(`/api/tickets_por_tecnico/?tecnico_id=${tecnicoId}`)
+            .then(res => res.json())
             .then(data => {
-                resultadoDiv.innerHTML = "";
-                if (data.results.length === 0) {
-                    resultadoDiv.innerHTML = "<div class='alert alert-secondary'>No se encontró ningún cliente.</div>";
-                } else {
-                    const lista = document.createElement("ul");
-                    lista.classList.add("list-group");
-
-                    data.results.forEach(cliente => {
-                        const item = document.createElement("li");
-                        item.classList.add("list-group-item", "list-group-item-action");
-                        item.style.cursor = "pointer";
-                        item.innerHTML = `<strong>${cliente.nombre}</strong> - ${cliente.ruc || ''} - ${cliente.telefono || ''} - ${cliente.correo || ''}`;
-                        item.onclick = function () {
-                            const select = document.getElementById("id_cliente");
-                            select.value = cliente.id;
-                            resultadoDiv.innerHTML = `<div class="alert alert-success">Cliente seleccionado: <strong>${cliente.nombre}</strong></div>`;
-                        };
-                        lista.appendChild(item);
-                    });
-
-                    resultadoDiv.appendChild(lista);
+                if (data.length === 0) {
+                    contenedor.innerHTML = "<p class='text-muted'>Este técnico no tiene tickets abiertos asignados.</p>";
+                    return;
                 }
+
+                let tabla = `<h6 class="mb-2 text-muted">Tickets abiertos asignados</h6>
+                             <table class="table table-sm table-bordered table-hover">
+                                 <thead class="table-light">
+                                     <tr>
+                                         <th>#</th>
+                                         <th>Título</th>
+                                         <th>Prioridad</th>
+                                         <th>Área</th>
+                                         <th>Acción</th>
+                                     </tr>
+                                 </thead>
+                                 <tbody>`;
+
+                data.forEach((ticket, i) => {
+                    let color = "table-success";
+                    if (ticket.prioridad === "media") color = "table-warning";
+                    if (ticket.prioridad === "alta") color = "table-danger";
+
+                    tabla += `<tr class="${color}">
+                                <td>${i + 1}</td>
+                                <td>${ticket.titulo}</td>
+                                <td><span class="badge bg-${ticket.prioridad === "alta" ? "danger" : ticket.prioridad === "media" ? "warning text-dark" : "success"}">${ticket.prioridad.toUpperCase()}</span></td>
+                                <td>${ticket.categoria__nombre || 'Sin área'}</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-info" onclick='verDetalles(${JSON.stringify(ticket)})'>
+                                        Ver
+                                    </button>
+                                </td>
+                              </tr>`;
+                });
+
+                tabla += `</tbody></table>`;
+                contenedor.innerHTML = tabla;
             })
-            .catch(error => {
-                console.error("Error en la búsqueda:", error);
-                resultadoDiv.innerHTML = "<div class='alert alert-danger'>Error al buscar cliente.</div>";
+            .catch(() => {
+                contenedor.innerHTML = "<div class='alert alert-danger'>Error al cargar los tickets.</div>";
             });
-    }
+    });
+});
+
+function verDetalles(ticket) {
+    const modalBody = document.getElementById("contenido-modal");
+    modalBody.innerHTML = `
+        <div class="border rounded p-2 mb-2">
+            <h6><i class="bi bi-ticket-detailed"></i> Detalles del Ticket</h6>
+            <p><strong>Título:</strong> ${ticket.titulo}</p>
+            <p><strong>Descripción:</strong><br>${ticket.descripcion}</p>
+            <p><strong>Prioridad:</strong>
+                <span class="badge bg-${ticket.prioridad === "alta" ? "danger" : ticket.prioridad === "media" ? "warning text-dark" : "success"}">
+                    ${ticket.prioridad.toUpperCase()}
+                </span>
+            </p>
+            <p><strong>Área:</strong> ${ticket.categoria__nombre || 'Sin área'}</p>
+        </div>
+        <div class="border rounded p-2 mb-2">
+            <h6><i class="bi bi-person-badge"></i> Cliente</h6>
+            <p><strong>Nombre:</strong> ${ticket.cliente__nombres || '-'}</p>
+            <p><strong>Correo:</strong> ${ticket.cliente__correo || '-'}</p>
+            <p><strong>Teléfono:</strong> ${ticket.cliente__telefono || '-'}</p>
+        </div>
+        <div class="border rounded p-2">
+            <h6><i class="bi bi-clock-history"></i> Información</h6>
+            <p><strong>Fecha de creación:</strong> ${new Date(ticket.fecha_creacion).toLocaleString()}</p>
+        </div>
+    `;
+    const modal = new bootstrap.Modal(document.getElementById('modalDetalles'));
+    modal.show();
+}
+
+function buscarCliente() {
+    const query = document.getElementById("buscar_cliente").value;
+    const resultadoDiv = document.getElementById("resultado_clientes");
+    resultadoDiv.innerHTML = "Buscando...";
+
+    fetch(`/buscar_cliente/?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            resultadoDiv.innerHTML = "";
+            if (data.results.length === 0) {
+                resultadoDiv.innerHTML = "<div class='alert alert-secondary'>No se encontró ningún cliente.</div>";
+            } else {
+                const lista = document.createElement("ul");
+                lista.classList.add("list-group");
+
+                data.results.forEach(cliente => {
+                    const item = document.createElement("li");
+                    item.classList.add("list-group-item", "list-group-item-action");
+                    item.style.cursor = "pointer";
+                    item.innerHTML = `<strong>${cliente.nombre}</strong> - ${cliente.ruc || ''} - ${cliente.telefono || ''} - ${cliente.correo || ''}`;
+                    item.onclick = function () {
+                        const select = document.getElementById("id_cliente");
+                        select.value = cliente.id;
+                        resultadoDiv.innerHTML = `<div class="alert alert-success">Cliente seleccionado: <strong>${cliente.nombre}</strong></div>`;
+                    };
+                    lista.appendChild(item);
+                });
+
+                resultadoDiv.appendChild(lista);
+            }
+        })
+        .catch(error => {
+            console.error("Error en la búsqueda:", error);
+            resultadoDiv.innerHTML = "<div class='alert alert-danger'>Error al buscar cliente.</div>";
+        });
+}
 </script>
+<script>
+document.getElementById('formNuevoCliente').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const formData = new FormData(form);
+    const erroresDiv = document.getElementById('errores-cliente');
+    erroresDiv.innerHTML = '';
+
+    fetch("{% url 'crear_cliente_ajax' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        },
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        const mensajeDiv = document.getElementById('mensaje-cliente');
+        const erroresDiv = document.getElementById('errores-cliente');
+        erroresDiv.innerHTML = '';
+        mensajeDiv.style.display = 'none';
+        mensajeDiv.textContent = '';
+
+        if (data.success) {
+            // Agregar cliente al select
+            const select = document.getElementById('id_cliente');
+            const option = document.createElement('option');
+            option.value = data.id;
+            option.text = data.nombre;
+            option.selected = true;
+            select.appendChild(option);
+
+            // Mostrar mensaje de éxito
+            mensajeDiv.textContent = "Cliente guardado correctamente";
+            mensajeDiv.style.display = 'block';
+
+            // Limpiar errores
+            erroresDiv.innerHTML = '';
+
+            // Opcional: cerrar modal después de 2 segundos
+            setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevoCliente'));
+                modal.hide();
+                form.reset();
+                mensajeDiv.style.display = 'none';
+            }, 2000);
+        } else {
+            if (data.errores) {
+                for (let campo in data.errores) {
+                    erroresDiv.innerHTML += `<div><strong>${campo}:</strong> ${data.errores[campo]}</div>`;
+                }
+            } else {
+                erroresDiv.textContent = "Error al guardar cliente.";
+            }
+        }
+    })
+    .catch(() => {
+        erroresDiv.textContent = "Error de red.";
+    });
+});
+</script>
+
 {% endblock content %}
