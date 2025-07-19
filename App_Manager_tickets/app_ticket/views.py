@@ -59,6 +59,8 @@ from django.http import HttpResponse
 from xhtml2pdf import pisa
 import os
 from openpyxl import Workbook
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 
 # Configurar el backend de Matplotlib para no usar una GUI
 plt.switch_backend('Agg')
@@ -218,56 +220,38 @@ def departamento_nuevo(request):
 
 
 
-@login_required
 def ticket_nuevo(request):
-    origen = request.GET.get('origen') or request.POST.get('origen')  # Captura de GET o POST
     if request.method == 'POST':
-        # Pasar el request al formulario
-        formulario = TicketForm(request.POST, request=request) 
-        if formulario.is_valid():
-            ticket = formulario.save(commit=False)
-            ticket.estado = 'abierto'  # Asigna el estado inicial
+        form = TicketForm(request.POST)
+        if form.is_valid():
+            ticket = form.save(commit=False)
+            ticket.solicitante = request.user # Asegúrate de que 'solicitante' sea un campo válido en tu modelo Ticket o User
             ticket.save()
+            form.save_m2m() # Guarda las relaciones ManyToMany, como la de técnicos (si el técnico fuera ManyToMany)
 
-            # Enviar correo electrónico al cliente
-            asunto = f'Creación de Ticket #{ticket.id}'
-            mensaje = (
-                f'Estimado/a {ticket.cliente.nombres},\n\n'
-                f'Se ha creado un nuevo ticket con los siguientes detalles:\n\n'
-                f'Título: {ticket.titulo}\n'
-                f'Descripción: {ticket.descripcion}\n'
-                f'Estado: {ticket.estado}\n'
-                f'Prioridad: {ticket.prioridad}\n'
-                f'Categoría: {ticket.categoria.nombre}\n'
-                f'Fecha de Creación: {ticket.fecha_creacion.strftime("%Y-%m-%d %H:%M:%S")}\n\n'
-                f'Nos pondremos en contacto contigo a la brevedad posible.\n\n'
-                f'Saludos,\n'
-                f'Equipo de Soporte'
-            )
-            email_cliente = ticket.cliente.correo # Obtén el correo del cliente
+            # Enviar correo al cliente
+            if ticket.cliente and ticket.cliente.correo:
+                subject_cliente = f'Nuevo Ticket Creado: {ticket.titulo}'
+                html_message_cliente = render_to_string('emails/ticket_creado_cliente.html', {'ticket': ticket})
+                plain_message_cliente = strip_tags(html_message_cliente)
+                send_mail(subject_cliente, plain_message_cliente, settings.DEFAULT_FROM_EMAIL, [ticket.cliente.correo], html_message=html_message_cliente)
 
-            try:
-                send_mail(
-                    asunto,
-                    mensaje,
-                    settings.DEFAULT_FROM_EMAIL,  # Desde el correo configurado en settings
-                    [email_cliente],  # Lista de destinatarios
-                    fail_silently=False,
-                )
-                messages.success(request, 'Ticket creado exitosamente y notificación por correo enviada al cliente.')
-                 # Redirigir según el origen
-                if origen == 'departamento':
-                    return redirect('ver_tickets_departamento')
-                else:
-                    return redirect('lista_tickets')
-            except Exception as e:
-                messages.error(request, f'Ticket creado pero no se pudo enviar el correo de notificación: {e}')
+            # Enviar correo al técnico asignado (si hay uno)
+            # CORRECCIÓN AQUÍ: Cambiado 'tecnico_asignado' a 'tecnico'
+            if ticket.tecnico and ticket.tecnico.usuarios and ticket.tecnico.usuarios.email:
+                subject_tecnico = f'Nuevo Ticket Asignado: {ticket.titulo}'
+                # Aquí también necesitas acceder al correo electrónico del objeto User asociado al Técnico
+                html_message_tecnico = render_to_string('emails/ticket_asignado_tecnico.html', {'ticket': ticket})
+                plain_message_tecnico = strip_tags(html_message_tecnico)
+                send_mail(subject_tecnico, plain_message_tecnico, settings.DEFAULT_FROM_EMAIL, [ticket.tecnico.usuarios.email], html_message=html_message_tecnico)
 
-            
+            messages.success(request, 'Ticket creado exitosamente y correos enviados.')
+            if ticket.solicitante.groups.filter(name='Cliente').exists():
+                return redirect('ver_tickets_departamento')
+            return redirect('lista_tickets')
     else:
-        # Pasar el request al formulario
-        formulario = TicketForm(request=request)
-    return render(request, 'ticket_nuevo1.html', {'formulario': formulario, 'titulo': 'Crear Nuevo Ticket'})
+        form = TicketForm()
+    return render(request, 'ticket_nuevo1.html', {'formulario': form})
 
 
 
@@ -690,13 +674,41 @@ def cliente_editar(request, id):
 def ticket_editar(request, id):
     origen = request.GET.get('origen') or request.POST.get('origen')
     ticket = get_object_or_404(Ticket, id=id)
+    
+    # Guardar el técnico original antes de procesar el formulario
+    tecnico_original = ticket.tecnico 
+
     if request.method == 'POST':
         # Pasar el request al formulario
         formulario = TicketForm(request.POST, instance=ticket, request=request)
         if formulario.is_valid():
             objeto = formulario.save(commit=False)
             objeto.save()
-             # Redirigir según el origen
+
+            # Enviar correo si el técnico ha cambiado o se ha asignado uno nuevo
+            if objeto.tecnico and objeto.tecnico != tecnico_original:
+                subject = f'Nuevo Ticket Asignado: {objeto.titulo}'
+                # ¡CORRECCIÓN AQUÍ! Cambiado a 'emails/ticket_asignado_tecnico.html'
+                message = render_to_string('emails/ticket_asignado_tecnico.html', {
+                    'ticket': objeto,
+                    'tecnico': objeto.tecnico, 
+                })
+                from_email = settings.EMAIL_HOST_USER
+                
+                # Verificación para asegurarse de que el usuario exista y tenga email
+                if objeto.tecnico.usuarios and objeto.tecnico.usuarios.email:
+                    recipient_list = [objeto.tecnico.usuarios.email]
+                    
+                    try:
+                        send_mail(subject, message, from_email, recipient_list, html_message=message)
+                        messages.success(request, f'Ticket actualizado y correo enviado a {objeto.tecnico.usuarios.email}')
+                    except Exception as e:
+                        messages.error(request, f'Ticket actualizado, pero falló el envío de correo: {e}')
+                else:
+                    messages.warning(request, f'Ticket actualizado, pero no se pudo enviar correo: el técnico asignado ({objeto.tecnico.nombre}) no tiene un usuario o email asociado.')
+
+
+            # Redirigir según el origen
             if origen == 'departamento':
                 return redirect('tecnico_tickets_asignados')
             else:
@@ -710,7 +722,6 @@ def ticket_editar(request, id):
         'origen': origen
     }
     return render(request, 'ticket_nuevo1.html', contexto)
-
 
 
 

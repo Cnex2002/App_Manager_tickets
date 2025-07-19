@@ -4,7 +4,7 @@
 {% block content %}
 <h2>{% if formulario.instance.id %}Editar{% else %}Crear{% endif %} Ticket</h2>
 
-<form method="POST" class="post-form">
+<form method="POST" class="post-form" id="ticketForm">
     {% csrf_token %}
     <input type="hidden" name="origen" value="{{ origen }}">
 
@@ -33,14 +33,12 @@
         {{ formulario.categoria }}
     </div>
 
-    <!-- Buscar Cliente -->
     <div class="mb-3">
         <label for="buscar_cliente">Buscar Cliente:</label>
         <input type="text" id="buscar_cliente" class="form-control" placeholder="Buscar por nombre, RUC, teléfono, correo o Anydesk">
         <button type="button" class="btn btn-info mt-2" onclick="buscarCliente()">Buscar</button>
     </div>
 
-    <!-- Resultado cliente -->
     <div id="resultado_clientes" class="mt-3">
         {% if formulario.instance.id and formulario.instance.cliente %}
         <div class="alert alert-info">
@@ -57,157 +55,170 @@
         {{ formulario.cliente }}
     </div>
 
-    <!-- Técnico -->
     <div class="mb-3">
         <label for="id_tecnico" class="form-label"><strong>Técnico asignado</strong></label>
         {{ formulario.tecnico }}
     </div>
 
-    <!-- Tickets del técnico -->
     <div id="tickets-tecnico" class="mt-4"></div>
 
-    <button type="submit" class="btn btn-primary mt-3">Guardar</button>
+    <button type="submit" class="btn btn-primary mt-3" onclick="showLoader()">Guardar</button>
+   
 </form>
 
-<!-- Modal -->
 <div class="modal fade" id="modalDetalles" tabindex="-1" aria-labelledby="modalDetallesLabel" aria-hidden="true">
-  <div class="modal-dialog modal-sm modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="modalDetallesLabel">Detalles del Ticket</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body" id="contenido-modal">
-        <!-- Detalles dinámicos -->
-      </div>
+    <div class="modal-dialog modal-sm modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalDetallesLabel">Detalles del Ticket</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body" id="contenido-modal">
+                </div>
+        </div>
     </div>
-  </div>
 </div>
 
+<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+    </div>
+</div>
+<div id="loadingOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999;"></div>
+
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const tecnicoSelect = document.getElementById("id_tecnico");
-    const contenedor = document.getElementById("tickets-tecnico");
+    function showLoader() {
+        document.getElementById('loadingSpinner').style.display = 'block';
+        document.getElementById('loadingOverlay').style.display = 'block';
+    }
 
-    tecnicoSelect.addEventListener("change", function () {
-        const tecnicoId = tecnicoSelect.value;
-        contenedor.innerHTML = "";
+    document.addEventListener('DOMContentLoaded', function () {
+        const tecnicoSelect = document.getElementById("id_tecnico");
+        const contenedor = document.getElementById("tickets-tecnico");
 
-        if (!tecnicoId) return;
+        tecnicoSelect.addEventListener("change", function () {
+            const tecnicoId = tecnicoSelect.value;
+            contenedor.innerHTML = "";
 
-        fetch(`/api/tickets_por_tecnico/?tecnico_id=${tecnicoId}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.length === 0) {
-                    contenedor.innerHTML = "<p class='text-muted'>Este técnico no tiene tickets abiertos asignados.</p>";
-                    return;
-                }
+            if (!tecnicoId) return;
 
-                let tabla = `<h6 class="mb-2 text-muted">Tickets abiertos asignados</h6>
-                             <table class="table table-sm table-bordered table-hover">
-                                 <thead class="table-light">
-                                     <tr>
-                                         <th>#</th>
-                                         <th>Título</th>
-                                         <th>Prioridad</th>
-                                         <th>Categoría</th>
-                                         <th>Acción</th>
-                                     </tr>
-                                 </thead>
-                                 <tbody>`;
+            fetch(`/api/tickets_por_tecnico/?tecnico_id=${tecnicoId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.length === 0) {
+                        contenedor.innerHTML = "<p class='text-muted'>Este técnico no tiene tickets abiertos asignados.</p>";
+                        return;
+                    }
 
-                data.forEach((ticket, i) => {
-                    let color = "table-success";
-                    if (ticket.prioridad === "media") color = "table-warning";
-                    if (ticket.prioridad === "alta") color = "table-danger";
+                    let tabla = `<h6 class="mb-2 text-muted">Tickets abiertos asignados</h6>
+                                 <table class="table table-sm table-bordered table-hover">
+                                     <thead class="table-light">
+                                         <tr>
+                                             <th>#</th>
+                                             <th>Título</th>
+                                             <th>Prioridad</th>
+                                             <th>Categoría</th>
+                                             <th>Acción</th>
+                                         </tr>
+                                     </thead>
+                                     <tbody>`;
 
-                    tabla += `<tr class="${color}">
-                                <td>${i + 1}</td>
-                                <td>${ticket.titulo}</td>
-                                <td><span class="badge bg-${ticket.prioridad === "alta" ? "danger" : ticket.prioridad === "media" ? "warning text-dark" : "success"}">${ticket.prioridad.toUpperCase()}</span></td>
-                                <td>${ticket.categoria__nombre || 'Sin categoría'}</td>
-                                <td>
-                                    <button type="button" class="btn btn-sm btn-outline-info" onclick='verDetalles(${JSON.stringify(ticket)})'>
-                                        Ver
-                                    </button>
-                                </td>
-                              </tr>`;
+                    data.forEach((ticket, i) => {
+                        let color = "table-success";
+                        if (ticket.prioridad === "media") color = "table-warning";
+                        if (ticket.prioridad === "alta") color = "table-danger";
+
+                        tabla += `<tr class="${color}">
+                                     <td>${i + 1}</td>
+                                     <td>${ticket.titulo}</td>
+                                     <td><span class="badge bg-${ticket.prioridad === "alta" ? "danger" : ticket.prioridad === "media" ? "warning text-dark" : "success"}">${ticket.prioridad.toUpperCase()}</span></td>
+                                     <td>${ticket.categoria__nombre || 'Sin categoría'}</td>
+                                     <td>
+                                         <button type="button" class="btn btn-sm btn-outline-info" onclick='verDetalles(${JSON.stringify(ticket)})'>
+                                             Ver
+                                         </button>
+                                     </td>
+                                 </tr>`;
+                    });
+
+                    tabla += `</tbody></table>`;
+                    contenedor.innerHTML = tabla;
+                })
+                .catch(() => {
+                    contenedor.innerHTML = "<div class='alert alert-danger'>Error al cargar los tickets.</div>";
                 });
-
-                tabla += `</tbody></table>`;
-                contenedor.innerHTML = tabla;
-            })
-            .catch(() => {
-                contenedor.innerHTML = "<div class='alert alert-danger'>Error al cargar los tickets.</div>";
-            });
-    });
-});
-
-function verDetalles(ticket) {
-    const modalBody = document.getElementById("contenido-modal");
-    modalBody.innerHTML = `
-        <div class="border rounded p-2 mb-2">
-            <h6><i class="bi bi-ticket-detailed"></i> Detalles del Ticket</h6>
-            <p><strong>Título:</strong> ${ticket.titulo}</p>
-            <p><strong>Descripción:</strong><br>${ticket.descripcion}</p>
-            <p><strong>Prioridad:</strong>
-                <span class="badge bg-${ticket.prioridad === "alta" ? "danger" : ticket.prioridad === "media" ? "warning text-dark" : "success"}">
-                    ${ticket.prioridad.toUpperCase()}
-                </span>
-            </p>
-            <p><strong>Categoría:</strong> ${ticket.categoria__nombre || 'Sin categoría'}</p>
-        </div>
-        <div class="border rounded p-2 mb-2">
-            <h6><i class="bi bi-person-badge"></i> Cliente</h6>
-            <p><strong>Nombre:</strong> ${ticket.cliente__nombres || '-'}</p>
-            <p><strong>Correo:</strong> ${ticket.cliente__correo || '-'}</p>
-            <p><strong>Teléfono:</strong> ${ticket.cliente__telefono || '-'}</p>
-        </div>
-        <div class="border rounded p-2">
-            <h6><i class="bi bi-clock-history"></i> Información</h6>
-            <p><strong>Fecha de creación:</strong> ${new Date(ticket.fecha_creacion).toLocaleString()}</p>
-        </div>
-    `;
-    const modal = new bootstrap.Modal(document.getElementById('modalDetalles'));
-    modal.show();
-}
-
-
-function buscarCliente() {
-    const query = document.getElementById("buscar_cliente").value;
-    const resultadoDiv = document.getElementById("resultado_clientes");
-    resultadoDiv.innerHTML = "Buscando...";
-
-    fetch(`/buscar_cliente/?q=${encodeURIComponent(query)}`)
-        .then(response => response.json())
-        .then(data => {
-            resultadoDiv.innerHTML = "";
-            if (data.results.length === 0) {
-                resultadoDiv.innerHTML = "<div class='alert alert-secondary'>No se encontró ningún cliente.</div>";
-            } else {
-                const lista = document.createElement("ul");
-                lista.classList.add("list-group");
-
-                data.results.forEach(cliente => {
-                    const item = document.createElement("li");
-                    item.classList.add("list-group-item", "list-group-item-action");
-                    item.style.cursor = "pointer";
-                    item.innerHTML = `<strong>${cliente.nombre}</strong> - ${cliente.ruc || ''} - ${cliente.telefono || ''} - ${cliente.correo || ''}`;
-                    item.onclick = function () {
-                        const select = document.getElementById("id_cliente");
-                        select.value = cliente.id;
-                        resultadoDiv.innerHTML = `<div class="alert alert-success">Cliente seleccionado: <strong>${cliente.nombre}</strong></div>`;
-                    };
-                    lista.appendChild(item);
-                });
-
-                resultadoDiv.appendChild(lista);
-            }
-        })
-        .catch(error => {
-            console.error("Error en la búsqueda:", error);
-            resultadoDiv.innerHTML = "<div class='alert alert-danger'>Error al buscar cliente.</div>";
         });
-}
+
+        // Ocultar el loader si la página se recarga por alguna razón (ej. validación fallida del formulario)
+        document.getElementById('loadingSpinner').style.display = 'none';
+        document.getElementById('loadingOverlay').style.display = 'none';
+    });
+
+    function verDetalles(ticket) {
+        const modalBody = document.getElementById("contenido-modal");
+        modalBody.innerHTML = `
+            <div class="border rounded p-2 mb-2">
+                <h6><i class="bi bi-ticket-detailed"></i> Detalles del Ticket</h6>
+                <p><strong>Título:</strong> ${ticket.titulo}</p>
+                <p><strong>Descripción:</strong><br>${ticket.descripcion}</p>
+                <p><strong>Prioridad:</strong>
+                    <span class="badge bg-${ticket.prioridad === "alta" ? "danger" : ticket.prioridad === "media" ? "warning text-dark" : "success"}">
+                        ${ticket.prioridad.toUpperCase()}
+                    </span>
+                </p>
+                <p><strong>Categoría:</strong> ${ticket.categoria__nombre || 'Sin categoría'}</p>
+            </div>
+            <div class="border rounded p-2 mb-2">
+                <h6><i class="bi bi-person-badge"></i> Cliente</h6>
+                <p><strong>Nombre:</strong> ${ticket.cliente__nombres || '-'}</p>
+                <p><strong>Correo:</strong> ${ticket.cliente__correo || '-'}</p>
+                <p><strong>Teléfono:</strong> ${ticket.cliente__telefono || '-'}</p>
+            </div>
+            <div class="border rounded p-2">
+                <h6><i class="bi bi-clock-history"></i> Información</h6>
+                <p><strong>Fecha de creación:</strong> ${new Date(ticket.fecha_creacion).toLocaleString()}</p>
+            </div>
+        `;
+        const modal = new bootstrap.Modal(document.getElementById('modalDetalles'));
+        modal.show();
+    }
+
+
+    function buscarCliente() {
+        const query = document.getElementById("buscar_cliente").value;
+        const resultadoDiv = document.getElementById("resultado_clientes");
+        resultadoDiv.innerHTML = "Buscando...";
+
+        fetch(`/buscar_cliente/?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                resultadoDiv.innerHTML = "";
+                if (data.results.length === 0) {
+                    resultadoDiv.innerHTML = "<div class='alert alert-secondary'>No se encontró ningún cliente.</div>";
+                } else {
+                    const lista = document.createElement("ul");
+                    lista.classList.add("list-group");
+
+                    data.results.forEach(cliente => {
+                        const item = document.createElement("li");
+                        item.classList.add("list-group-item", "list-group-item-action");
+                        item.style.cursor = "pointer";
+                        item.innerHTML = `<strong>${cliente.nombre}</strong> - ${cliente.ruc || ''} - ${cliente.telefono || ''} - ${cliente.correo || ''}`;
+                        item.onclick = function () {
+                            const select = document.getElementById("id_cliente");
+                            select.value = cliente.id;
+                            resultadoDiv.innerHTML = `<div class="alert alert-success">Cliente seleccionado: <strong>${cliente.nombre}</strong></div>`;
+                        };
+                        lista.appendChild(item);
+                    });
+
+                    resultadoDiv.appendChild(lista);
+                }
+            })
+            .catch(error => {
+                console.error("Error en la búsqueda:", error);
+                resultadoDiv.innerHTML = "<div class='alert alert-danger'>Error al buscar cliente.</div>";
+            });
+    }
 </script>
 {% endblock content %}
