@@ -295,13 +295,12 @@ class PerfilUserEditForm(forms.ModelForm):
     class Meta:
         model = User
         # Eliminé 'is_staff' y 'is_superuser' para que el usuario no los edite.
-        fields = ['username', 'email', 'first_name', 'last_name']
+        fields = ['username', 'email']
         widgets = {
             # Username de solo lectura.
             'username': forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            
             
         }
 
