@@ -90,7 +90,18 @@ urlpatterns = [
     path('grafico_tickets_por_departamento/', views.grafico_tickets_por_departamento, name='grafico_tickets_por_departamento'),
     path('grafico_calificaciones_servicio/', views.grafico_calificaciones_servicio, name='grafico_calificaciones_servicio'),
    
-   
+   #pdf
+      path('reporte/exportar_tickets_por_categoria_pdf/', views.exportar_tickets_por_categoria_pdf, name='exportar_tickets_por_categoria_pdf'),
+       path('reporte/exportar_distribucion_estado_pdf/', views.exportar_distribucion_estado_pdf, name='exportar_distribucion_estado_pdf'),
+       path('reporte/exportar_tendencia_mensual_pdf/', views.exportar_tendencia_mensual_pdf, name='exportar_tendencia_mensual_pdf'),
+       path('reporte/exportar_desempeno_departamento_pdf/', views.exportar_desempeno_departamento_pdf, name='exportar_desempeno_departamento_pdf'),
+        path('reporte/cumplimiento_sla_general/pdf/', views.exportar_cumplimiento_sla_general_pdf, name='exportar_cumplimiento_sla_general_pdf'),
+        path('exportar_ranking_tecnicos_pdf/', views.exportar_ranking_tecnicos_pdf, name='exportar_ranking_tecnicos_pdf'),
+   #reportes de tecnicos
+    path('exportar_desempeno_tecnico_pdf/', views.exportar_desempeno_tecnico_pdf, name='exportar_desempeno_tecnico_pdf'),
+    path('exportar_tickets_por_cliente_pdf/', views.exportar_tickets_por_cliente_pdf, name='exportar_tickets_por_cliente_pdf'),
+path('exportar_evaluacion_calidad_pdf/', views.exportar_evaluacion_calidad_pdf, name='exportar_evaluacion_calidad_pdf'),
+ path('reporte/problemas-soluciones/', views.exportar_problemas_soluciones_pdf, name='reporte_problemas_soluciones'),
    
    #reportes de tecnicos
    path('reportes_tecnico/', views.reportes_tecnico, name='reportes_tecnico'),
@@ -98,14 +109,16 @@ urlpatterns = [
      path('grafico_tickets_por_prioridad_tecnico/', views.grafico_tickets_por_prioridad_tecnico, name='grafico_tickets_por_prioridad_tecnico'),
       path('grafico_productividad_tecnico/', views.grafico_productividad_tecnico, name='grafico_productividad_tecnico'), 
     path('grafico_calificaciones_recibidas_tecnico/', views.grafico_calificaciones_recibidas_tecnico, name='grafico_calificaciones_recibidas_tecnico'),
-    
-    path('exportar_tickets_asignados_excel/', views.exportar_tickets_asignados_excel, name='exportar_tickets_asignados_excel'),
-    path('exportar_evaluaciones_recibidas_excel/', views.exportar_evaluaciones_recibidas_excel, name='exportar_evaluaciones_recibidas_excel'),
-    path('exportar_estadisticas_prioridad_excel/', views.exportar_estadisticas_prioridad_excel, name='exportar_estadisticas_prioridad_excel'),
-     path('exportar_clientes_mas_tickets_excel/', views.exportar_clientes_mas_tickets_excel, name='exportar_clientes_mas_tickets_excel'),
-      path('exportar_satisfaccion_cliente_excel/', views.exportar_satisfaccion_cliente_excel, name='exportar_satisfaccion_cliente_excel'), # NUEVA LÍNEA
-      path('exportar_rendimiento_tecnicos_excel/', views.exportar_rendimiento_tecnicos_excel, name='exportar_rendimiento_tecnicos_excel'),
-
+    path('grafico_tickets_por_estado/', views.grafico_tickets_por_estado, name='grafico_tickets_por_estado'),
+    path('grafico_tickets_por_categoria/', views.grafico_tickets_por_categoria, name='grafico_tickets_por_categoria'),
+    path('grafico_tickets_por_departamento/', views.grafico_tickets_por_departamento, name='grafico_tickets_por_departamento'),
+    path('grafico_calificaciones_servicio/', views.grafico_calificaciones_servicio, name='grafico_calificaciones_servicio'),
+   path('grafico_ranking_tecnicos/', views.grafico_ranking_tecnicos, name='grafico_ranking_tecnicos'),
+   path('grafico_tickets_por_cliente/', views.grafico_tickets_por_cliente, name='grafico_tickets_por_cliente'),
+      path('grafico_cumplimiento_sla/', views.grafico_cumplimiento_sla, name='grafico_cumplimiento_sla'),
+    path('grafico_cumplimiento_sla_tecnico/', views.grafico_cumplimiento_sla_tecnico, name='grafico_cumplimiento_sla_tecnico'),
+    path('grafico_calificacion_promedio_tecnico/', views.grafico_calificacion_promedio_tecnico, name='grafico_calificacion_promedio_tecnico'),
+    path('grafico_calificacion_promedio_tecnico/', views.grafico_calificacion_promedio_tecnico, name='grafico_calificacion_promedio_tecnico'),
 
    
 

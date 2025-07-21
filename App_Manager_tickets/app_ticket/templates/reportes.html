@@ -1,44 +1,59 @@
-
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reportes</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         [id^="grafico-"] {
-            min-height: 450px;
+            min-height: 550px;
             border: 1px solid #eee;
             border-radius: 5px;
-            padding: 10px;
-            margin-bottom: 20px;
+            padding: 15px;
+            margin-bottom: 25px;
             background: #f8f9fa;
         }
-        
+
         .grafico-container {
             transition: all 0.3s ease;
         }
-        
+
         .chart-title {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             color: #333;
             font-weight: 600;
+            font-size: 1.4rem; /* Base */
         }
-        
+
         .loading-spinner {
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100%;
-            min-height: 400px;
+            min-height: 500px;
+        }
+
+        /* Ajustes para un tamaño grande pero no excesivo */
+        .grafico-grande {
+            min-height: 750px !important; /* Altura ajustada */
+        }
+        
+        .grafico-grande .chart-title {
+            font-size: 1.5rem !important; /* Título ligeramente más grande */
+        }
+
+        .img-grafico {
+            width: 100%;
+            height: auto;
+            max-height: 700px; /* Altura ajustada para la imagen */
+            object-fit: contain;
         }
     </style>
 </head>
 
 {% extends "base.html" %}
-{% block title %}Mi Perfil{% endblock title %}
+{% block title %}Reportes{% endblock title %}
 
 {% block content %}
 <body>
@@ -81,108 +96,131 @@
                 <button type="button" class="btn btn-outline-secondary" id="limpiar-filtros-btn">Limpiar Filtros</button>
             </div>
 
-            <div class="col-md-3">
-    <div class="mb-3">
-        <label for="tipoReporteExcel" class="form-label">Descargar Reporte Excel:</label>
-         <select class="form-select" id="tipoReporteExcel">
-            <option value="">Seleccione un reporte</option>
-            <option value="clientes_mas_tickets">Reporte de Clientes con Más Tickets</option>
-            <option value="satisfaccion_cliente">Reporte de Satisfacción del Cliente</option>
-            <option value="rendimiento_tecnicos">Reporte de Rendimiento de Técnicos</option>
-        </select>
-    </div>
-</div>
-<div class="col-md-2 d-flex align-items-end">
-    <button type="button" id="descargarReporteExcelBtn" class="btn btn-success w-100"><i class="bi bi-file-earmark-excel"></i> Descargar Excel</button>
-</div>
+            <div class="col-md-6 mt-3">
+                <label for="reporte-selector" class="form-label">Seleccionar Reporte:</label>
+                <select class="form-select" id="reporte-selector">
+                    <optgroup label="Análisis de Tickets">
+                        <option value="grafico-tickets-por-categoria">Áreas con más incidencias</option>
+                        <option value="grafico-tickets-por-estado">Distribución por Estado del Ticket</option>
+                        <option value="grafico-evolucion-mensual">Tendencia Mensual de Creación de Tickets</option>
+                        <option value="grafico-tickets-por-departamento">Desempeño por Departamento</option>
+                        <option value="grafico-cumplimiento-sla">Indicador de Cumplimiento de SLA</option>
+                    </optgroup>
+                    
+                    <optgroup label="Desempeño de Técnicos">
+                        <option value="grafico-ranking-tecnicos">Ranking de Eficiencia Técnica</option>
+                        <option value="grafico-calificacion-promedio-tecnico">Desempeño Promedio por Técnico</option>
+                    </optgroup>
+                    
+                    <optgroup label="Análisis de Clientes">
+                        <option value="grafico-tickets-por-cliente">Volumen de Tickets por Cliente</option>
+                        <option value="grafico-calificaciones-servicio">Evaluación de la Calidad del Servicio</option>
+                    </optgroup>
+                </select>
+            </div>
         </form>
 
-        <hr class="my-4">
-
         <div class="row mt-4">
-            <div class="col-md-6 grafico-container">
-                <h2 class="chart-title">Tickets por Categoría</h2>
+            <div class="col-md-6 grafico-container grafico-grande"> {# Vuelto a col-md-6 #}
+                <h2 class="chart-title">Áreas con más incidencias</h2>
+                <button id="exportarPdfTicketsCategoria" class="btn btn-danger btn-sm">Exportar a PDF</button>
                 <div id="grafico-tickets-por-categoria">
                     <div class="loading-spinner">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Cargando...</span>
-                        </div>
+                        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-6 grafico-container">
-                <h2 class="chart-title">Tickets por Estado</h2>
+            <div class="col-md-6 grafico-container grafico-grande"> {# Vuelto a col-md-6 #}
+                <h2 class="chart-title">Distribución por Estado del Ticket</h2>
+                 <button id="exportarPdfDistribucionEstado" class="btn btn-danger btn-sm">Exportar a PDF</button>
                 <div id="grafico-tickets-por-estado">
                     <div class="loading-spinner">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Cargando...</span>
-                        </div>
+                        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div class="row mt-4">
-            <div class="col-md-6 grafico-container">
-                <h2 class="chart-title">Evolución Mensual de Tickets Creados</h2>
+             <div class="col-md-6 grafico-container grafico-grande"> {# Vuelto a col-md-6 #}
+                <h2 class="chart-title">Tendencia Mensual de Creación de Tickets</h2>
+                 <button id="exportarPdfTendenciaMensual" class="btn btn-danger btn-sm">Exportar a PDF</button>
                 <div id="grafico-evolucion-mensual">
                     <div class="loading-spinner">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Cargando...</span>
-                        </div>
+                        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-6 grafico-container">
-                <h2 class="chart-title">Tickets por Departamento</h2>
+            <div class="col-md-6 grafico-container grafico-grande"> {# Vuelto a col-md-6 #}
+                <h2 class="chart-title">Desempeño por Departamento</h2>
+                 <button id="exportarPdfDesempenoDepto" class="btn btn-danger btn-sm">Exportar a PDF</button>
                 <div id="grafico-tickets-por-departamento">
                     <div class="loading-spinner">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Cargando...</span>
-                        </div>
+                        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        
-
-        <div class="row mt-4">
-            <div class="col-md-6 grafico-container">
-                <h2 class="chart-title">Calificaciones de Servicio</h2>
+             <div class="col-md-6 grafico-container grafico-grande"> {# Vuelto a col-md-6 #}
+                <h2 class="chart-title">Desempeño Promedio por Técnico</h2>
+                 <button id="exportarPdfDesempenoTecnico" class="btn btn-danger btn-sm">Exportar a PDF</button>
+                <div id="grafico-calificacion-promedio-tecnico">
+                    <div class="loading-spinner">
+                        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 grafico-container grafico-grande"> {# Vuelto a col-md-6 #}
+                <h2 class="chart-title">Ranking de Eficiencia Técnica</h2>
+                 <button id="exportarPdfRankingTecnicos" class="btn btn-danger btn-sm">Exportar a PDF</button>
+                <div id="grafico-ranking-tecnicos">
+                    <div class="loading-spinner">
+                        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
+                    </div>
+                </div>
+            </div>
+             <div class="col-md-6 grafico-container grafico-grande"> {# Vuelto a col-md-6 #}
+                <h2 class="chart-title">Volumen de Tickets por Cliente</h2>
+                 <button id="exportarPdfTicketsCliente" class="btn btn-danger btn-sm">Exportar a PDF</button>
+                <div id="grafico-tickets-por-cliente">
+                    <div class="loading-spinner">
+                        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 grafico-container grafico-grande"> {# Vuelto a col-md-6 #}
+                <h2 class="chart-title">Indicador de Cumplimiento de SLA</h2>
+                 <button type="button" class="btn btn-danger btn-sm" id="exportarPdfCumplimientoSlaGeneral">Exportar PDF</button>
+                
+                <div id="grafico-cumplimiento-sla">
+                    <div class="loading-spinner">
+                        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
+                    </div>
+                </div>
+            </div>
+             <div class="col-md-6 grafico-container grafico-grande"> {# Vuelto a col-md-6 #}
+                <h2 class="chart-title">Evaluación de la Calidad del Servicio</h2>
+                  <button id="exportarPdfEvaluacionCalidad" class="btn btn-danger btn-sm">Exportar a PDF</button>
                 <div id="grafico-calificaciones-servicio">
                     <div class="loading-spinner">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Cargando...</span>
-                        </div>
+                        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
                     </div>
                 </div>
-            </div>
-            <!-- Espacio para futuros gráficos -->
-            <div class="col-md-6 grafico-container" id="grafico-adicional-container" style="display: none;">
-                <h2 class="chart-title" id="grafico-adicional-titulo"></h2>
-                <div id="grafico-adicional"></div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const filtroForm = document.getElementById('filtro-reportes-form');
+        // const empresaSelect = document.getElementById('empresa'); // ELIMINADO
         const sucursalSelect = document.getElementById('sucursal');
         const departamentoSelect = document.getElementById('departamento');
         const limpiarFiltrosBtn = document.getElementById('limpiar-filtros-btn');
-        const fechaInicioInput = document.getElementById('fecha_inicio'); // Renombrado para claridad
-        const fechaFinInput = document.getElementById('fecha_fin'); // Renombrado para claridad
+        const fechaInicioInput = document.getElementById('fecha_inicio');
+        const fechaFinInput = document.getElementById('fecha_fin');
         const initialDepartamentoId = "{{ departamento_seleccionado|default:'' }}";
-
-        // Elementos para la descarga de Excel
-        const tipoReporteExcelSelect = document.getElementById('tipoReporteExcel');
-        const descargarReporteExcelBtn = document.getElementById('descargarReporteExcelBtn');
-
+        const reporteSelector = document.getElementById('reporte-selector');
 
         function limpiarFiltros() {
+            // if (empresaSelect) empresaSelect.value = ''; // ELIMINADO
             fechaInicioInput.value = '';
             fechaFinInput.value = '';
             sucursalSelect.value = '';
@@ -206,17 +244,14 @@
         function cargarGraficos() {
             const formData = new FormData(filtroForm);
             const params = new URLSearchParams(formData);
-            // Agregar timestamp para evitar cache
             params.append('t', Date.now());
 
-            // Mostrar loaders en todos los contenedores
             document.querySelectorAll('[id^="grafico-"]').forEach(container => {
                 if (!container.id.startsWith('grafico-adicional')) {
                     showLoading(container.id);
                 }
             });
 
-            // Función auxiliar mejorada para cargar gráficos
             function fetchAndDisplayChart(url, containerId, title) {
                 return fetch(`${url}?${params.toString()}`)
                     .then(response => {
@@ -228,13 +263,12 @@
                         if (data.grafico) {
                             graficoDiv.innerHTML = `
                                 <img src="data:image/png;base64,${data.grafico}" 
-                                     alt="${title}" 
-                                     class="img-fluid" 
-                                     style="width: 100%; height: auto; max-height: 400px; object-fit: contain;">`;
+                                            alt="${title}" 
+                                            class="img-fluid img-grafico">`;
                         } else {
                             graficoDiv.innerHTML = `
                                 <div class="text-center py-4">
-                                    <p class="text-muted">${data.message || 'No hay datos disponibles para generar el gráfico.'}</p>
+                                    <p class="text-muted" style="font-size: 1.2rem;">${data.message || 'No hay datos disponibles para generar el gráfico.'}</p>
                                 </div>`;
                         }
                         return true;
@@ -243,29 +277,32 @@
                         console.error(`Error al cargar ${title}:`, error);
                         document.getElementById(containerId).innerHTML = `
                             <div class="text-center py-4">
-                                <p class="text-danger">Error al cargar el gráfico de ${title}.</p>
+                                <p class="text-danger" style="font-size: 1.2rem;">Error al cargar el gráfico de ${title}.</p>
                                 <button onclick="cargarGraficos()" class="btn btn-sm btn-outline-primary">Reintentar</button>
                             </div>`;
                         return false;
                     });
             }
 
-            // Cargar gráficos en secuencia para evitar problemas de layout
             fetchAndDisplayChart('/grafico_evolucion_mensual_tickets/', 'grafico-evolucion-mensual', 'Evolución Mensual de Tickets Creados')
                 .then(() => fetchAndDisplayChart('/grafico_tickets_por_estado/', 'grafico-tickets-por-estado', 'Tickets por Estado'))
                 .then(() => fetchAndDisplayChart('/grafico_tickets_por_categoria/', 'grafico-tickets-por-categoria', 'Tickets por Categoría'))
                 .then(() => fetchAndDisplayChart('/grafico_tickets_por_departamento/', 'grafico-tickets-por-departamento', 'Tickets por Departamento'))
-                .then(() => fetchAndDisplayChart('/grafico_calificaciones_servicio/', 'grafico-calificaciones-servicio', 'Calificaciones de Servicio'));
+                .then(() => fetchAndDisplayChart('/grafico_calificaciones_servicio/', 'grafico-calificaciones-servicio', 'Calificaciones de Servicio'))
+                .then(() => fetchAndDisplayChart('/grafico_calificacion_promedio_tecnico/', 'grafico-calificacion-promedio-tecnico', 'Calificación Promedio por Técnico'))
+                .then(() => fetchAndDisplayChart('/grafico_ranking_tecnicos/', 'grafico-ranking-tecnicos', 'Ranking de Técnicos'))
+                .then(() => fetchAndDisplayChart('/grafico_tickets_por_cliente/', 'grafico-tickets-por-cliente', 'Tickets por Cliente'))
+                .then(() => fetchAndDisplayChart('/grafico_cumplimiento_sla/', 'grafico-cumplimiento-sla', 'Cumplimiento de SLA'));
         }
 
         function loadDepartamentos(sucursalId, selectedDeptoId = '') {
             departamentoSelect.innerHTML = '<option value="">Todos</option>';
             if (!sucursalId) return;
-            
-            showLoading('grafico-tickets-por-departamento'); // Mostrar spinner mientras se cargan los departamentos
-            
+
+            showLoading('grafico-tickets-por-departamento');
+
             const url = `/buscar_departamentos/?sucursal_id=${sucursalId}&t=${Date.now()}`;
-            
+
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
@@ -286,72 +323,215 @@
                     departamentoSelect.innerHTML = '<option value="">Error al cargar</option>';
                 })
                 .finally(() => {
-                    cargarGraficos(); // Recargar gráficos después de cargar departamentos
+                    cargarGraficos();
                 });
         }
 
-        // Event listeners
-        sucursalSelect.addEventListener('change', function() {
-            const sucursalId = this.value;
-            loadDepartamentos(sucursalId);
+        // Mostrar solo el gráfico seleccionado
+        function mostrarSoloReporteSeleccionado() {
+            const seleccionado = reporteSelector.value;
+
+            document.querySelectorAll('.grafico-container').forEach(container => {
+                if (container.querySelector(`#${seleccionado}`)) {
+                    container.style.display = 'block';
+                } else {
+                    container.style.display = 'none';
+                }
+            });
+        }
+          
+        // Eventos
+        sucursalSelect.addEventListener('change', function () {
+            loadDepartamentos(this.value);
         });
 
-        filtroForm.addEventListener('submit', function(event) {
+        filtroForm.addEventListener('submit', function (event) {
             event.preventDefault();
             cargarGraficos();
         });
 
+
         limpiarFiltrosBtn.addEventListener('click', limpiarFiltros);
 
-        // Carga inicial
+        reporteSelector.addEventListener('change', mostrarSoloReporteSeleccionado);
+
+        // Inicializa los departamentos si hay una sucursal seleccionada
         if (sucursalSelect.value) {
             loadDepartamentos(sucursalSelect.value, initialDepartamentoId);
         } else {
-            cargarGraficos();
+            cargarGraficos(); // Carga gráficos si no hay sucursal seleccionada inicialmente
         }
 
-        // Exponer función para reintentos
+        mostrarSoloReporteSeleccionado();
         window.cargarGraficos = cargarGraficos;
 
-        // Lógica para descargar reportes Excel (MOVIDA DENTRO DE DOMContentLoaded)
-        descargarReporteExcelBtn.addEventListener('click', function() {
-            const tipoReporte = tipoReporteExcelSelect.value;
-            if (!tipoReporte) {
-                alert('Por favor, seleccione un tipo de reporte para descargar.');
-                return;
-            }
+        document.getElementById('exportarPdfTicketsCategoria').addEventListener('click', function() {
+            // Estos IDs existen en tu HTML: sucursal, departamento, fecha_inicio, fecha_fin
+            // No existe 'empresa' en tus filtros actuales, por lo que lo removemos.
+            // const empresaId = document.getElementById('empresa').value; // ELIMINADO
+            const sucursalId = document.getElementById('sucursal').value;
+            const departamentoId = document.getElementById('departamento').value;
+            const fechaInicio = document.getElementById('fecha_inicio').value;
+            const fechaFin = document.getElementById('fecha_fin').value;
 
-            // Ahora accedemos a los elementos directamente, ya que están definidos en este scope
-            const sucursalId = sucursalSelect.value;
-            const departamentoId = departamentoSelect.value;
-            const fechaInicio = fechaInicioInput.value;
-            const fechaFin = fechaFinInput.value;
-
-            let params = new URLSearchParams();
+            let url = '{% url "exportar_tickets_por_categoria_pdf" %}';
+            const params = new URLSearchParams();
+            // if (empresaId) params.append('empresa', empresaId); // ELIMINADO
             if (sucursalId) params.append('sucursal', sucursalId);
             if (departamentoId) params.append('departamento', departamentoId);
             if (fechaInicio) params.append('fecha_inicio', fechaInicio);
             if (fechaFin) params.append('fecha_fin', fechaFin);
 
-            let url;
-            if (tipoReporte === 'clientes_mas_tickets') {
-                url = '{% url "exportar_clientes_mas_tickets_excel" %}';
+            if (params.toString()) {
+                url += '?' + params.toString();
             }
-             else if (tipoReporte === 'satisfaccion_cliente') { // <-- ¡AGREGA ESTA LÍNEA!
-        url = '{% url "exportar_satisfaccion_cliente_excel" %}'; // <-- ¡Y ESTA LÍNEA!
-    }
-            else if (tipoReporte === 'rendimiento_tecnicos') {
-                url = '{% url "exportar_rendimiento_tecnicos_excel" %}';
-            }
-            // Añadir más condiciones para otros tipos de reportes si es necesario
-
-            if (url) {
-                window.open(`${url}?${params.toString()}`, '_blank');
-            } else {
-                alert('Tipo de reporte no reconocido.');
-            }
+            window.open(url, '_blank');
         });
+        document.getElementById('exportarPdfDistribucionEstado').addEventListener('click', function() {
+    const sucursalId = document.getElementById('sucursal').value;
+    const departamentoId = document.getElementById('departamento').value;
+    const fechaInicio = document.getElementById('fecha_inicio').value;
+    const fechaFin = document.getElementById('fecha_fin').value;
+
+    let url = '{% url "exportar_distribucion_estado_pdf" %}';
+    const params = new URLSearchParams();
+    if (sucursalId) params.append('sucursal', sucursalId);
+    if (departamentoId) params.append('departamento', departamentoId);
+    if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+    if (fechaFin) params.append('fecha_fin', fechaFin);
+
+    if (params.toString()) {
+        url += '?' + params.toString();
+    }
+    window.open(url, '_blank');
+});
+document.getElementById('exportarPdfTendenciaMensual').addEventListener('click', function() {
+    const sucursalId = document.getElementById('sucursal').value;
+    const departamentoId = document.getElementById('departamento').value;
+    const fechaInicio = document.getElementById('fecha_inicio').value;
+    const fechaFin = document.getElementById('fecha_fin').value;
+
+    let url = '{% url "exportar_tendencia_mensual_pdf" %}';
+    const params = new URLSearchParams();
+    if (sucursalId) params.append('sucursal', sucursalId);
+    if (departamentoId) params.append('departamento', departamentoId);
+    if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+    if (fechaFin) params.append('fecha_fin', fechaFin);
+
+    if (params.toString()) {
+        url += '?' + params.toString();
+    }
+    window.open(url, '_blank');
+});
+document.getElementById('exportarPdfDesempenoDepto').addEventListener('click', function() {
+    const sucursalId = document.getElementById('sucursal').value;
+    const fechaInicio = document.getElementById('fecha_inicio').value;
+    const fechaFin = document.getElementById('fecha_fin').value;
+
+    let url = '{% url "exportar_desempeno_departamento_pdf" %}';
+    const params = new URLSearchParams();
+    if (sucursalId) params.append('sucursal', sucursalId);
+    if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+    if (fechaFin) params.append('fecha_fin', fechaFin);
+
+    if (params.toString()) {
+        url += '?' + params.toString();
+    }
+    window.open(url, '_blank');
+});
+document.getElementById('exportarPdfCumplimientoSlaGeneral').addEventListener('click', function() {
+    const sucursalId = document.getElementById('sucursal').value;
+    const departamentoId = document.getElementById('departamento').value;
+    const fechaInicio = document.getElementById('fecha_inicio').value;
+    const fechaFin = document.getElementById('fecha_fin').value;
+
+    let url = '{% url "exportar_cumplimiento_sla_general_pdf" %}';
+    const params = new URLSearchParams();
+    if (sucursalId) params.append('sucursal', sucursalId);
+    if (departamentoId) params.append('departamento', departamentoId);
+    if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+    if (fechaFin) params.append('fecha_fin', fechaFin);
+
+    if (params.toString()) {
+        url += '?' + params.toString();
+    }
+    window.open(url, '_blank');
+});
+document.getElementById('exportarPdfRankingTecnicos').addEventListener('click', function() {
+    const sucursalId = document.getElementById('sucursal').value;
+    const departamentoId = document.getElementById('departamento').value;
+    const fechaInicio = document.getElementById('fecha_inicio').value;
+    const fechaFin = document.getElementById('fecha_fin').value;
+
+    let url = '{% url "exportar_ranking_tecnicos_pdf" %}';
+    const params = new URLSearchParams();
+    if (sucursalId) params.append('sucursal', sucursalId);
+    if (departamentoId) params.append('departamento', departamentoId);
+    if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+    if (fechaFin) params.append('fecha_fin', fechaFin);
+
+    if (params.toString()) {
+        url += '?' + params.toString();
+    }
+    window.open(url, '_blank');
+});
+document.getElementById('exportarPdfDesempenoTecnico').addEventListener('click', function() {
+    const sucursalId = document.getElementById('sucursal').value;
+    const departamentoId = document.getElementById('departamento').value;
+    const fechaInicio = document.getElementById('fecha_inicio').value;
+    const fechaFin = document.getElementById('fecha_fin').value;
+
+    let url = '{% url "exportar_desempeno_tecnico_pdf" %}';
+    const params = new URLSearchParams();
+    if (sucursalId) params.append('sucursal', sucursalId);
+    if (departamentoId) params.append('departamento', departamentoId);
+    if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+    if (fechaFin) params.append('fecha_fin', fechaFin);
+
+    if (params.toString()) {
+        url += '?' + params.toString();
+    }
+    window.open(url, '_blank');
+});
+document.getElementById('exportarPdfTicketsCliente').addEventListener('click', function() {
+    const sucursalId = document.getElementById('sucursal').value;
+    const departamentoId = document.getElementById('departamento').value;
+    const fechaInicio = document.getElementById('fecha_inicio').value;
+    const fechaFin = document.getElementById('fecha_fin').value;
+
+    let url = '{% url "exportar_tickets_por_cliente_pdf" %}';
+    const params = new URLSearchParams();
+    if (sucursalId) params.append('sucursal', sucursalId);
+    if (departamentoId) params.append('departamento', departamentoId);
+    if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+    if (fechaFin) params.append('fecha_fin', fechaFin);
+
+    if (params.toString()) {
+        url += '?' + params.toString();
+    }
+    window.open(url, '_blank');
+});
+document.getElementById('exportarPdfEvaluacionCalidad').addEventListener('click', function() {
+    const sucursalId = document.getElementById('sucursal').value;
+    const departamentoId = document.getElementById('departamento').value;
+    const fechaInicio = document.getElementById('fecha_inicio').value;
+    const fechaFin = document.getElementById('fecha_fin').value;
+
+    let url = '{% url "exportar_evaluacion_calidad_pdf" %}';
+    const params = new URLSearchParams();
+    if (sucursalId) params.append('sucursal', sucursalId);
+    if (departamentoId) params.append('departamento', departamentoId);
+    if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+    if (fechaFin) params.append('fecha_fin', fechaFin);
+
+    if (params.toString()) {
+        url += '?' + params.toString();
+    }
+    window.open(url, '_blank');
+});
+
     });
+    
 </script>
 </body>
 </html>
